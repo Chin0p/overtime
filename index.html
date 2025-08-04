@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Overtime</title>
+  <!-- <link rel="stylesheet" href="styles.css"> -->
+  <!-- <script src="./libs/jspdf.umd.min.js"></script>
+  <script src="./libs/jspdf.plugin.autotable.min.js"></script> -->
+  <!-- <script type="module" src="./main.js"></script> -->
+</head>
+
+<body>
+  <div class="main-container">
+    <div class="left-section">
+      <!-- <h1>Overtime Records</h1> -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Sr.</th>
+              <th>Date</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+              <th>Hours</th>
+              <th>Amount</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="overtimeData">
+            <tr> <!-- rows will be populated here -->
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="4">Total</th>
+              <th id='totalHours'></th>
+              <th id="totalPay"></th>
+              <th></th> <!-- Remarks cell -->
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="right-section">
+      <div class="employee-container">
+        <!-- <h1>Employee Info</h1> -->
+        <select id="employeeSelect">
+          <option>Select Employee</option>
+        </select>
+        <ul class="employee-info">
+          <li><strong>Name:</strong><span></span></li>
+          <li><strong>Employee ID:</strong><span></span></li>
+          <li><strong>Designation:</strong><span></span></li>
+          <li><strong>Basic Pay:</strong><span></span></li>
+          <li><strong>Rate/Holiday:</strong><span></span></li>
+          <li><strong>Rate/Hour:</strong><span></span></li>
+          <li><strong>Max Rate/Day:</strong><span></span></li>
+        </ul>
+      </div>
+
+      <div class="button-container">
+        <input id="file-upload" type="file" name="file" accept=".csv" hidden>
+        <label for="file-upload" class="file-label">Choose CSV File</label>
+        <button id="processBtn">Process</button>
+
+        <button id="genReport">Generate Report</button>
+      </div>
+    </div>
+  </div>
+  <script src="bundle.js"></script>
+</body>
+
+</html>

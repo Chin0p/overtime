@@ -1,0 +1,315 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+/* overall two-column layout centered horizontally */
+.main-container {
+    display: flex;
+    gap: 40px;
+    padding: 20px;
+    box-sizing: border-box;
+    /*min-height: 100vh;*/
+    background: #1a1a1a;
+    font-family: sans-serif;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* left section full height */
+.left-section {
+    flex: 1;
+    max-width: 600px;
+    max-height: calc(100vh - 75px);
+    min-height: 20vh;
+    border: 1px solid #555555;
+    border-radius: 12px;
+    background: #2d2d2d;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Table container with scroll */
+.table-container {
+    width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* right section centered vertically */
+.right-section {
+    flex: 1;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    /* min-height: calc(100vh - 40px); */
+    position: sticky;
+    top: 20px;
+}
+
+/* child containers */
+.employee-container,
+.button-container {
+    width: 100%;
+    border: 1px solid #555555;
+    border-radius: 12px;
+    background: #2d2d2d;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+/* headers */
+h1 {
+    margin: 0 0 16px;
+    font-size: 1.5rem;
+    color: #ffffff;
+    text-align: center;
+}
+
+table {
+    width: 100%;
+    border: 1px solid #555555;
+    border-collapse: collapse;
+    background: #333333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th,
+td {
+    border: 1px solid #555555;
+    padding: 8px;
+    text-align: center;
+    white-space: nowrap;
+    color: #e0e0e0;
+}
+
+th {
+    background: #404040;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+tfoot th,
+tfoot td {
+    background: #4a4a4a;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+/* employee info list */
+.employee-info {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.employee-info li {
+    margin: 4px 0;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    color: #b0b0b0;
+    padding: 4px 0;
+    border-bottom: 1px solid #555555;
+}
+
+.employee-info li:last-child {
+    border-bottom: none;
+}
+
+.employee-info strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* file label button - fixed width consistency */
+.file-label {
+    display: block;
+    border: none;
+    border-radius: 8px;
+    background: #6366f1;
+    color: #fff;
+    padding: 10px 16px;
+    font-size: 1rem;
+    margin: 8px 0;
+    cursor: pointer;
+    width: 80%;
+    text-align: center;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.file-label:hover {
+    background: #5855eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+/* process button */
+.button-container button {
+    border: none;
+    border-radius: 8px;
+    background: #6366f1;
+    color: #fff;
+    padding: 10px 16px;
+    font-size: 1rem;
+    margin: 8px 0;
+    cursor: pointer;
+    width: 80%;
+    text-align: center;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.button-container button:hover {
+    background: #5855eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+button:disabled {
+    background-color: #666666 !important;
+    cursor: not-allowed;
+    transform: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+}
+
+button:disabled:hover {
+    background-color: #666666 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+button:disabled:active {
+    background-color: #666666 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.holiday-row td {
+    font-weight: bold;
+}
+
+/* select styling for both containers */
+.button-container select,
+.employee-container select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: 1px solid #555555;
+    border-radius: 8px;
+    background: #404040;
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+    color: #e0e0e0;
+    padding: 10px 30px 10px 16px;
+    font-size: 1rem;
+    margin: 8px 0;
+    width: 80%;
+    text-align: center;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.button-container select:hover,
+.employee-container select:hover {
+    border-color: #6366f1;
+    background-color: #4a4a4a;
+}
+
+.button-container select:focus,
+.employee-container select:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    background-color: #4a4a4a;
+}
+
+.button-container select option,
+.employee-container select option {
+    background-color: #404040;
+    color: #e0e0e0;
+}
+
+/* click effect for file label and button */
+.file-label:active,
+.button-container button:active {
+    transform: scale(0.95);
+}
+
+.error {
+    background-color: #ef4444 !important;
+    color: white;
+}
+
+.pay-empty {
+    color: #ef4444;
+    font-style: italic;
+}
+
+/* CSS-only spinner */
+.spinning {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 3px solid #e0e0e0;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.button-container button.spinning-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+}
+
+/* Scrollbar Styling for Webkit browsers */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #555555;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #666666;
+}
