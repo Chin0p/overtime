@@ -1,0 +1,6 @@
+{
+  "name": "Overtime Manager",
+  "description": "A comprehensive overtime calculation and PDF report generation tool for NADRA RHO Islamabad, featuring automated CSV parsing, policy-based calculation, and smart-scaling PDF exports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

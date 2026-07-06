@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #131314;
+  --color-surface: #1e1e20;
+  --color-surface-hover: #2a2a2c;
+  --color-accent: var(--accent-color, #ffffff);
+  --color-accent-hover: var(--accent-color-hover, #f0f0f0);
+  --color-accent-active: var(--accent-color-active, #e0e0e0);
+  
+  /* Muted text colors */
+  --color-muted: #cbd5e1;
+  --color-muted-dim: #94a3b8;
+
+  /* Custom font size */
+  --font-size-2xs: 0.6875rem;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+@layer utilities {
+  .btn-click {
+    transition: transform 0.1s ease-out;
+    &:active:not(:disabled) {
+      transform: scaleX(0.96);
+    }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-gray-100;
+  }
+}
+
+/* Hide number input arrows */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Prevent scroll-to-change on number inputs */
+input[type=number] {
+  pointer-events: auto;
+}
