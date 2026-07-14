@@ -35,12 +35,12 @@ export function PDFTab({ pdf, onChange }: PDFTabProps) {
           </div>
         </div>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1">
               <div className="text-sm font-bold text-white">Page Size</div>
               <div className="text-xs text-muted mt-0.5">{currentSize.description}</div>
             </div>
-            <div className="relative flex items-center w-24">
+            <div className="relative flex items-center w-full sm:w-24 shrink-0">
               <select
                 value={pdf.pageSize}
                 onChange={(e) => onChange({ ...pdf, pageSize: e.target.value })}
@@ -59,18 +59,20 @@ export function PDFTab({ pdf, onChange }: PDFTabProps) {
               </div>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1">
               <div className="text-sm font-bold text-white">Margin Size</div>
               <div className="text-xs text-muted mt-0.5">Page margins in millimeters</div>
             </div>
-            <NumberInput
-              value={pdf.margin}
-              onChange={(val) => onChange({ ...pdf, margin: val })}
-              min={5}
-              max={50}
-              suffix="mm"
-            />
+            <div className="shrink-0">
+              <NumberInput
+                value={pdf.margin}
+                onChange={(val) => onChange({ ...pdf, margin: val })}
+                min={5}
+                max={50}
+                suffix="mm"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -80,57 +82,65 @@ export function PDFTab({ pdf, onChange }: PDFTabProps) {
       <section>
         <h3 className="text-md font-bold text-muted mb-4">Typography & Spacing</h3>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1">
               <div className="text-sm font-bold text-white">Table Font Size</div>
               <div className="text-xs text-muted mt-0.5">Size of text inside PDF tables</div>
             </div>
-            <NumberInput
-              value={pdf.tableFontSize}
-              onChange={(val) => onChange({ ...pdf, tableFontSize: val })}
-              min={6}
-              max={14}
-              suffix="pt"
-            />
+            <div className="shrink-0">
+              <NumberInput
+                value={pdf.tableFontSize}
+                onChange={(val) => onChange({ ...pdf, tableFontSize: val })}
+                min={6}
+                max={14}
+                suffix="pt"
+              />
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1">
               <div className="text-sm font-bold text-white">Label Font Size</div>
               <div className="text-xs text-muted mt-0.5">Size of employee details labels</div>
             </div>
-            <NumberInput
-              value={pdf.labelFontSize}
-              onChange={(val) => onChange({ ...pdf, labelFontSize: val })}
-              min={6}
-              max={16}
-              suffix="pt"
-            />
+            <div className="shrink-0">
+              <NumberInput
+                value={pdf.labelFontSize}
+                onChange={(val) => onChange({ ...pdf, labelFontSize: val })}
+                min={6}
+                max={16}
+                suffix="pt"
+              />
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1">
               <div className="text-sm font-bold text-white">Header Font Size</div>
               <div className="text-xs text-muted mt-0.5">Size of section headers</div>
             </div>
-            <NumberInput
-              value={pdf.headerFontSize}
-              onChange={(val) => onChange({ ...pdf, headerFontSize: val })}
-              min={8}
-              max={20}
-              suffix="pt"
-            />
+            <div className="shrink-0">
+              <NumberInput
+                value={pdf.headerFontSize}
+                onChange={(val) => onChange({ ...pdf, headerFontSize: val })}
+                min={8}
+                max={20}
+                suffix="pt"
+              />
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1">
               <div className="text-sm font-bold text-white">Cell Padding</div>
               <div className="text-xs text-muted mt-0.5">Internal spacing for table cells</div>
             </div>
-            <NumberInput
-              value={pdf.cellPadding}
-              onChange={(val) => onChange({ ...pdf, cellPadding: val })}
-              min={1}
-              max={10}
-              suffix="mm"
-            />
+            <div className="shrink-0">
+              <NumberInput
+                value={pdf.cellPadding}
+                onChange={(val) => onChange({ ...pdf, cellPadding: val })}
+                min={1}
+                max={10}
+                suffix="mm"
+              />
+            </div>
           </div>
         </div>
       </section>

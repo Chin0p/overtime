@@ -18,7 +18,6 @@ export interface EmployeeRow {
 
 export interface ParsedCSV {
   dates: string[];
-  officeTimings: Record<string, OfficeTiming>;
   employees: EmployeeRow[];
 }
 
@@ -31,6 +30,10 @@ export type ColumnId = 'Worked (OT)' | 'Adjustment' | 'Office Timing' | 'Total H
 
 export interface OTSettings {
   policy: {
+    officeTiming: {
+      start: string;
+      end: string;
+    };
     minThreshold: number;
     lateArrivalToggle: boolean;
     official: {
@@ -50,7 +53,6 @@ export interface OTSettings {
     fontSize: number;
     fontFamily: string;
     accentColor: string;
-    visibleColumns: ColumnId[];
   };
   pdf: {
     tableFontSize: number;

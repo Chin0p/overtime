@@ -57,6 +57,26 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
         <h3 className="text-md font-bold text-muted mb-6">Common rules</h3>
         <div className="space-y-6">
           <SettingRow
+            title="Office timings"
+            description="Global standard office timings for all employees."
+          >
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={policy.officeTiming?.start || '09:00'}
+                onChange={(e) => onChange({ ...policy, officeTiming: { ...policy.officeTiming, start: e.target.value } })}
+                className="w-24 px-3 py-1.5 bg-background border border-white/10 rounded-lg text-sm text-white focus:ring-2 focus:ring-white/20 outline-none"
+              />
+              <span className="text-muted-dim">to</span>
+              <input
+                type="time"
+                value={policy.officeTiming?.end || '17:00'}
+                onChange={(e) => onChange({ ...policy, officeTiming: { ...policy.officeTiming, end: e.target.value } })}
+                className="w-24 px-3 py-1.5 bg-background border border-white/10 rounded-lg text-sm text-white focus:ring-2 focus:ring-white/20 outline-none"
+              />
+            </div>
+          </SettingRow>
+          <SettingRow
             title="Min overtime threshold"
             description="Minimum overtime hours required to be eligible for payment."
           >
@@ -200,7 +220,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
 
 function SettingRow({ title, description, children }: { title: string, description: string, children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-8">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
       <div className="flex-1">
         <h4 className="text-sm font-bold text-white">{title}</h4>
         <p className="text-xs text-muted mt-1 leading-relaxed">{description}</p>

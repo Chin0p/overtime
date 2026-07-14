@@ -13,9 +13,25 @@ export function useSettings() {
     }
   };
 
-  const [policy, setPolicy] = useState<OTSettings['policy']>(() => 
-    getSafeStorage(STORAGE_KEYS.POLICY, DEFAULT_SETTINGS.policy)
-  );
+  const [policy, setPolicy] = useState<OTSettings['policy']>(() => {
+    const saved = getSafeStorage(STORAGE_KEYS.POLICY, DEFAULT_SETTINGS.policy);
+    return {
+      ...DEFAULT_SETTINGS.policy,
+      ...saved,
+      officeTiming: {
+        ...DEFAULT_SETTINGS.policy.officeTiming,
+        ...(saved?.officeTiming || {})
+      },
+      support: {
+        ...DEFAULT_SETTINGS.policy.support,
+        ...(saved?.support || {})
+      },
+      official: {
+        ...DEFAULT_SETTINGS.policy.official,
+        ...(saved?.official || {})
+      }
+    };
+  });
 
   const [appearance, setAppearance] = useState<OTSettings['appearance']>(() => 
     getSafeStorage(STORAGE_KEYS.APPEARANCE, DEFAULT_SETTINGS.appearance)

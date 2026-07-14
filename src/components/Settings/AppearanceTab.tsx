@@ -1,7 +1,4 @@
-import { Check } from 'lucide-react';
-import { OTSettings, ColumnId } from '../../types';
-import { cn } from '../../lib/utils';
-import { NumberInput } from '../ui/NumberInput';
+import { OTSettings } from '../../types';
 
 interface AppearanceTabProps {
   appearance: OTSettings['appearance'];
@@ -9,26 +6,11 @@ interface AppearanceTabProps {
 }
 
 export function AppearanceTab({ appearance, onChange }: AppearanceTabProps) {
-  const columns: ColumnId[] = ['Worked (OT)', 'Adjustment', 'Office Timing', 'Total Hours Worked'];
-  
-  const toggleColumn = (id: ColumnId) => {
-    const current = new Set(appearance.visibleColumns);
-    if (current.has(id)) {
-      current.delete(id);
-    } else {
-      current.add(id);
-    }
-    onChange({
-      ...appearance,
-      visibleColumns: Array.from(current)
-    });
-  };
-
   return (
     <div className="space-y-8">
       {/* Accent Color Section */}
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
           <div>
             <h3 className="text-md font-bold text-muted">Accent Color</h3>
             <p className="text-sm text-muted mt-1">Choose a primary color for buttons and highlights.</p>
@@ -54,39 +36,6 @@ export function AppearanceTab({ appearance, onChange }: AppearanceTabProps) {
               />
             </div>
           </div>
-        </div>
-      </section>
-
-      <div className="h-px bg-white/5" />
-
-      {/* Table Columns Section */}
-      <section>
-        <h3 className="text-md font-bold text-muted mb-4">Table Columns</h3>
-        <p className="text-xs text-muted mb-4">Select which optional columns should be visible in the records table.</p>
-        <div className="grid grid-cols-2 gap-2">
-          {columns.map(id => {
-            const isVisible = appearance.visibleColumns.includes(id);
-            return (
-              <button
-                key={id}
-                onClick={() => toggleColumn(id)}
-                className={cn(
-                  "flex items-center gap-3 p-3 rounded-xl border text-left",
-                  isVisible 
-                    ? "bg-white/5 border-white/20 text-white" 
-                    : "bg-surface-hover/50 border-white/5 text-muted hover:bg-surface-hover"
-                )}
-              >
-                <div className={cn(
-                  "w-4 h-4 rounded border flex items-center justify-center shrink-0",
-                  isVisible ? "bg-accent border-accent" : "border-white/20"
-                )}>
-                  {isVisible && <Check size={10} className="text-black" />}
-                </div>
-                <span className="text-sm font-medium">{id}</span>
-              </button>
-            );
-          })}
         </div>
       </section>
     </div>

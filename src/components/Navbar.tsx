@@ -44,8 +44,8 @@ export function Navbar({ onUpload, onSettingsClick, onExportClick, hasData }: Na
   };
 
   return (
-    <nav className="fixed top-0 left-0 w-full h-16 bg-surface/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 shrink-0 z-50">
-      <div className="flex items-center gap-3">
+    <nav className="w-full md:h-16 py-4 md:py-0 bg-surface/80 backdrop-blur-md border-b border-white/5 flex flex-col md:flex-row items-stretch md:items-center justify-between px-4 md:px-6 shrink-0 z-50 gap-4 md:gap-0">
+      <div className="flex items-center gap-3 justify-center md:justify-start">
         <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center text-black shadow-lg shadow-accent/10">
           <FileText size={22} />
         </div>
@@ -55,7 +55,7 @@ export function Navbar({ onUpload, onSettingsClick, onExportClick, hasData }: Na
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
         <input
           type="file"
           ref={fileInputRef}
@@ -67,7 +67,7 @@ export function Navbar({ onUpload, onSettingsClick, onExportClick, hasData }: Na
 
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
+          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
           aria-label="Click to upload a CSV file"
         >
           <Upload size={18} aria-hidden="true" />
@@ -76,19 +76,19 @@ export function Navbar({ onUpload, onSettingsClick, onExportClick, hasData }: Na
         
         <button
           onClick={onSettingsClick}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
+          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
           aria-label="Open Settings"
         >
           <Settings size={18} aria-hidden="true" />
           <span>Settings</span>
         </button>
 
-        <div className="w-px h-6 bg-white/5 mx-2" aria-hidden="true" />
+        <div className="hidden md:block w-px h-6 bg-white/5 mx-2" aria-hidden="true" />
 
         <button
           onClick={onExportClick}
           disabled={!hasData}
-          className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-black bg-accent hover:bg-accent-hover disabled:bg-white/5 disabled:text-muted-dim disabled:cursor-not-allowed rounded-lg btn-click"
+          className="flex items-center justify-center gap-2 px-5 py-3 md:py-2 text-sm font-bold text-black bg-accent hover:bg-accent-hover disabled:bg-white/5 disabled:text-muted-dim disabled:cursor-not-allowed rounded-lg btn-click mt-2 md:mt-0"
           aria-label="Export generated report as PDF"
         >
           <Download size={18} aria-hidden="true" />

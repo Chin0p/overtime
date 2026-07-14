@@ -2,6 +2,10 @@ import { OTSettings } from './types';
 
 export const DEFAULT_SETTINGS: OTSettings = {
   policy: {
+    officeTiming: {
+      start: '09:00',
+      end: '17:00'
+    },
     minThreshold: 1,
     lateArrivalToggle: false,
     official: {
@@ -21,7 +25,6 @@ export const DEFAULT_SETTINGS: OTSettings = {
     fontSize: 10,
     fontFamily: 'helvetica',
     accentColor: '#ffffff',
-    visibleColumns: ['Worked (OT)', 'Adjustment'],
   },
   pdf: {
     tableFontSize: 9,

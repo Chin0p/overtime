@@ -13,7 +13,7 @@ import { DetailPanel } from './components/DetailPanel/DetailPanel';
 import { SettingsModal } from './components/Settings/SettingsModal';
 import { buildPDF } from './pdf/buildPDF';
 import { format } from 'date-fns';
-import { flexibleParseDate } from './lib/utils';
+import { flexibleParseDate, cn } from './lib/utils';
 
 export default function App() {
   const { policy, appearance, pdf, basicPay, holidays, saveSettings } = useSettings();
@@ -21,6 +21,7 @@ export default function App() {
   const [uploadedData, setUploadedData] = useState<ParsedCSV | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedErp, setSelectedErp] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +97,7 @@ export default function App() {
       }
       setUploadedData(data);
       setError(null);
+      setMobileView('list');
       if (processed.length > 0) {
         setSelectedErp(processed[0].erp);
       }
@@ -114,7 +116,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen bg-background text-gray-100 font-sans overflow-hidden relative">
+    <div className="h-screen bg-background text-gray-100 font-sans overflow-hidden flex flex-col relative">
       <Navbar 
         onUpload={handleUpload}
         onSettingsClick={() => setIsSettingsOpen(true)}
@@ -122,24 +124,46 @@ export default function App() {
         hasData={processedEmployees.length > 0}
       />
       
-      <main className="flex h-full relative">
-        <div className="pt-16 flex shrink-0">
+      <main className="flex-1 flex overflow-hidden relative">
+        <div className={cn(
+          "shrink-0 h-full w-full md:w-auto border-r border-white/5",
+          (mobileView === 'detail' && selectedEmployee) ? "hidden md:flex" : "flex",
+          (!uploadedData) ? "hidden md:flex" : "" // Hide sidebar if no data on mobile
+        )}>
           <Sidebar 
             employees={filteredEmployees}
             selectedErp={selectedErp}
-            onSelect={setSelectedErp}
+            onSelect={(id) => {
+              setSelectedErp(id);
+              setMobileView('detail');
+            }}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
           />
         </div>
         
-        <div className="flex-1 overflow-y-auto pt-16">
+        <div className={cn(
+          "flex-1 h-full overflow-y-auto",
+          (mobileView === 'list' && processedEmployees.length > 0) ? "hidden md:block" : "block"
+        )}>
           {selectedEmployee ? (
-            <DetailPanel 
-              employee={selectedEmployee} 
-              monthLabel={monthLabel}
-              appearance={appearance}
-            />
+            <div className="flex flex-col h-full relative">
+              <div className="md:hidden p-4 border-b border-white/5 shrink-0 bg-surface">
+                <button 
+                  onClick={() => setMobileView('list')}
+                  className="flex items-center gap-2 text-sm font-bold text-accent hover:text-accent-hover transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to List
+                </button>
+              </div>
+              <DetailPanel 
+                employee={selectedEmployee} 
+                monthLabel={monthLabel}
+              />
+            </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-gray-600 p-8 text-center">
               <div className="w-16 h-16 mb-4 opacity-10">

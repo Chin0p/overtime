@@ -15,8 +15,12 @@ export function processEmployees(
   basicPayMap: Record<string, number>,
   gazettedHolidays: Holiday[]
 ): ProcessedEmployee[] {
-  const { employees, officeTimings, dates } = data;
+  const { employees, dates } = data;
   const { policy } = settings;
+
+  const globalOfficeStart = parseHHMM(policy.officeTiming?.start || '09:00');
+  const globalOfficeEnd = parseHHMM(policy.officeTiming?.end || '17:00');
+  const globalOfficeDuration = globalOfficeEnd - globalOfficeStart;
 
   return employees.map(emp => {
     const isSupport = policy.support.designations.some(d => 
@@ -27,7 +31,6 @@ export function processEmployees(
 
     dates.forEach(dateStr => {
       const attendance = emp.attendance[dateStr];
-      const timing = officeTimings[dateStr];
       const holidayName = getHolidayName(dateStr, gazettedHolidays);
       const isDayHoliday = holidayName !== null;
       
@@ -40,10 +43,10 @@ export function processEmployees(
       const timeIn = parseHHMM(attendance.timeIn);
       const timeOut = parseHHMM(attendance.timeOut);
       const totalWorkedHours = Math.max(0, timeOut - timeIn);
-      const officeEnd = timing ? parseHHMM(timing.end) : 16.5;
+      const officeEnd = globalOfficeEnd;
       const workedHours = timeOut - officeEnd; 
-      const officeHours = timing?.durationHours || 8;
-      const officeStart = timing ? parseHHMM(timing.start) : 8.5;
+      const officeHours = globalOfficeDuration;
+      const officeStart = globalOfficeStart;
 
       let otHours = 0;
       let amount = 0;
@@ -87,7 +90,7 @@ export function processEmployees(
           totalWorkedHours,
           workedHours,
           officeHours,
-          officeTiming: timing ? `${timing.start.replace(':', '')}-${timing.end.replace(':', '')}` : undefined,
+          officeTiming: `${(policy.officeTiming?.start || '09:00').replace(':', '')}-${(policy.officeTiming?.end || '17:00').replace(':', '')}`,
           otHours,
           adjustment,
           amount,

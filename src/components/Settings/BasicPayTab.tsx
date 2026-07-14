@@ -30,7 +30,7 @@ export function BasicPayTab({ basicPay, employees, supportDesignations, onChange
             const isSupport = supportDesignations.some(d => emp.designation.toLowerCase().includes(d.toLowerCase()));
             
             return (
-              <div key={emp.erp} className="flex items-center gap-4 p-3 bg-surface-hover/50 border border-white/5 rounded-xl">
+              <div key={emp.erp} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 bg-surface-hover/50 border border-white/5 rounded-xl">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold text-white truncate mb-1">{emp.name}</div>
                   <div className="text-xs text-muted font-mono select-none">{emp.erp} • {emp.designation}</div>

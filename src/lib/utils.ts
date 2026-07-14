@@ -41,10 +41,18 @@ export function flexibleParseDate(dateStr: string): Date {
   let date = parse(normalized, 'dd-MMM-yyyy', new Date());
   if (isValid(date) && date.getFullYear() > 2000) return date;
 
+  // Try dd-MMM-yy (e.g. 12-Jan-25)
+  date = parse(normalized, 'dd-MMM-yy', new Date());
+  if (isValid(date) && date.getFullYear() > 2000) return date;
+
   // Try dd-MM-yyyy (e.g. 12-01-2025)
   date = parse(normalized, 'dd-MM-yyyy', new Date());
   if (isValid(date) && date.getFullYear() > 2000) return date;
   
+  // Try dd-MM-yy (e.g. 12-01-25)
+  date = parse(normalized, 'dd-MM-yy', new Date());
+  if (isValid(date) && date.getFullYear() > 2000) return date;
+
   // Try MM-dd-yyyy
   date = parse(normalized, 'MM-dd-yyyy', new Date());
   if (isValid(date) && date.getFullYear() > 2000) return date;
