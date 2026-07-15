@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ProcessedEmployee, OTSettings, ColumnId } from '../../types';
 import { EmployeeHeader } from './EmployeeHeader';
 import { RecordsTable } from './RecordsTable';
-import { ArrowDownAZ, ArrowUpZA, LayoutList, LayoutGrid, Check, Columns } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpZA, LayoutList, LayoutGrid, Check, Columns, Filter } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface DetailPanelProps {
@@ -18,6 +18,23 @@ export function DetailPanel({ employee, monthLabel }: DetailPanelProps) {
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const [visibleColumns, setVisibleColumns] = useState<ColumnId[]>(['Worked (OT)', 'Adjustment', 'Total Hours Worked']);
   const [showColumns, setShowColumns] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const filterRef = useRef<HTMLDivElement>(null);
+  const columnsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setShowFilters(false);
+      }
+      if (columnsRef.current && !columnsRef.current.contains(event.target as Node)) {
+        setShowColumns(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleColumn = (id: ColumnId) => {
     setVisibleColumns(prev => 
@@ -53,38 +70,16 @@ export function DetailPanel({ employee, monthLabel }: DetailPanelProps) {
     <div className="min-h-full bg-background flex flex-col">
       <EmployeeHeader employee={employee} monthLabel={monthLabel} />
       
-      <div className="p-6 flex-1 flex flex-col">
-        <div className="max-w-6xl mx-auto w-full space-y-4 flex-1 flex flex-col">
+      <div className="py-4 md:p-6 flex-1 flex flex-col px-0 md:px-6">
+        <div className="max-w-6xl mx-auto w-full space-y-2 md:space-y-4 flex-1 flex flex-col">
           
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-surface rounded-xl border border-white/5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="flex bg-background border border-white/10 rounded-lg p-1">
-                <button
-                  onClick={() => setFilter('all')}
-                  className={cn("px-3 py-1.5 text-xs font-bold rounded-md transition-all", filter === 'all' ? "bg-accent text-black shadow-sm" : "text-muted hover:text-white")}
-                >
-                  All Days
-                </button>
-                <button
-                  onClick={() => setFilter('ot_only')}
-                  className={cn("px-3 py-1.5 text-xs font-bold rounded-md transition-all", filter === 'ot_only' ? "bg-accent text-black shadow-sm" : "text-muted hover:text-white")}
-                >
-                  Eligible (OT + Hol)
-                </button>
-                <button
-                  onClick={() => setFilter('holidays')}
-                  className={cn("px-3 py-1.5 text-xs font-bold rounded-md transition-all", filter === 'holidays' ? "bg-accent text-black shadow-sm" : "text-muted hover:text-white")}
-                >
-                  Holidays Only
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
+          <div className="flex flex-nowrap items-center justify-end gap-2 md:gap-4 px-4 md:px-0 shrink-0">
+            
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
               <div className="flex items-center bg-background border border-white/10 rounded-lg p-1">
                 <button
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="p-1.5 text-muted hover:text-white hover:bg-white/5 rounded-md transition-all"
+                  className="p-1.5 text-muted hover:text-white hover:bg-white/5 rounded-md transition-all btn-click"
                   title="Toggle Sort Order"
                 >
                   {sortOrder === 'asc' ? <ArrowDownAZ size={16} /> : <ArrowUpZA size={16} />}
@@ -92,31 +87,67 @@ export function DetailPanel({ employee, monthLabel }: DetailPanelProps) {
                 <div className="w-px h-4 bg-white/10 mx-1" />
                 <button
                   onClick={() => setDensity('comfortable')}
-                  className={cn("p-1.5 rounded-md transition-all", density === 'comfortable' ? "bg-white/10 text-white" : "text-muted hover:text-white hover:bg-white/5")}
+                  className={cn("p-1.5 rounded-md transition-all btn-click", density === 'comfortable' ? "bg-white/10 text-white" : "text-muted hover:text-white hover:bg-white/5")}
                   title="Comfortable Density"
                 >
                   <LayoutList size={16} />
                 </button>
                 <button
                   onClick={() => setDensity('compact')}
-                  className={cn("p-1.5 rounded-md transition-all", density === 'compact' ? "bg-white/10 text-white" : "text-muted hover:text-white hover:bg-white/5")}
+                  className={cn("p-1.5 rounded-md transition-all btn-click", density === 'compact' ? "bg-white/10 text-white" : "text-muted hover:text-white hover:bg-white/5")}
                   title="Compact Density"
                 >
                   <LayoutGrid size={16} />
                 </button>
               </div>
 
-              <div className="relative">
+              <div className="relative" ref={filterRef}>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={cn("flex items-center gap-2 px-3 py-2 bg-background border rounded-lg text-xs font-bold transition-all btn-click", showFilters ? "border-accent text-accent" : "border-white/10 text-muted hover:text-white")}
+                >
+                  <Filter size={16} />
+                  <span className="hidden sm:inline">Filter</span>
+                </button>
+                
+                {showFilters && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-white/10 rounded-xl shadow-xl z-[100] p-2 flex flex-col gap-1">
+                    <button
+                      onClick={() => { setFilter('all'); setShowFilters(false); }}
+                      className={cn("flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all text-left", filter === 'all' ? "bg-white/5 text-white" : "text-muted hover:bg-white/5 hover:text-white")}
+                    >
+                      All Days
+                      {filter === 'all' && <Check size={14} className="text-accent" />}
+                    </button>
+                    <button
+                      onClick={() => { setFilter('ot_only'); setShowFilters(false); }}
+                      className={cn("flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all text-left", filter === 'ot_only' ? "bg-white/5 text-white" : "text-muted hover:bg-white/5 hover:text-white")}
+                    >
+                      Eligible (OT + Hol)
+                      {filter === 'ot_only' && <Check size={14} className="text-accent" />}
+                    </button>
+                    <button
+                      onClick={() => { setFilter('holidays'); setShowFilters(false); }}
+                      className={cn("flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all text-left", filter === 'holidays' ? "bg-white/5 text-white" : "text-muted hover:bg-white/5 hover:text-white")}
+                    >
+                      Holidays Only
+                      {filter === 'holidays' && <Check size={14} className="text-accent" />}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative" ref={columnsRef}>
                 <button
                   onClick={() => setShowColumns(!showColumns)}
-                  className={cn("flex items-center gap-2 px-3 py-2 bg-background border rounded-lg text-xs font-bold transition-all", showColumns ? "border-accent text-accent" : "border-white/10 text-muted hover:text-white")}
+                  className={cn("flex items-center gap-2 px-3 py-2 bg-background border rounded-lg text-xs font-bold transition-all btn-click", showColumns ? "border-accent text-accent" : "border-white/10 text-muted hover:text-white")}
                 >
                   <Columns size={16} />
-                  Columns
+                  <span className="hidden sm:inline">Columns</span>
                 </button>
                 
                 {showColumns && (
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-white/10 rounded-xl shadow-xl z-50 p-2 flex flex-col gap-1">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-white/10 rounded-xl shadow-xl z-[100] p-2 flex flex-col gap-1">
                     {ALL_COLUMNS.map(col => {
                       const isVisible = visibleColumns.includes(col);
                       return (

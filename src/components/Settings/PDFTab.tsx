@@ -35,12 +35,12 @@ export function PDFTab({ pdf, onChange }: PDFTabProps) {
           </div>
         </div>
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
-            <div className="flex-1">
-              <div className="text-sm font-bold text-white">Page Size</div>
-              <div className="text-xs text-muted mt-0.5">{currentSize.description}</div>
+          <div className="flex flex-row items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-sm font-bold text-white truncate">Page Size</div>
+              <div className="text-xs text-muted mt-0.5 line-clamp-2 md:line-clamp-none">{currentSize.description}</div>
             </div>
-            <div className="relative flex items-center w-full sm:w-24 shrink-0">
+            <div className="relative flex items-center w-24 shrink-0">
               <select
                 value={pdf.pageSize}
                 onChange={(e) => onChange({ ...pdf, pageSize: e.target.value })}
@@ -59,10 +59,10 @@ export function PDFTab({ pdf, onChange }: PDFTabProps) {
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
-            <div className="flex-1">
-              <div className="text-sm font-bold text-white">Margin Size</div>
-              <div className="text-xs text-muted mt-0.5">Page margins in millimeters</div>
+          <div className="flex flex-row items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-sm font-bold text-white truncate">Margin Size</div>
+              <div className="text-xs text-muted mt-0.5 line-clamp-2 md:line-clamp-none">Page margins in millimeters</div>
             </div>
             <div className="shrink-0">
               <NumberInput
@@ -82,10 +82,10 @@ export function PDFTab({ pdf, onChange }: PDFTabProps) {
       <section>
         <h3 className="text-md font-bold text-muted mb-4">Typography & Spacing</h3>
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
-            <div className="flex-1">
-              <div className="text-sm font-bold text-white">Table Font Size</div>
-              <div className="text-xs text-muted mt-0.5">Size of text inside PDF tables</div>
+          <div className="flex flex-row items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-sm font-bold text-white truncate">Table Font Size</div>
+              <div className="text-xs text-muted mt-0.5 line-clamp-2 md:line-clamp-none">Size of text inside PDF tables</div>
             </div>
             <div className="shrink-0">
               <NumberInput
@@ -97,10 +97,10 @@ export function PDFTab({ pdf, onChange }: PDFTabProps) {
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
-            <div className="flex-1">
-              <div className="text-sm font-bold text-white">Label Font Size</div>
-              <div className="text-xs text-muted mt-0.5">Size of employee details labels</div>
+          <div className="flex flex-row items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-sm font-bold text-white truncate">Label Font Size</div>
+              <div className="text-xs text-muted mt-0.5 line-clamp-2 md:line-clamp-none">Size of employee details labels</div>
             </div>
             <div className="shrink-0">
               <NumberInput
@@ -112,10 +112,10 @@ export function PDFTab({ pdf, onChange }: PDFTabProps) {
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
-            <div className="flex-1">
-              <div className="text-sm font-bold text-white">Header Font Size</div>
-              <div className="text-xs text-muted mt-0.5">Size of section headers</div>
+          <div className="flex flex-row items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-sm font-bold text-white truncate">Header Font Size</div>
+              <div className="text-xs text-muted mt-0.5 line-clamp-2 md:line-clamp-none">Size of section headers</div>
             </div>
             <div className="shrink-0">
               <NumberInput
@@ -127,10 +127,10 @@ export function PDFTab({ pdf, onChange }: PDFTabProps) {
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
-            <div className="flex-1">
-              <div className="text-sm font-bold text-white">Cell Padding</div>
-              <div className="text-xs text-muted mt-0.5">Internal spacing for table cells</div>
+          <div className="flex flex-row items-center justify-between gap-3 sm:gap-8">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-sm font-bold text-white truncate">Cell Padding</div>
+              <div className="text-xs text-muted mt-0.5 line-clamp-2 md:line-clamp-none">Internal spacing for table cells</div>
             </div>
             <div className="shrink-0">
               <NumberInput

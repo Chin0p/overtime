@@ -53,6 +53,7 @@ export interface OTSettings {
     fontSize: number;
     fontFamily: string;
     accentColor: string;
+    theme?: 'system' | 'light' | 'dark';
   };
   pdf: {
     tableFontSize: number;

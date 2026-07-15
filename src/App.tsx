@@ -14,6 +14,7 @@ import { SettingsModal } from './components/Settings/SettingsModal';
 import { buildPDF } from './pdf/buildPDF';
 import { format } from 'date-fns';
 import { flexibleParseDate, cn } from './lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const { policy, appearance, pdf, basicPay, holidays, saveSettings } = useSettings();
@@ -25,25 +26,62 @@ export default function App() {
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--accent-color', appearance.accentColor);
+    const baseColor = appearance.accentColor || '#ffffff';
+    root.style.setProperty('--accent-color', baseColor);
     
-    // Safer alpha calculation for accent color
-    let primary = appearance.accentColor;
-    if (!primary.startsWith('#')) {
-      primary = '#ffffff';
+    // Calculate lighter and darker shades for hover and active states
+    const adjustColor = (color: string, amount: number) => {
+      let hex = color.replace('#', '');
+      if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+      
+      const r = Math.min(255, Math.max(0, parseInt(hex.substring(0, 2), 16) + amount));
+      const g = Math.min(255, Math.max(0, parseInt(hex.substring(2, 4), 16) + amount));
+      const b = Math.min(255, Math.max(0, parseInt(hex.substring(4, 6), 16) + amount));
+      
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    };
+
+    root.style.setProperty('--accent-hover-color', adjustColor(baseColor, 30)); // lighter
+    root.style.setProperty('--accent-active-color', adjustColor(baseColor, -30)); // darker
+    
+    // Theme logic
+    const theme = appearance.theme || 'system';
+    const applyTheme = () => {
+      if (theme === 'light') {
+        root.classList.add('light');
+      } else if (theme === 'dark') {
+        root.classList.remove('light');
+      } else {
+        // System
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          root.classList.add('light');
+        } else {
+          root.classList.remove('light');
+        }
+      }
+    };
+
+    applyTheme();
+
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+      const listener = () => applyTheme();
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
     }
-    
-    const hex = primary.replace('#', '');
-    const r = parseInt(hex.substring(0, 2), 16) || 255;
-    const g = parseInt(hex.substring(2, 4), 16) || 255;
-    const b = parseInt(hex.substring(4, 6), 16) || 255;
-    
-    root.style.setProperty('--accent-color-hover', `rgba(${r}, ${g}, ${b}, 0.8)`);
-    root.style.setProperty('--accent-color-active', `rgba(${r}, ${g}, ${b}, 0.6)`);
-  }, [appearance.accentColor]);
+  }, [appearance.accentColor, appearance.theme]);
 
   const processedEmployees = useMemo(() => {
     if (!uploadedData) return [];
@@ -146,35 +184,56 @@ export default function App() {
           "flex-1 h-full overflow-y-auto",
           (mobileView === 'list' && processedEmployees.length > 0) ? "hidden md:block" : "block"
         )}>
-          {selectedEmployee ? (
-            <div className="flex flex-col h-full relative">
-              <div className="md:hidden p-4 border-b border-white/5 shrink-0 bg-surface">
-                <button 
-                  onClick={() => setMobileView('list')}
-                  className="flex items-center gap-2 text-sm font-bold text-accent hover:text-accent-hover transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <AnimatePresence mode="wait">
+            {selectedEmployee ? (
+              <motion.div 
+                key={selectedEmployee.erp}
+                initial={isMobile ? { opacity: 0, x: 20 } : false}
+                animate={isMobile ? { opacity: 1, x: 0 } : false}
+                exit={isMobile ? { opacity: 0, x: -20 } : false}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col h-full relative"
+              >
+                <div className="md:hidden p-4 border-b border-white/5 shrink-0 bg-surface">
+                  <button 
+                    onClick={() => setMobileView('list')}
+                    className="flex items-center gap-2 text-sm font-bold text-accent hover:text-accent-hover transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to List
+                  </button>
+                </div>
+                <DetailPanel 
+                  employee={selectedEmployee} 
+                  monthLabel={monthLabel}
+                />
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full flex flex-col items-center justify-center text-gray-600 p-8 text-center"
+              >
+                <div className="w-16 h-16 mb-4 opacity-10">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                  Back to List
-                </button>
-              </div>
-              <DetailPanel 
-                employee={selectedEmployee} 
-                monthLabel={monthLabel}
-              />
-            </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-gray-600 p-8 text-center">
-              <div className="w-16 h-16 mb-4 opacity-10">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-500">No Employee Selected</h3>
-              <p className="max-w-xs mt-1 text-sm">Upload a CSV or select an employee from the sidebar to view details.</p>
-            </div>
-          )}
+                </div>
+                <h3 className="text-lg font-medium text-gray-500">
+                  {uploadedData ? "No Employee Selected" : "Upload CSV Data"}
+                </h3>
+                <p className="max-w-xs mt-1 text-sm">
+                  {uploadedData 
+                    ? "Select an employee from the sidebar to view details." 
+                    : "Please upload your attendance CSV file to view employee records and generate overtime reports."}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Error Toast */}

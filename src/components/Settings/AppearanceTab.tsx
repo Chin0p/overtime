@@ -8,12 +8,37 @@ interface AppearanceTabProps {
 export function AppearanceTab({ appearance, onChange }: AppearanceTabProps) {
   return (
     <div className="space-y-8">
+      {/* Theme Section */}
+      <section>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
+          <div className="flex-1 pr-2">
+            <h3 className="text-md font-bold text-white">App Theme</h3>
+            <p className="text-xs text-muted mt-1">Select your preferred color theme.</p>
+          </div>
+          <div className="flex items-center bg-background/80 p-1 rounded-xl border border-white/5 shrink-0">
+            {(['system', 'light', 'dark'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => onChange({ ...appearance, theme: t })}
+                className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-all ${
+                  (appearance.theme || 'system') === t
+                    ? 'bg-surface text-white shadow-sm ring-1 ring-white/10'
+                    : 'text-muted hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Accent Color Section */}
       <section>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
-          <div>
-            <h3 className="text-md font-bold text-muted">Accent Color</h3>
-            <p className="text-sm text-muted mt-1">Choose a primary color for buttons and highlights.</p>
+          <div className="flex-1 pr-2">
+            <h3 className="text-md font-bold text-white">Accent Color</h3>
+            <p className="text-xs text-muted mt-1">Choose a primary color for buttons and highlights.</p>
           </div>
           <div className="flex items-center gap-3">
             <div 

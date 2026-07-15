@@ -17,7 +17,7 @@ export function RecordsTable({ records, totalAmount, totalOTHours, visibleColumn
   const headPadding = density === 'compact' ? 'px-2 py-2' : 'px-4 py-3';
 
   return (
-    <div className="bg-background rounded-lg border border-white/5 overflow-hidden shadow-xl flex flex-col">
+    <div className="bg-background rounded-none md:rounded-lg border-y md:border-x border-white/5 md:border-white/5 overflow-hidden shadow-xl flex flex-col">
       <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-accent/40 scrollbar-track-transparent">
         <table className="w-full text-left border-collapse table-auto">
           <thead className="sticky top-0 z-10">

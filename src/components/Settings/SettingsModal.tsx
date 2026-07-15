@@ -135,7 +135,7 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
           </button>
           <button
             onClick={handleSave}
-            className="px-6 py-1.5 text-sm font-medium text-black bg-accent hover:bg-accent-hover rounded-lg btn-click transition-colors"
+            className="px-6 py-1.5 text-sm font-medium text-black bg-accent hover:bg-accent-hover active:bg-accent-active rounded-lg btn-click transition-colors"
           >
             Save changes
           </button>

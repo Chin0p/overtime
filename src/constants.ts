@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS: OTSettings = {
     fontSize: 10,
     fontFamily: 'helvetica',
     accentColor: '#ffffff',
+    theme: 'system',
   },
   pdf: {
     tableFontSize: 9,

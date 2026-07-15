@@ -12,9 +12,9 @@ interface SidebarProps {
 
 export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearchChange }: SidebarProps) {
   return (
-    <aside className="w-80 bg-surface border-r border-white/5 flex flex-col shrink-0">
+    <aside className="w-full md:w-80 bg-surface border-r border-white/5 flex flex-col shrink-0">
       <div className="p-4 border-b border-white/5">
-        <h2 className="text-md font-semibold text-muted tracking-wide mb-4">Employees</h2>
+        <h2 className="hidden md:block text-md font-semibold text-muted tracking-wide mb-4">Employees</h2>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-dim" size={16} />
           <input

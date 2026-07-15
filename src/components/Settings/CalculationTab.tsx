@@ -186,7 +186,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
               />
               <button
                 onClick={addDesignation}
-                className="p-2 bg-accent hover:bg-accent-hover text-black rounded-full transition-all"
+                className="p-2 bg-accent hover:bg-accent-hover active:bg-accent-active text-black rounded-full transition-all"
               >
                 <Plus size={20} />
               </button>
@@ -220,10 +220,10 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
 
 function SettingRow({ title, description, children }: { title: string, description: string, children: React.ReactNode }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-8">
-      <div className="flex-1">
-        <h4 className="text-sm font-bold text-white">{title}</h4>
-        <p className="text-xs text-muted mt-1 leading-relaxed">{description}</p>
+    <div className="flex flex-row items-center justify-between gap-3 sm:gap-8">
+      <div className="flex-1 min-w-0 pr-2">
+        <h4 className="text-sm font-bold text-white truncate">{title}</h4>
+        <p className="text-xs text-muted mt-1 leading-snug line-clamp-2 md:line-clamp-none">{description}</p>
       </div>
       <div className="shrink-0">
         {children}

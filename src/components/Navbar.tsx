@@ -44,18 +44,18 @@ export function Navbar({ onUpload, onSettingsClick, onExportClick, hasData }: Na
   };
 
   return (
-    <nav className="w-full md:h-16 py-4 md:py-0 bg-surface/80 backdrop-blur-md border-b border-white/5 flex flex-col md:flex-row items-stretch md:items-center justify-between px-4 md:px-6 shrink-0 z-50 gap-4 md:gap-0">
-      <div className="flex items-center gap-3 justify-center md:justify-start">
-        <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center text-black shadow-lg shadow-accent/10">
-          <FileText size={22} />
+    <nav className="w-full h-16 bg-surface/80 backdrop-blur-md border-b border-white/5 flex flex-row items-center justify-between px-4 md:px-6 shrink-0 z-50">
+      <div className="flex items-center gap-3 justify-start">
+        <div className="w-8 h-8 md:w-10 md:h-10 bg-accent rounded-xl flex items-center justify-center text-black shadow-lg shadow-accent/10 shrink-0">
+          <FileText size={20} className="md:w-[22px] md:h-[22px]" />
         </div>
-        <div>
-          <h1 className="text-lg font-bold tracking-tight text-white">Overtime Manager</h1>
-          <p className="text-xs font-medium text-muted-dim tracking-wide uppercase">NADRA RHO Islamabad</p>
+        <div className="min-w-0">
+          <h1 className="text-base md:text-lg font-bold tracking-tight text-white truncate">Overtime Manager</h1>
+          <p className="text-[10px] md:text-xs font-medium text-muted-dim tracking-wide uppercase truncate">NADRA RHO Islamabad</p>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
+      <div className="flex flex-row items-center gap-1 md:gap-2">
         <input
           type="file"
           ref={fileInputRef}
@@ -65,35 +65,39 @@ export function Navbar({ onUpload, onSettingsClick, onExportClick, hasData }: Na
           aria-label="Upload CSV File"
         />
 
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
-          aria-label="Click to upload a CSV file"
-        >
-          <Upload size={18} aria-hidden="true" />
-          <span>Upload CSV</span>
-        </button>
+        {!hasData && (
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center justify-center gap-2 p-2 md:px-4 md:py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
+            aria-label="Click to upload a CSV file"
+          >
+            <Upload size={18} aria-hidden="true" />
+            <span className="hidden md:inline">Upload CSV</span>
+          </button>
+        )}
         
         <button
           onClick={onSettingsClick}
-          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
+          className="flex items-center justify-center gap-2 p-2 md:px-4 md:py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
           aria-label="Open Settings"
         >
           <Settings size={18} aria-hidden="true" />
-          <span>Settings</span>
+          <span className="hidden md:inline">Settings</span>
         </button>
 
-        <div className="hidden md:block w-px h-6 bg-white/5 mx-2" aria-hidden="true" />
-
-        <button
-          onClick={onExportClick}
-          disabled={!hasData}
-          className="flex items-center justify-center gap-2 px-5 py-3 md:py-2 text-sm font-bold text-black bg-accent hover:bg-accent-hover disabled:bg-white/5 disabled:text-muted-dim disabled:cursor-not-allowed rounded-lg btn-click mt-2 md:mt-0"
-          aria-label="Export generated report as PDF"
-        >
-          <Download size={18} aria-hidden="true" />
-          <span>Export PDF</span>
-        </button>
+        {hasData && (
+          <>
+            <div className="w-px h-6 bg-white/5 mx-1 md:mx-2" aria-hidden="true" />
+            <button
+              onClick={onExportClick}
+              className="flex items-center justify-center gap-2 p-2 md:px-5 md:py-2 text-sm font-bold text-black bg-accent hover:bg-accent-hover active:bg-accent-active rounded-lg btn-click"
+              aria-label="Export generated report as PDF"
+            >
+              <Download size={18} aria-hidden="true" />
+              <span className="hidden md:inline">Export PDF</span>
+            </button>
+          </>
+        )}
       </div>
     </nav>
   );
