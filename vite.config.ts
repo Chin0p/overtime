@@ -19,6 +19,10 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    // GitHub Pages serves this repo from /overtime/, not the domain root.
+    // Only the normal (multi-file) build needs this — the singlefile build
+    // has no separate asset requests to resolve.
+    base: isSingleFile ? '/' : '/overtime/',
     build: {
       // keep the two build modes from overwriting each other
       outDir: isSingleFile ? 'dist-singlefile' : 'dist',
