@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
+    "build:singlefile": "vite build --mode singlefile",
     "preview": "vite preview",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist dist-singlefile",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

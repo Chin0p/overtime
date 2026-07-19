@@ -1,0 +1,25 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-singlefile:
+    uses: ./.github/workflows/build-singlefile.yml
+
+  build-normal:
+    uses: ./.github/workflows/build-normal.yml
+
+  deploy-pages:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build-normal
+    uses: ./.github/workflows/deploy-pages.yml
+
+  tag-release:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build-singlefile
+    uses: ./.github/workflows/tag-release.yml

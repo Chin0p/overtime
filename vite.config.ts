@@ -6,12 +6,22 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
+  const isSingleFile = mode === 'singlefile';
+
   return {
-    plugins: [react(), tailwindcss(), viteSingleFile()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      ...(isSingleFile ? [viteSingleFile()] : []),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    build: {
+      // keep the two build modes from overwriting each other
+      outDir: isSingleFile ? 'dist-singlefile' : 'dist',
     },
   };
 });
