@@ -28,6 +28,8 @@ export interface Holiday {
 
 export type ColumnId = 'Worked (OT)' | 'Adjustment' | 'Office Timing' | 'Total Hours Worked';
 
+export type EmployeeCategory = 'official' | 'support' | 'exempt';
+
 export interface OTSettings {
   policy: {
     officeTiming: {
@@ -46,8 +48,11 @@ export interface OTSettings {
       maxDailyAmount: number;
       hourlyRate: number;
       holidayRate: number;
-      designations: string[];
+      designations?: string[]; // Deprecated, keep for backwards compatibility if needed
     };
+    designationCategories: Record<string, EmployeeCategory>;
+    designationRateTypes?: Record<string, 'fixed' | 'dynamic'>;
+    roundingMode?: "floor" | "round";
   };
   appearance: {
     fontSize: number;
@@ -62,6 +67,12 @@ export interface OTSettings {
     labelFontSize: number;
     pageSize: string;
     margin: number;
+    headerTitle?: string;
+    branchName?: string;
+    summarySubject?: string;
+    signatureLeft?: string;
+    signatureRight?: string;
+    sortByDesignation?: boolean;
   };
 }
 
@@ -85,9 +96,11 @@ export interface ProcessedEmployee {
   erp: string;
   name: string;
   designation: string;
+  category: EmployeeCategory;
   basicPay: number;
   records: ProcessedRecord[];
   totalOTHours: number;
   totalAmount: number;
   isSupport: boolean;
+  rateType: 'fixed' | 'dynamic';
 }

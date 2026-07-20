@@ -16,210 +16,216 @@ export function buildPDF(
   });
 
   const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
   const baseMargin = pdf.margin || 15;
 
-  function drawHeader(y: number, margin: number) {
+  const headerTitle = pdf.headerTitle || 'Header Title Placeholder';
+  const branchName = pdf.branchName || 'Branch Name Placeholder';
+  const summarySubject = pdf.summarySubject || 'OVERTIME SUMMARY FOR THE MONTH OF';
+  const sigLeftText = pdf.signatureLeft || 'Prepared By Placeholder';
+  const sigRightText = pdf.signatureRight || 'Approved By Placeholder';
+
+  function drawHeader(y: number, margin: number, title: string | null) {
     doc.setFont('helvetica', 'normal');
+    
+    // Top headers
     doc.setFontSize(pdf.headerFontSize + 2);
-    doc.text('Ministry of Interior', pageWidth / 2, y, { align: 'center' });
+    doc.text(headerTitle, pageWidth / 2, y, { align: 'center' });
+    
     doc.setFontSize(pdf.headerFontSize);
-    doc.text('NADRA Regional Head Office Islamabad', pageWidth / 2, y + 7, { align: 'center' });
+    doc.text(branchName, pageWidth / 2, y + 7, { align: 'center' });
     
     doc.setLineWidth(0.3);
     doc.line(margin, y + 15, pageWidth - margin, y + 15);
     
-    doc.setFont('helvetica', 'normal');
-    return y + 30;
+    if (title) {
+      // Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(pdf.headerFontSize + 1);
+      doc.text(title, pageWidth / 2, y + 25, { align: 'center' });
+      return y + 33; // Return the Y position after header
+    }
+
+    return y + 22; // Return the Y position after header if no title
   }
 
-  // --- Summary Page ---
-  let currentY = drawHeader(20, baseMargin);
-  
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Overtime Summary for the month of ${monthLabel}`, pageWidth / 2, currentY, { align: 'center' });
-  currentY += 10;
+  // 1. Executive Summary Page
+  const summaryTitle = `${summarySubject} ${monthLabel.toUpperCase()}`;
+  const startY = drawHeader(baseMargin + 5, baseMargin, summaryTitle);
 
-  const eligibleEmployees = employees.filter(emp => emp.totalAmount > 0);
-  const summaryRows = eligibleEmployees.map((emp, idx) => [
-    idx + 1,
+  // Sort for summary page
+  let summaryEmployees = [...employees];
+  if (pdf.sortByDesignation) {
+    summaryEmployees.sort((a, b) => a.designation.localeCompare(b.designation));
+  } else {
+    summaryEmployees.sort((a, b) => b.totalAmount - a.totalAmount);
+  }
+
+  const summaryBody: any[] = summaryEmployees.map((emp, i) => [
+    (i + 1).toString(),
     emp.erp,
     emp.name,
-    emp.designation,
-    emp.totalOTHours,
     formatAmount(emp.totalAmount)
   ]);
 
-  const totalSummaryAmount = eligibleEmployees.reduce((sum, e) => sum + e.totalAmount, 0);
-  const totalSummaryHours = eligibleEmployees.reduce((sum, e) => sum + e.totalOTHours, 0);
+  const grandTotal = summaryEmployees.reduce((sum, emp) => sum + emp.totalAmount, 0);
+
+  summaryBody.push([
+    { content: 'GRAND TOTAL', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
+    formatAmount(grandTotal)
+  ]);
 
   autoTable(doc, {
-    startY: currentY,
-    head: [['Sr.', 'ERP', 'Name', 'Designation', 'Total Hrs', 'Amount']],
-    body: summaryRows,
-    foot: [['', '', '', 'Total', totalSummaryHours.toString(), formatAmount(totalSummaryAmount)]],
+    startY,
+    head: [['Sr', 'ERP', 'Name', 'Amount']],
+    body: summaryBody,
+    margin: { top: baseMargin, right: baseMargin, bottom: baseMargin, left: baseMargin },
     theme: 'grid',
-    headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold', halign: 'center' },
-    footStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold', halign: 'center' },
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [30, 30, 30],
+      fontStyle: 'bold',
+      fontSize: pdf.tableFontSize,
+    },
+    bodyStyles: {
+      fontSize: pdf.tableFontSize,
+    },
     columnStyles: {
-      0: { halign: 'center' },
-      1: { halign: 'center' },
-      2: { halign: 'left' },
-      3: { halign: 'left' },
-      4: { halign: 'center' },
-      5: { halign: 'center' },
+      0: { cellWidth: 15, halign: 'center' },
+      3: { halign: 'right', fontStyle: 'bold' } // Amount column
+    },
+    styles: {
+      cellPadding: pdf.cellPadding,
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1
     },
     didParseCell: (data) => {
-      if (data.section === 'foot' && data.column.index === 4) {
-        data.cell.styles.halign = 'center';
+      // Bold the last row is handled via styles in colSpan object and Amount column columnStyles
+      if (data.row.index === summaryBody.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
       }
-      if (data.section === 'foot' && data.column.index === 5) {
-        data.cell.styles.halign = 'center';
-      }
-    },
-    styles: { fontSize: pdf.tableFontSize, cellPadding: pdf.cellPadding },
-    margin: { left: baseMargin, right: baseMargin },
-    pageBreak: 'auto'
+    }
   });
-  
-  // --- Individual Pages ---
-  eligibleEmployees.forEach((emp) => {
+
+  // 2. Individual Employee Detail Pages
+  employees.forEach((emp) => {
+    const validRecords = emp.records.filter(r => r.otHours > 0 || r.isHoliday);
+    // Only generate detail pages for employees with actual valid records
+    if (validRecords.length === 0) return;
+
     doc.addPage();
-    
-    const recordRows = emp.records
-      .filter(r => r.otHours >= 1 || r.isHoliday)
-      .map((r, idx) => [
-        idx + 1,
-        r.date,
-        r.dayName,
-        r.timeIn,
-        r.timeOut,
-        r.otHours ? r.otHours.toString().padStart(2, '0') : '-',
-        formatAmount(r.amount),
-        r.remarks
-      ]);
+    let yPos = drawHeader(baseMargin + 5, baseMargin, null);
 
-    // Dynamic Margin: Use minimal margins if entries > 17
-    const currentMargin = recordRows.length > 17 ? 10 : baseMargin;
-    
-    currentY = drawHeader(20, currentMargin);
+    // Employee Meta Info
     doc.setFontSize(pdf.labelFontSize);
-    doc.setFont('helvetica', 'bold');
-    
-    // Label:Value pairs
-    const startX = currentMargin;
-    const col2X = pageWidth / 2;
-    
-    doc.text('Name:', startX, currentY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(emp.name, startX + 20, currentY);
+    const leftX = baseMargin;
+    const rightX = pageWidth / 2 + 10;
     
     doc.setFont('helvetica', 'bold');
-    doc.text('ERP:', col2X, currentY);
+    doc.text('Name:', leftX, yPos);
     doc.setFont('helvetica', 'normal');
-    doc.text(emp.erp, col2X + 20, currentY);
-    
-    currentY += 6;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('Designation:', startX, currentY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(emp.designation, startX + 30, currentY);
-    
-    if (!emp.isSupport) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Basic Pay:', col2X, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(formatAmount(emp.basicPay), col2X + 30, currentY);
-      
-      currentY += 6;
-      
-      doc.setFont('helvetica', 'bold');
-      doc.text('Month:', startX, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(monthLabel, startX + 20, currentY);
-    } else {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Month:', col2X, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(monthLabel, col2X + 20, currentY);
-    }
-    
-    currentY += 10;
+    doc.text(emp.name, leftX + 25, yPos);
 
-    // --- Smart Scaling Logic ---
-    // Calculate if we need to squeeze the table to fit signatures on the same page
-    const headerHeight = 50; // drawHeader(20) ends at ~50mm
-    const labelsHeight = 25; // Employee details take ~25mm
-    const signatureSpace = 45; // Space needed for signatures and padding
-    const reservedHeight = headerHeight + labelsHeight + signatureSpace;
-    const availableHeight = pageHeight - reservedHeight;
+    doc.setFont('helvetica', 'bold');
+    doc.text('ERP:', rightX, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text(emp.erp, rightX + 25, yPos);
     
-    // Estimate height of one row (font size in mm + padding top/bottom)
-    const rowHeightEstimate = (pdf.tableFontSize * 0.3527) + (pdf.cellPadding * 2);
-    const estimatedTableHeight = (recordRows.length + 2) * rowHeightEstimate; // +2 for head/foot
-    
-    let appliedFontSize = pdf.tableFontSize;
-    let appliedPadding = pdf.cellPadding;
-    let appliedSignatureGap = 20;
+    yPos += 8;
 
-    // If table is too long, calculate a squeeze factor
-    if (estimatedTableHeight > availableHeight) {
-      const squeezeFactor = Math.max(0.7, availableHeight / estimatedTableHeight);
-      appliedFontSize = Math.max(6, pdf.tableFontSize * squeezeFactor);
-      appliedPadding = Math.max(0.5, pdf.cellPadding * squeezeFactor);
-      appliedSignatureGap = Math.max(10, 20 * squeezeFactor);
-    }
+    doc.setFont('helvetica', 'bold');
+    doc.text('Designation:', leftX, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text(emp.designation, leftX + 25, yPos);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Basic Pay:', rightX, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text(emp.basicPay > 0 ? formatAmount(emp.basicPay) : 'N/A', rightX + 25, yPos);
+
+    yPos += 12;
+
+    const detailBody: any[] = validRecords.map((rec, i) => [
+      (i + 1).toString(),
+      rec.date,
+      rec.dayName,
+      rec.timeIn,
+      rec.timeOut,
+      rec.otHours.toString(),
+      formatAmount(rec.amount),
+      rec.remarks || ''
+    ]);
+
+    detailBody.push([
+      { content: 'TOTAL', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } },
+      emp.totalOTHours.toString(),
+      formatAmount(emp.totalAmount),
+      ''
+    ]);
 
     autoTable(doc, {
-      startY: currentY,
-      head: [['Sr.', 'Date', 'Day', 'In', 'Out', 'OT Hrs', 'Amount', 'Remarks']],
-      body: recordRows,
-      foot: [['', '', '', '', '', 'Total', formatAmount(emp.totalAmount), '']],
+      startY: yPos,
+      head: [['Sr', 'Date', 'Day', 'In', 'Out', 'OT Hrs', 'Amount', 'Remarks']],
+      body: detailBody,
+      margin: { top: baseMargin, right: baseMargin, bottom: baseMargin, left: baseMargin },
       theme: 'grid',
-      headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold', halign: 'center' },
-      footStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold', halign: 'center' },
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: [30, 30, 30],
+        fontStyle: 'bold',
+        fontSize: pdf.tableFontSize,
+      },
+      bodyStyles: {
+        fontSize: pdf.tableFontSize,
+      },
       columnStyles: {
-        0: { halign: 'center' },
-        1: { halign: 'center' },
-        2: { halign: 'center' },
-        3: { halign: 'center' },
-        4: { halign: 'center' },
+        0: { cellWidth: 10, halign: 'center' },
         5: { halign: 'center' },
-        6: { halign: 'center' },
-        7: { halign: 'left' }, // Remarks left aligned
+        6: { halign: 'right' }
+      },
+      styles: {
+        cellPadding: pdf.cellPadding,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1
       },
       didParseCell: (data) => {
-        if (data.section === 'foot' && data.column.index === 6) {
-          data.cell.styles.halign = 'center';
+        // Highlight & bold holidays
+        const rowIndex = data.row.index;
+        if (rowIndex < validRecords.length) {
+          const record = validRecords[rowIndex];
+          if (record.isHoliday) {
+            data.cell.styles.fillColor = [255, 240, 240];
+            data.cell.styles.fontStyle = 'bold';
+          }
         }
-      },
-      styles: { 
-        fontSize: appliedFontSize, 
-        cellPadding: appliedPadding 
-      },
-      margin: { left: currentMargin, right: currentMargin, bottom: 10 },
-      pageBreak: 'avoid'
+        
+        // Bold the total row
+        if (rowIndex === detailBody.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
     });
 
+    // Signature Area
+    const pageHeight = doc.internal.pageSize.getHeight();
     const finalY = (doc as any).lastAutoTable.finalY;
     
-    // Position signatures based on calculated gap, but ensure they don't exceed page
-    let signatureY = Math.min(finalY + appliedSignatureGap, pageHeight - 30);
+    let sigY = finalY + 30;
+    if (sigY + 10 > pageHeight - baseMargin) {
+      doc.addPage();
+      sigY = baseMargin + 30;
+    }
     
-    doc.setFontSize(11);
+    doc.setLineWidth(0.3);
+    
+    // Left signature
+    doc.line(baseMargin, sigY, baseMargin + 40, sigY);
     doc.setFont('helvetica', 'normal');
-    const line = '_'.repeat(20);
+    doc.setFontSize(10);
+    doc.text(sigLeftText, baseMargin + 20, sigY + 5, { align: 'center' });
     
-    // Employee Signature (Top Right) - Aligned to right margin
-    doc.text(`Employee Signature: ${line}`, pageWidth - currentMargin, signatureY, { align: 'right' });
-    
-    // Vertical spacing
-    const officerY = signatureY + 15;
-    
-    // AD Admin (Bottom Left) - Aligned to left margin
-    doc.text(`AD Admin: ${line}`, currentMargin, officerY);
+    // Right signature
+    doc.line(pageWidth - baseMargin - 40, sigY, pageWidth - baseMargin, sigY);
+    doc.text(sigRightText, pageWidth - baseMargin - 20, sigY + 5, { align: 'center' });
   });
 
   return doc;

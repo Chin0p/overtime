@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { OTSettings, Holiday } from '../types';
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from '../constants';
 
@@ -29,7 +29,9 @@ export function useSettings() {
       official: {
         ...DEFAULT_SETTINGS.policy.official,
         ...(saved?.official || {})
-      }
+      },
+      designationCategories: saved?.designationCategories || {},
+      designationRateTypes: saved?.designationRateTypes || {}
     };
   });
 
@@ -37,9 +39,13 @@ export function useSettings() {
     getSafeStorage(STORAGE_KEYS.APPEARANCE, DEFAULT_SETTINGS.appearance)
   );
 
-  const [pdf, setPdf] = useState<OTSettings['pdf']>(() => 
-    getSafeStorage(STORAGE_KEYS.PDF, DEFAULT_SETTINGS.pdf)
-  );
+  const [pdf, setPdf] = useState<OTSettings['pdf']>(() => {
+    const saved = getSafeStorage(STORAGE_KEYS.PDF, DEFAULT_SETTINGS.pdf);
+    return {
+      ...DEFAULT_SETTINGS.pdf,
+      ...saved
+    };
+  });
 
   const [basicPay, setBasicPay] = useState<Record<string, number>>(() => 
     getSafeStorage(STORAGE_KEYS.BASIC_PAY, {})

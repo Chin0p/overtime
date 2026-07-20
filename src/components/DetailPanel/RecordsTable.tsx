@@ -1,106 +1,117 @@
 import { formatAmount, formatDuration } from '../../lib/utils';
 import { ProcessedRecord, ColumnId } from '../../types';
 import { cn } from '../../lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { ArrowDownAZ, ArrowUpZA } from 'lucide-react';
 
 interface RecordsTableProps {
   records: ProcessedRecord[];
   totalAmount: number;
   totalOTHours: number;
   visibleColumns: ColumnId[];
-  density?: 'comfortable' | 'compact';
+  sortOrder: 'asc' | 'desc';
+  onToggleSort: () => void;
 }
 
-export function RecordsTable({ records, totalAmount, totalOTHours, visibleColumns, density = 'comfortable' }: RecordsTableProps) {
+export function RecordsTable({ records, totalAmount, totalOTHours, visibleColumns, sortOrder, onToggleSort }: RecordsTableProps) {
   const visibleColsSet = new Set(visibleColumns);
   
-  const cellPadding = density === 'compact' ? 'px-2 py-1' : 'px-4 py-2';
-  const headPadding = density === 'compact' ? 'px-2 py-2' : 'px-4 py-3';
-
   return (
-    <div className="bg-background rounded-none md:rounded-lg border-y md:border-x border-white/5 md:border-white/5 overflow-hidden shadow-xl flex flex-col">
-      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-accent/40 scrollbar-track-transparent">
-        <table className="w-full text-left border-collapse table-auto">
-          <thead className="sticky top-0 z-10">
-            <tr className="bg-surface border-b border-white/5">
-              <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap w-12 text-center tracking-widest")}>Sr.</th>
-              <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>Date</th>
-              <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>Day</th>
-              <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>In</th>
-              <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>Out</th>
-              {visibleColsSet.has('Office Timing') && (
-                <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>Office Timing</th>
-              )}
-              {visibleColsSet.has('Total Hours Worked') && (
-                <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>Total Worked</th>
-              )}
-              {visibleColsSet.has('Worked (OT)') && (
-                <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>Worked (OT)</th>
-              )}
-              {visibleColsSet.has('Adjustment') && (
-                <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>Adjustment</th>
-              )}
-              <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>OT Hrs</th>
-              <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>Amount</th>
-              <th className={cn(headPadding, "text-sm font-bold text-muted-dim whitespace-nowrap tracking-widest")}>Remarks</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5 bg-surface/40">
-            {records.map((record, idx) => (
-              <tr 
-                key={record.date} 
-                className={cn(
-                  "hover:bg-surface-hover/30 transition-colors",
-                  record.isHoliday && "bg-amber-500/5"
-                )}
+    <div className="bg-card rounded-none md:rounded-lg border-y md:border border-border overflow-hidden shadow-sm flex flex-col">
+      <div className="overflow-x-auto no-scrollbar">
+        <Table className="w-full text-left border-collapse data-table table-auto">
+          <TableHeader className="sticky top-0 z-10">
+            <TableRow className="bg-muted/50 border-b border-border">
+              <TableHead className="text-center w-12 font-semibold">Sr.</TableHead>
+              <TableHead 
+                className="font-semibold cursor-pointer hover:bg-muted transition-colors select-none group"
+                onClick={onToggleSort}
+                title="Toggle Sort Order"
               >
-                <td className={cn(cellPadding, "text-sm text-muted-dim font-mono text-center")}>{idx + 1}</td>
-                <td className={cellPadding}>
-                  <span className="text-sm font-medium text-gray-300 whitespace-nowrap">{record.date}</span>
-                </td>
-                <td className={cn(cellPadding, "text-sm text-muted-dim whitespace-nowrap")}>{record.dayName}</td>
-                <td className={cn(cellPadding, "text-sm font-mono text-muted whitespace-nowrap")}>{record.timeIn}</td>
-                <td className={cn(cellPadding, "text-sm font-mono text-muted whitespace-nowrap")}>{record.timeOut}</td>
+                <div className="flex items-center gap-1.5">
+                  Date
+                  <div className="text-muted-foreground group-hover:text-foreground">
+                    {sortOrder === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpZA size={14} />}
+                  </div>
+                </div>
+              </TableHead>
+              <TableHead className="font-semibold">Day</TableHead>
+              <TableHead className="font-semibold">In</TableHead>
+              <TableHead className="font-semibold">Out</TableHead>
+              {visibleColsSet.has('Office Timing') && <TableHead className="font-semibold">Office Timing</TableHead>}
+              {visibleColsSet.has('Total Hours Worked') && <TableHead className="font-semibold">Total Worked</TableHead>}
+              {visibleColsSet.has('Worked (OT)') && <TableHead className="font-semibold">Worked (OT)</TableHead>}
+              {visibleColsSet.has('Adjustment') && <TableHead className="font-semibold">Adjustment</TableHead>}
+              <TableHead className="font-semibold">OT Hrs</TableHead>
+              <TableHead className="font-semibold">Amount</TableHead>
+              <TableHead className="font-semibold">Remarks</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-border">
+            {records.map((record, idx) => (
+              <TableRow 
+                key={record.date} 
+              >
+                <TableCell className="text-muted-foreground font-mono text-center">{idx + 1}</TableCell>
+                <TableCell>
+                  <span className="font-medium text-foreground whitespace-nowrap">{record.date}</span>
+                </TableCell>
+                <TableCell className="text-muted-foreground whitespace-nowrap">{record.dayName}</TableCell>
+                <TableCell className="font-mono text-muted-foreground whitespace-nowrap">{record.timeIn}</TableCell>
+                <TableCell className="font-mono text-muted-foreground whitespace-nowrap">{record.timeOut}</TableCell>
+                
                 {visibleColsSet.has('Office Timing') && (
-                  <td className={cn(cellPadding, "whitespace-nowrap")}>
+                  <TableCell className="whitespace-nowrap">
                     {record.officeTiming ? (
-                      <span className="text-xs font-bold text-muted bg-surface px-2 py-0.5 rounded border border-white/10">
+                      <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border border-border pointer-events-none">
                         {record.officeTiming}
                       </span>
                     ) : (
-                      <span className="text-muted-dim">-</span>
+                      <span className="text-muted-foreground opacity-50">-</span>
                     )}
-                  </td>
+                  </TableCell>
                 )}
+                
                 {visibleColsSet.has('Total Hours Worked') && (
-                  <td className={cn(cellPadding, "text-sm text-muted-dim font-mono whitespace-nowrap")}>
+                  <TableCell className="text-muted-foreground font-mono whitespace-nowrap">
                     {formatDuration(record.totalWorkedHours)}
-                  </td>
+                  </TableCell>
                 )}
+                
                 {visibleColsSet.has('Worked (OT)') && (
-                  <td className={cn(cellPadding, "text-sm text-muted-dim whitespace-nowrap")}>{formatDuration(record.workedHours)}</td>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{formatDuration(record.workedHours)}</TableCell>
                 )}
+                
                 {visibleColsSet.has('Adjustment') && (
-                  <td className={cn(cellPadding, "text-sm whitespace-nowrap")}>
+                  <TableCell className="whitespace-nowrap">
                     {record.adjustment > 0 ? (
-                      <span className="text-amber-500 font-medium">-{formatDuration(record.adjustment)}</span>
+                      <span className="text-[var(--color-warning)] font-medium">-{formatDuration(record.adjustment)}</span>
                     ) : (
-                      <span className="text-muted-dim">-</span>
+                      <span className="text-muted-foreground opacity-50">-</span>
                     )}
-                  </td>
+                  </TableCell>
                 )}
-                <td className={cn(cellPadding, "text-sm font-bold text-white whitespace-nowrap")}>{record.otHours || '-'}</td>
-                <td className={cn(cellPadding, "text-sm text-gray-200 whitespace-nowrap")}>{formatAmount(record.amount)}</td>
-                <td className={cn(cellPadding, "whitespace-nowrap")}>
+                
+                <TableCell className="font-bold text-foreground whitespace-nowrap">{record.otHours || '-'}</TableCell>
+                <TableCell className="text-foreground whitespace-nowrap">{formatAmount(record.amount)}</TableCell>
+                
+                <TableCell className="whitespace-nowrap">
                   {record.remarks && (
-                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-xs font-bold rounded border border-amber-500/20">
+                    <span className={cn(
+                      "px-2 py-0.5 text-xs font-medium rounded-[var(--radius-interactive)] pointer-events-none",
+                      record.remarks === 'Holiday' ? "bg-[var(--color-holiday)]/10 text-[var(--color-holiday)]" :
+                      record.remarks === 'Office Order' ? "bg-[var(--color-office-order)]/10 text-[var(--color-office-order)]" :
+                      record.remarks === 'Late Arrival' ? "bg-[var(--color-late-arrival)]/10 text-[var(--color-late-arrival)]" :
+                      "bg-muted text-muted-foreground"
+                    )}>
                       {record.remarks}
                     </span>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

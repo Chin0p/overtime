@@ -1,103 +1,105 @@
 import React, { useRef } from 'react';
-import { FileText, Settings, Upload, Download } from 'lucide-react';
+import { Settings, Download, Upload, Clock } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
+import { Button } from './ui/button';
 
 interface NavbarProps {
-  onUpload: (csvText: string) => void;
+  onUpload: (text: string) => void;
   onSettingsClick: () => void;
   onExportClick: () => void;
   hasData: boolean;
+  theme: 'light' | 'dark' | 'system';
+  onThemeChange: (theme: 'light' | 'dark' | 'system') => void;
+  organizationName: string;
 }
 
-export function Navbar({ onUpload, onSettingsClick, onExportClick, hasData }: NavbarProps) {
+export function Navbar({ onUpload, onSettingsClick, onExportClick, hasData, theme, onThemeChange, organizationName }: NavbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Type validation
-    if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
-      alert('Please upload a valid CSV file.');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        onUpload(text);
+      };
+      reader.readAsText(file);
     }
-
-    // Size validation (Max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size exceeds 10MB limit.');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      onUpload(text);
-      // Clean up input so same file can be uploaded again if needed
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-    reader.onerror = () => {
-      alert('Failed to read file.');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-    reader.readAsText(file);
+    if (e.target) e.target.value = '';
   };
 
   return (
-    <nav className="w-full h-16 bg-surface/80 backdrop-blur-md border-b border-white/5 flex flex-row items-center justify-between px-4 md:px-6 shrink-0 z-50">
-      <div className="flex items-center gap-3 justify-start">
-        <div className="w-8 h-8 md:w-10 md:h-10 bg-accent rounded-xl flex items-center justify-center text-black shadow-lg shadow-accent/10 shrink-0">
-          <FileText size={20} className="md:w-[22px] md:h-[22px]" />
+    <nav className="h-16 shrink-0 bg-background border-b border-border px-4 flex items-center justify-between z-50 relative">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center shadow-lg shadow-primary/20 text-primary-foreground">
+          <Clock size={18} strokeWidth={2.5} />
         </div>
         <div className="min-w-0">
-          <h1 className="text-base md:text-lg font-bold tracking-tight text-white truncate">Overtime Manager</h1>
-          <p className="text-[10px] md:text-xs font-medium text-muted-dim tracking-wide uppercase truncate">NADRA RHO Islamabad</p>
+          <h1 className="text-sm md:text-lg font-bold tracking-tight text-foreground truncate">Overtime Manager</h1>
+          {organizationName && <p className="text-[10px] md:text-xs font-medium text-muted-foreground tracking-wide uppercase truncate">{organizationName}</p>}
         </div>
       </div>
 
-      <div className="flex flex-row items-center gap-1 md:gap-2">
+      <div className="flex items-center gap-2 md:gap-3">
         <input
           type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
           accept=".csv"
           className="hidden"
-          aria-label="Upload CSV File"
+          ref={fileInputRef}
+          onChange={handleFileChange}
         />
-
-        {!hasData && (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center justify-center gap-2 p-2 md:px-4 md:py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
-            aria-label="Click to upload a CSV file"
-          >
-            <Upload size={18} aria-hidden="true" />
-            <span className="hidden md:inline">Upload CSV</span>
-          </button>
-        )}
         
-        <button
-          onClick={onSettingsClick}
-          className="flex items-center justify-center gap-2 p-2 md:px-4 md:py-2 text-sm font-bold text-muted hover:bg-surface-hover hover:text-white rounded-lg transition-all btn-click"
-          aria-label="Open Settings"
+        <Button 
+          variant="outline"
+          onClick={() => fileInputRef.current?.click()}
+          className="hidden md:flex gap-2"
         >
-          <Settings size={18} aria-hidden="true" />
-          <span className="hidden md:inline">Settings</span>
-        </button>
+          <Upload size={16} />
+          <span>Upload CSV</span>
+        </Button>
+        
+        <Button 
+          variant="outline"
+          size="icon"
+          onClick={() => fileInputRef.current?.click()}
+          className="md:hidden"
+        >
+          <Upload size={18} />
+        </Button>
 
         {hasData && (
           <>
-            <div className="w-px h-6 bg-white/5 mx-1 md:mx-2" aria-hidden="true" />
-            <button
+            <Button 
               onClick={onExportClick}
-              className="flex items-center justify-center gap-2 p-2 md:px-5 md:py-2 text-sm font-bold text-black bg-accent hover:bg-accent-hover active:bg-accent-active rounded-lg btn-click"
-              aria-label="Export generated report as PDF"
+              className="hidden md:flex gap-2"
             >
-              <Download size={18} aria-hidden="true" />
-              <span className="hidden md:inline">Export PDF</span>
-            </button>
+              <Download size={16} />
+              <span>Export PDF</span>
+            </Button>
+            
+            <Button 
+              size="icon"
+              onClick={onExportClick}
+              className="md:hidden"
+            >
+              <Download size={18} />
+            </Button>
           </>
         )}
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        <ThemeToggle theme={theme} onChange={onThemeChange} className="hidden md:block" />
+
+        <Button 
+          variant="ghost"
+          size="icon"
+          onClick={onSettingsClick}
+          title="Settings"
+        >
+          <Settings size={20} />
+        </Button>
       </div>
     </nav>
   );

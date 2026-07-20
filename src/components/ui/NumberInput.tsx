@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
+import { Input } from './input';
 
 interface NumberInputProps {
   value: number;
@@ -12,8 +13,8 @@ interface NumberInputProps {
 
 export function NumberInput({ value, onChange, suffix, className, min = 0, max }: NumberInputProps) {
   return (
-    <div className={cn("relative flex items-center group w-24", className)}>
-      <input
+    <div className={cn("relative flex items-center group w-28", className)}>
+      <Input
         type="number"
         min={min}
         max={max}
@@ -34,10 +35,10 @@ export function NumberInput({ value, onChange, suffix, className, min = 0, max }
           if (max !== undefined) val = Math.min(max, val);
           onChange(val);
         }}
-        className="w-full px-3 py-1.5 bg-background border border-white/10 rounded-lg text-sm text-white text-right focus:ring-2 focus:ring-white/20 focus:border-white/30 outline-none transition-all pr-12"
+        className={cn("w-full text-right h-[38px]", suffix ? "pr-12" : "")}
       />
       {suffix && (
-        <span className="absolute right-3 text-[10px] font-bold text-muted-dim pointer-events-none uppercase select-none">
+        <span className="absolute right-3 text-xs font-semibold text-muted-foreground pointer-events-none uppercase select-none">
           {suffix}
         </span>
       )}

@@ -18,8 +18,9 @@ export const DEFAULT_SETTINGS: OTSettings = {
       maxDailyAmount: 480,
       hourlyRate: 80,
       holidayRate: 600,
-      designations: ['Driver', 'Naib Qasid'],
     },
+    designationCategories: {},
+    designationRateTypes: {},
   },
   appearance: {
     fontSize: 10,
@@ -34,6 +35,12 @@ export const DEFAULT_SETTINGS: OTSettings = {
     labelFontSize: 10,
     pageSize: 'a4',
     margin: 15,
+    headerTitle: 'Organization Name',
+    branchName: 'Branch / Region Name',
+    summarySubject: 'Overtime summary for the month of',
+    signatureLeft: 'Prepared By',
+    signatureRight: 'Approved By',
+    sortByDesignation: true,
   },
 };
 

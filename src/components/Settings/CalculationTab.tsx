@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import React from 'react';
 import { OTSettings } from '../../types';
-import { cn } from '../../lib/utils';
 import { NumberInput } from '../ui/NumberInput';
+import { Input } from '../ui/input';
+import { Switch } from '../ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { cn } from '../../lib/utils';
 
 interface CalculationTabProps {
   policy: OTSettings['policy'];
@@ -10,72 +12,40 @@ interface CalculationTabProps {
 }
 
 export function CalculationTab({ policy, onChange }: CalculationTabProps) {
-  const [newDesignation, setNewDesignation] = useState('');
-  const [designationToDelete, setDesignationToDelete] = useState<string | null>(null);
-
-  const updateOfficial = (updates: Partial<OTSettings['policy']['official']>) => {
-    onChange({
-      ...policy,
-      official: { ...policy.official, ...updates }
-    });
+  const updateOfficial = (updates: Partial<typeof policy.official>) => {
+    onChange({ ...policy, official: { ...policy.official, ...updates } });
   };
 
-  const updateSupport = (updates: Partial<OTSettings['policy']['support']>) => {
-    onChange({
-      ...policy,
-      support: { ...policy.support, ...updates }
-    });
-  };
-
-  const addDesignation = () => {
-    if (!newDesignation.trim()) return;
-    if (policy.support.designations.includes(newDesignation.trim())) return;
-    updateSupport({
-      designations: [...policy.support.designations, newDesignation.trim()]
-    });
-    setNewDesignation('');
-  };
-
-  const removeDesignation = (designation: string) => {
-    updateSupport({
-      designations: policy.support.designations.filter(d => d !== designation)
-    });
-    setDesignationToDelete(null);
+  const updateSupport = (updates: Partial<typeof policy.support>) => {
+    onChange({ ...policy, support: { ...policy.support, ...updates } });
   };
 
   return (
     <div className="space-y-10">
-      {designationToDelete && (
-        <DeleteConfirmDialog
-          title="Delete designation"
-          item={designationToDelete}
-          onConfirm={() => removeDesignation(designationToDelete)}
-          onCancel={() => setDesignationToDelete(null)}
-        />
-      )}
       <section>
-        <h3 className="text-md font-bold text-muted mb-6">Common rules</h3>
+        <h3 className="text-lg font-bold text-foreground mb-6">Global Rules</h3>
         <div className="space-y-6">
           <SettingRow
-            title="Office timings"
-            description="Global standard office timings for all employees."
+            title="Office timing"
+            description="Standard daily working hours."
           >
             <div className="flex items-center gap-2">
-              <input
+              <Input
                 type="time"
-                value={policy.officeTiming?.start || '09:00'}
+                value={policy.officeTiming.start}
                 onChange={(e) => onChange({ ...policy, officeTiming: { ...policy.officeTiming, start: e.target.value } })}
-                className="w-24 px-3 py-1.5 bg-background border border-white/10 rounded-lg text-sm text-white focus:ring-2 focus:ring-white/20 outline-none"
+                className="w-[110px]"
               />
-              <span className="text-muted-dim">to</span>
-              <input
+              <span className="text-muted-foreground">-</span>
+              <Input
                 type="time"
-                value={policy.officeTiming?.end || '17:00'}
+                value={policy.officeTiming.end}
                 onChange={(e) => onChange({ ...policy, officeTiming: { ...policy.officeTiming, end: e.target.value } })}
-                className="w-24 px-3 py-1.5 bg-background border border-white/10 rounded-lg text-sm text-white focus:ring-2 focus:ring-white/20 outline-none"
+                className="w-[110px]"
               />
             </div>
           </SettingRow>
+
           <SettingRow
             title="Min overtime threshold"
             description="Minimum overtime hours required to be eligible for payment."
@@ -86,22 +56,43 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
               suffix="hrs"
             />
           </SettingRow>
+
           <SettingRow
             title="Late arrival adjustment"
             description="Deduct late arrival time from the total overtime hours."
           >
             <Switch
               checked={policy.lateArrivalToggle}
-              onChange={(checked) => onChange({ ...policy, lateArrivalToggle: checked })}
+              onCheckedChange={(checked) => onChange({ ...policy, lateArrivalToggle: checked })}
             />
+          </SettingRow>
+          
+          <SettingRow
+            title="Rounding mode"
+            description="How calculated hours and money values are rounded."
+          >
+            <div className="relative w-fit max-w-[200px]">
+              <Select
+                value={(policy as any).roundingMode || 'floor'}
+                onValueChange={(val) => onChange({ ...policy, roundingMode: val as 'floor' | 'round' } as any)}
+              >
+                <SelectTrigger>
+                  <span className="truncate">{policy.roundingMode === 'round' ? 'Round' : 'Floor'}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="floor">Floor</SelectItem>
+                  <SelectItem value="round">Round</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </SettingRow>
         </div>
       </section>
 
-      <div className="h-px bg-white/5" />
+      <div className="h-px bg-border" />
 
       <section>
-        <h3 className="text-md font-bold text-muted mb-6">Official staff</h3>
+        <h3 className="text-lg font-bold text-foreground mb-6">Official staff</h3>
         <div className="space-y-6">
           <SettingRow
             title="Daily overtime cap"
@@ -113,6 +104,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
               suffix="hrs"
             />
           </SettingRow>
+
           <SettingRow
             title="Max daily amount"
             description="Maximum amount payable per day for official staff."
@@ -123,6 +115,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
               suffix="PKR"
             />
           </SettingRow>
+
           <SettingRow
             title="Monthly day cap"
             description="Maximum number of working days for which Overtime is payable in a month."
@@ -136,10 +129,10 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
         </div>
       </section>
 
-      <div className="h-px bg-white/5" />
+      <div className="h-px bg-border" />
 
       <section>
-        <h3 className="text-md font-bold text-muted mb-6">Support staff</h3>
+        <h3 className="text-lg font-bold text-foreground mb-6">Support staff</h3>
         <div className="space-y-6">
           <SettingRow
             title="Daily overtime cap"
@@ -151,6 +144,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
               suffix="hrs"
             />
           </SettingRow>
+
           <SettingRow
             title="Hourly rate"
             description="Fixed hourly rate for support staff overtime."
@@ -161,6 +155,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
               suffix="PKR"
             />
           </SettingRow>
+
           <SettingRow
             title="Holiday rate"
             description="Fixed daily rate for support staff working on holidays."
@@ -171,47 +166,6 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
               suffix="PKR"
             />
           </SettingRow>
-          <div>
-            <h4 className="text-sm font-bold text-white mb-2">Support staff designations</h4>
-            <p className="text-xs text-muted mb-4">Employees with these designations will be treated as support staff.</p>
-
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                placeholder="Add designation (e.g. Driver)"
-                value={newDesignation}
-                onChange={(e) => setNewDesignation(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addDesignation()}
-                className="flex-1 px-4 py-2 bg-background border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-white/20 outline-none transition-all"
-              />
-              <button
-                onClick={addDesignation}
-                className="p-2 bg-accent hover:bg-accent-hover active:bg-accent-active text-black rounded-full transition-all"
-              >
-                <Plus size={20} />
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {policy.support.designations.map(d => (
-                <div
-                  key={d}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-surface-hover border border-white/5 rounded-lg text-xs font-medium text-muted group"
-                >
-                  {d}
-                  <button
-                    onClick={() => setDesignationToDelete(d)}
-                    className="text-muted-dim hover:text-red-400 transition-colors"
-                    aria-label={`Remove designation ${d}`}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-              {policy.support.designations.length === 0 && (
-                <p className="text-xs text-muted-dim italic">No designations added.</p>
-              )}
-            </div>
-          </div>
         </div>
       </section>
     </div>
@@ -222,74 +176,11 @@ function SettingRow({ title, description, children }: { title: string, descripti
   return (
     <div className="flex flex-row items-center justify-between gap-3 sm:gap-8">
       <div className="flex-1 min-w-0 pr-2">
-        <h4 className="text-sm font-bold text-white truncate">{title}</h4>
-        <p className="text-xs text-muted mt-1 leading-snug line-clamp-2 md:line-clamp-none">{description}</p>
+        <h4 className="text-base md:text-sm font-bold text-foreground truncate">{title}</h4>
+        <p className="text-sm md:text-xs text-muted-foreground mt-1 leading-snug line-clamp-2 md:line-clamp-none">{description}</p>
       </div>
-      <div className="shrink-0">
+      <div className="shrink-0 flex items-center">
         {children}
-      </div>
-    </div>
-  );
-}
-
-function Switch({ checked, onChange }: { checked: boolean, onChange: (checked: boolean) => void }) {
-  return (
-    <button
-      onClick={() => onChange(!checked)}
-      className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-        checked ? "bg-accent" : "bg-white/10"
-      )}
-    >
-      <span
-        className={cn(
-          "pointer-events-none inline-block h-5 w-5 transform rounded-full shadow ring-0 transition duration-200 ease-in-out",
-          checked ? "translate-x-5 bg-black" : "translate-x-0 bg-white"
-        )}
-      />
-    </button>
-  );
-}
-
-function DeleteConfirmDialog({
-  onConfirm,
-  onCancel,
-  title,
-  item
-}: {
-  onConfirm: () => void,
-  onCancel: () => void,
-  title: string,
-  item: string
-}) {
-  const [input, setInput] = useState('');
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-surface border border-white/5 rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in duration-200">
-        <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-        <p className="text-sm text-muted mb-5">
-          Are you sure you want to delete? Type <span className="text-red-400 font-mono font-bold">{item.toUpperCase()}</span> to confirm.
-        </p>
-        <input
-          type="text"
-          autoFocus
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={`Type ${item.toUpperCase()}`}
-          className="w-full px-4 py-2 bg-background border border-white/5 rounded-xl text-sm text-white focus:ring-2 focus:ring-red-500/50 outline-none mb-6"
-        />
-        <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover rounded-xl transition-all">
-            Cancel
-          </button>
-          <button
-            disabled={input !== item.toUpperCase()}
-            onClick={onConfirm}
-            className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
-          >
-            Delete
-          </button>
-        </div>
       </div>
     </div>
   );

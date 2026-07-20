@@ -1,7 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
 import { useState, useMemo, useEffect } from 'react';
 import { parseCSV } from './parser/csvParser';
 import { processEmployees } from './engine/otCalculator';
@@ -11,77 +7,49 @@ import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { DetailPanel } from './components/DetailPanel/DetailPanel';
 import { SettingsModal } from './components/Settings/SettingsModal';
+import { ThemeToggle } from './components/ThemeToggle';
 import { buildPDF } from './pdf/buildPDF';
 import { format } from 'date-fns';
 import { flexibleParseDate, cn } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
-  const { policy, appearance, pdf, basicPay, holidays, saveSettings } = useSettings();
+  const { policy, appearance, pdf, basicPay, holidays, saveSettings, setAppearance } = useSettings();
   
   const [uploadedData, setUploadedData] = useState<ParsedCSV | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedErp, setSelectedErp] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const [isMobile, setIsMobile] = useState(false);
-  
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
-    const baseColor = appearance.accentColor || '#ffffff';
-    root.style.setProperty('--accent-color', baseColor);
     
-    // Calculate lighter and darker shades for hover and active states
-    const adjustColor = (color: string, amount: number) => {
-      let hex = color.replace('#', '');
-      if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-      
-      const r = Math.min(255, Math.max(0, parseInt(hex.substring(0, 2), 16) + amount));
-      const g = Math.min(255, Math.max(0, parseInt(hex.substring(2, 4), 16) + amount));
-      const b = Math.min(255, Math.max(0, parseInt(hex.substring(4, 6), 16) + amount));
-      
-      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-    };
-
-    root.style.setProperty('--accent-hover-color', adjustColor(baseColor, 30)); // lighter
-    root.style.setProperty('--accent-active-color', adjustColor(baseColor, -30)); // darker
-    
-    // Theme logic
-    const theme = appearance.theme || 'system';
-    const applyTheme = () => {
-      if (theme === 'light') {
-        root.classList.add('light');
-      } else if (theme === 'dark') {
-        root.classList.remove('light');
+    const applyTheme = (themeValue: string) => {
+      if (themeValue === 'dark') {
+        root.classList.add('dark');
+      } else if (themeValue === 'light') {
+        root.classList.remove('dark');
       } else {
-        // System
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-          root.classList.add('light');
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          root.classList.add('dark');
         } else {
-          root.classList.remove('light');
+          root.classList.remove('dark');
         }
       }
     };
 
-    applyTheme();
+    const theme = appearance.theme || 'system';
+    applyTheme(theme);
 
     if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-      const listener = () => applyTheme();
-      mediaQuery.addEventListener('change', listener);
-      return () => mediaQuery.removeEventListener('change', listener);
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => applyTheme('system');
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     }
-  }, [appearance.accentColor, appearance.theme]);
+  }, [appearance.theme]);
 
   const processedEmployees = useMemo(() => {
     if (!uploadedData) return [];
@@ -105,7 +73,6 @@ export default function App() {
     const dateObjs = uploadedData.dates.map(d => flexibleParseDate(d)).filter(d => !isNaN(d.getTime()));
     if (dateObjs.length === 0) return '';
     
-    // Sort dates
     dateObjs.sort((a, b) => a.getTime() - b.getTime());
     
     const firstDate = dateObjs[0];
@@ -133,9 +100,9 @@ export default function App() {
       if (processed.length === 0) {
         throw new Error('No employees found with overtime hours >= 1 or holiday work in this file.');
       }
+
       setUploadedData(data);
       setError(null);
-      setMobileView('list');
       if (processed.length > 0) {
         setSelectedErp(processed[0].erp);
       }
@@ -154,105 +121,92 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen bg-background text-gray-100 font-sans overflow-hidden flex flex-col relative">
+    <div className="h-[100dvh] w-screen bg-[var(--color-bg-app)] text-[var(--color-text-main)] font-sans overflow-hidden flex flex-col relative">
       <Navbar 
         onUpload={handleUpload}
         onSettingsClick={() => setIsSettingsOpen(true)}
         onExportClick={handleExport}
         hasData={processedEmployees.length > 0}
+        theme={appearance.theme || 'system'}
+        organizationName={pdf.headerTitle || ''}
+        onThemeChange={(theme) => {
+          setAppearance({ ...appearance, theme });
+          saveSettings(policy, { ...appearance, theme }, pdf, basicPay, holidays);
+        }}
       />
       
-      <main className="flex-1 flex overflow-hidden relative">
+      <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         <div className={cn(
-          "shrink-0 h-full w-full md:w-auto border-r border-white/5",
-          (mobileView === 'detail' && selectedEmployee) ? "hidden md:flex" : "flex",
-          (!uploadedData) ? "hidden md:flex" : "" // Hide sidebar if no data on mobile
+          "shrink-0 w-full md:w-[320px] h-full border-r border-[var(--color-border)]",
+          (!uploadedData) ? "hidden md:flex md:flex-col" : (selectedErp ? "hidden md:flex md:flex-col" : "flex flex-col")
         )}>
           <Sidebar 
             employees={filteredEmployees}
             selectedErp={selectedErp}
-            onSelect={(id) => {
-              setSelectedErp(id);
-              setMobileView('detail');
-            }}
+            onSelect={setSelectedErp}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
           />
         </div>
         
         <div className={cn(
-          "flex-1 h-full overflow-y-auto",
-          (mobileView === 'list' && processedEmployees.length > 0) ? "hidden md:block" : "block"
+          "flex-1 min-h-0 relative",
+          selectedErp ? "flex flex-col h-full overflow-y-auto" : "hidden md:flex md:flex-col h-full overflow-y-auto"
         )}>
-          <AnimatePresence mode="wait">
-            {selectedEmployee ? (
-              <motion.div 
-                key={selectedEmployee.erp}
-                initial={isMobile ? { opacity: 0, x: 20 } : false}
-                animate={isMobile ? { opacity: 1, x: 0 } : false}
-                exit={isMobile ? { opacity: 0, x: -20 } : false}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col h-full relative"
-              >
-                <div className="md:hidden p-4 border-b border-white/5 shrink-0 bg-surface">
-                  <button 
-                    onClick={() => setMobileView('list')}
-                    className="flex items-center gap-2 text-sm font-bold text-accent hover:text-accent-hover transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back to List
-                  </button>
-                </div>
-                <DetailPanel 
-                  employee={selectedEmployee} 
-                  monthLabel={monthLabel}
-                />
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="h-full flex flex-col items-center justify-center text-gray-600 p-8 text-center"
-              >
-                <div className="w-16 h-16 mb-4 opacity-10">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-500">
-                  {uploadedData ? "No Employee Selected" : "Upload CSV Data"}
-                </h3>
-                <p className="max-w-xs mt-1 text-sm">
-                  {uploadedData 
-                    ? "Select an employee from the sidebar to view details." 
-                    : "Please upload your attendance CSV file to view employee records and generate overtime reports."}
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {selectedEmployee ? (
+            <div className="flex flex-col min-h-full relative">
+              <DetailPanel 
+                employee={selectedEmployee} 
+                monthLabel={monthLabel}
+                onBack={() => setSelectedErp(null)}
+              />
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] p-8 text-center">
+              <div className="w-16 h-16 mb-4 opacity-10">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-[var(--font-lg)] font-medium text-[var(--color-text-muted)]">
+                {uploadedData ? "No Employee Selected" : "Upload CSV Data"}
+              </h3>
+              <p className="max-w-xs mt-1 text-[var(--font-sm)]">
+                {uploadedData 
+                  ? "Select an employee from the sidebar to view details." 
+                  : "Please upload your attendance CSV file to view employee records and generate overtime reports."}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Error Toast */}
         {error && (
-          <div className="absolute bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="bg-red-500 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-red-400/20">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-4 duration-300 w-[90%] md:w-[400px]">
+            <div className="bg-[var(--color-bg-card)] border-l-4 border-[var(--color-danger)] text-[var(--color-text-main)] px-4 py-3 rounded shadow-xl flex items-center gap-3">
+              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-[var(--color-danger)]">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
               <div>
-                <h4 className="font-bold text-sm">Upload Error</h4>
-                <p className="text-xs opacity-90">{error}</p>
+                <h4 className="font-bold text-[var(--font-sm)] text-[var(--color-danger)]">Upload Error</h4>
+                <p className="text-[var(--font-xs)] opacity-90">{error}</p>
               </div>
             </div>
           </div>
         )}
       </main>
+
+      <div className="md:hidden fixed bottom-6 right-6 z-[var(--z-fixed)]">
+        <ThemeToggle 
+          theme={appearance.theme || 'system'} 
+          onChange={(theme) => {
+            setAppearance({ ...appearance, theme });
+            saveSettings(policy, { ...appearance, theme }, pdf, basicPay, holidays);
+          }}
+          className="bg-[var(--color-bg-card)] rounded-[var(--radius-interactive)] shadow-xl border border-[var(--color-border)]"
+        />
+      </div>
 
       {isSettingsOpen && (
         <SettingsModal 
