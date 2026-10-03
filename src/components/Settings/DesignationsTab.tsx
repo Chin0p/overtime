@@ -68,7 +68,6 @@ export function DesignationsTab({
 
   const setCategory = (d: string, c: EmployeeCategory) => {
     const next = { ...categories, [d]: c };
-    // Exempt designations don't carry rate-type or cap config.
     const nextRate = { ...rateTypes };
     const nextCap = { ...capExempt };
     if (c === 'exempt') {
@@ -121,7 +120,6 @@ export function DesignationsTab({
     const nextRate = { ...rateTypes };
     const nextCap = { ...capExempt };
     selected.forEach(d => {
-      // Skip exempt rows — no rate type.
       if (resolveCategory(d) === 'exempt') return;
       nextRate[d] = rt;
       if (rt !== 'fixed') delete nextCap[d];
@@ -168,7 +166,7 @@ export function DesignationsTab({
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
-                className="w-3.5 h-3.5 rounded border-border focus:ring-ring"
+                className="w-4 h-4 rounded border-border focus:ring-ring"
                 checked={selected.size === uniqueDesignations.length && uniqueDesignations.length > 0}
                 onChange={toggleSelectAll}
               />
@@ -179,47 +177,47 @@ export function DesignationsTab({
 
             {selected.size > 0 && (
               <>
-                <div className="w-px h-4 bg-border" />
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Set:
+                <div className="w-px h-4 bg-border hidden sm:block" />
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground w-full sm:w-auto mt-2 sm:mt-0">
+                  Bulk actions:
                 </span>
                 {CATEGORY_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => bulkCategory(opt.value)}
-                    className="px-2 py-0.5 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
+                    className="px-2 py-1 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
                   >
-                    {opt.label}
+                    Set {opt.label}
                   </button>
                 ))}
-                <div className="w-px h-4 bg-border" />
+                <div className="w-px h-4 bg-border hidden sm:block" />
                 <button
                   type="button"
                   onClick={() => bulkRate('fixed')}
-                  className="px-2 py-0.5 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
+                  className="px-2 py-1 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
                 >
-                  Fixed
+                  Set Fixed
                 </button>
                 <button
                   type="button"
                   onClick={() => bulkRate('dynamic')}
-                  className="px-2 py-0.5 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
+                  className="px-2 py-1 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
                 >
-                  Dynamic
+                  Set Dynamic
                 </button>
-                <div className="w-px h-4 bg-border" />
+                <div className="w-px h-4 bg-border hidden sm:block" />
                 <button
                   type="button"
                   onClick={() => bulkCap(true)}
-                  className="px-2 py-0.5 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
+                  className="px-2 py-1 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
                 >
                   Cap: Exempt
                 </button>
                 <button
                   type="button"
                   onClick={() => bulkCap(false)}
-                  className="px-2 py-0.5 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
+                  className="px-2 py-1 rounded text-[10px] font-medium border border-border bg-card hover:bg-muted"
                 >
                   Cap: Apply
                 </button>
@@ -227,7 +225,15 @@ export function DesignationsTab({
             )}
           </div>
 
-          <div className="space-y-1.5">
+          {/* Desktop Header Row */}
+          <div className="hidden md:grid grid-cols-12 gap-2 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-1">
+            <div className="col-span-4">Designation</div>
+            <div className="col-span-3">Category</div>
+            <div className="col-span-2">Rate Type</div>
+            <div className="col-span-3">Cap Exemption</div>
+          </div>
+
+          <div className="space-y-2 md:space-y-1">
             {uniqueDesignations.map(designation => {
               const cat = resolveCategory(designation);
               const rt = resolveRate(designation);
@@ -241,82 +247,99 @@ export function DesignationsTab({
                 <div
                   key={designation}
                   className={cn(
-                    'flex items-center gap-2 px-2 py-1.5 rounded-lg border transition-colors',
-                    isSelected ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/10',
+                    'flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-2 p-3 md:px-2 md:py-1.5 rounded-lg border transition-colors',
+                    isSelected ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/10 hover:bg-muted/20',
                   )}
                 >
-                  <input
-                    type="checkbox"
-                    className="w-3.5 h-3.5 rounded border-border focus:ring-ring cursor-pointer shrink-0"
-                    checked={isSelected}
-                    onChange={() => toggleSelect(designation)}
-                  />
-
-                  <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
-                    <span className="text-[12px] font-semibold text-foreground truncate">
-                      {designation}
-                    </span>
-                    <span className="shrink-0 text-[10px] text-muted-foreground font-mono">
-                      ({count})
-                    </span>
+                  {/* 1. Designation & Checkbox */}
+                  <div className="flex items-center gap-3 md:col-span-4 min-w-0">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 md:w-3.5 md:h-3.5 rounded border-border focus:ring-ring cursor-pointer shrink-0"
+                      checked={isSelected}
+                      onChange={() => toggleSelect(designation)}
+                    />
+                    <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+                      <span className="text-[13px] md:text-[12px] font-semibold text-foreground truncate">
+                        {designation}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-muted-foreground font-mono">
+                        ({count})
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Category segmented control */}
-                  <div className="flex shrink-0 rounded-md border border-border overflow-hidden">
-                    {CATEGORY_OPTIONS.map((opt, i) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setCategory(designation, opt.value)}
-                        className={cn(
-                          'px-2 py-0.5 text-[10px] font-medium transition-colors',
-                          i > 0 && 'border-l border-border',
-                          cat === opt.value
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground',
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Rate segmented control — hidden for exempt */}
-                  {!isExempt && (
-                    <div className="flex shrink-0 rounded-md border border-border overflow-hidden">
-                      {(['fixed', 'dynamic'] as const).map((rtOpt, i) => (
+                  {/* 2. Category */}
+                  <div className="flex flex-col md:col-span-3 gap-1.5">
+                    <span className="md:hidden text-[10px] font-medium text-muted-foreground">Category</span>
+                    <div className="flex rounded-md border border-border overflow-hidden w-full md:w-fit">
+                      {CATEGORY_OPTIONS.map((opt, i) => (
                         <button
-                          key={rtOpt}
+                          key={opt.value}
                           type="button"
-                          onClick={() => setRate(designation, rtOpt)}
+                          onClick={() => setCategory(designation, opt.value)}
                           className={cn(
-                            'px-2 py-0.5 text-[10px] font-medium transition-colors',
+                            'flex-1 md:flex-none px-2 py-1.5 md:py-0.5 text-[11px] md:text-[10px] font-medium transition-colors',
                             i > 0 && 'border-l border-border',
-                            rt === rtOpt
-                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                            cat === opt.value
+                              ? 'bg-primary text-primary-foreground'
                               : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground',
                           )}
                         >
-                          {rtOpt === 'fixed' ? 'Fixed' : 'Dynamic'}
+                          {opt.label}
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  {/* 3. Rate Type */}
+                  {!isExempt ? (
+                    <div className="flex flex-col md:col-span-2 gap-1.5">
+                      <span className="md:hidden text-[10px] font-medium text-muted-foreground">Rate Type</span>
+                      <div className="flex rounded-md border border-border overflow-hidden w-full md:w-fit">
+                        {(['fixed', 'dynamic'] as const).map((rtOpt, i) => (
+                          <button
+                            key={rtOpt}
+                            type="button"
+                            onClick={() => setRate(designation, rtOpt)}
+                            className={cn(
+                              'flex-1 md:flex-none px-2 py-1.5 md:py-0.5 text-[11px] md:text-[10px] font-medium transition-colors',
+                              i > 0 && 'border-l border-border',
+                              rt === rtOpt
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                                : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground',
+                            )}
+                          >
+                            {rtOpt === 'fixed' ? 'Fixed' : 'Dynamic'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="md:col-span-2 hidden md:block" />
                   )}
 
-                  {/* Cap exemption — only for fixed */}
-                  {!isExempt && isFixed && (
-                    <label
-                      className="flex items-center gap-1 shrink-0 cursor-pointer select-none"
-                      title="Exempt from monthly day cap"
-                    >
-                      <input
-                        type="checkbox"
-                        className="w-3.5 h-3.5 rounded border-border focus:ring-ring"
-                        checked={cx}
-                        onChange={(e) => setCap(designation, e.target.checked)}
-                      />
-                      <span className="text-[10px] text-foreground whitespace-nowrap">No cap</span>
-                    </label>
+                  {/* 4. Cap Exemption */}
+                  {!isExempt && isFixed ? (
+                    <div className="flex items-center gap-2 md:col-span-3 mt-1 md:mt-0">
+                      <span className="md:hidden text-[10px] font-medium text-muted-foreground">Cap Exemption:</span>
+                      <label
+                        className="flex items-center gap-1.5 shrink-0 cursor-pointer select-none"
+                        title="Exempt from monthly day cap"
+                      >
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 md:w-3.5 md:h-3.5 rounded border-border focus:ring-ring"
+                          checked={cx}
+                          onChange={(e) => setCap(designation, e.target.checked)}
+                        />
+                        <span className="text-[11px] md:text-[10px] text-foreground whitespace-nowrap">
+                          No monthly cap
+                        </span>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="md:col-span-3 hidden md:block" />
                   )}
                 </div>
               );
