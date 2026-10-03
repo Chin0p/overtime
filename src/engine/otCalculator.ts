@@ -153,8 +153,9 @@ export function processEmployees(
       let adjustment = precalc?.adjustment || 0;
       const isExplicitOT = Boolean(precalc && precalc.otHours !== undefined && precalc.otHours > 0);
 
-      // Late arrival adjustment: calculate late time if enabled
-      if (policy.lateArrivalToggle && hasAttendanceTime && timeIn > officeStart) {
+      // Late arrival adjustment: skip on holidays — arrival time is irrelevant
+      // on rest days, and holiday pay is flat (not time-based).
+      if (policy.lateArrivalToggle && hasAttendanceTime && !isDayHoliday && timeIn > officeStart) {
         adjustment = round(timeIn - officeStart, roundingMode);
       }
 
@@ -252,6 +253,7 @@ export function processEmployees(
             return {
               ...r,
               amount: 0,
+              exceededMonthlyCap: true,
               remarks: r.remarks ? `${r.remarks} (Exceeded monthly cap)` : 'Exceeded monthly cap'
             };
           }

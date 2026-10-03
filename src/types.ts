@@ -99,6 +99,8 @@ export interface ProcessedRecord {
   amount: number;
   remarks: string;
   isHoliday: boolean;
+  /** Set true when this row was zeroed out by the monthly day cap. Used to filter from PDF. */
+  exceededMonthlyCap?: boolean;
 }
 
 export interface ProcessedEmployee {

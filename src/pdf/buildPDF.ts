@@ -137,9 +137,11 @@ export function buildPDF(
 
   // 2. Individual Employee Detail Pages
   exportableEmployees.forEach((emp) => {
+    // Skip rows zeroed out by the monthly day cap — they must not appear
+    // in the exported detail table at all.
     const validRecords = emp.records.filter(r =>
-      r.otHours >= 1 ||
-      (r.isHoliday && r.timeIn !== '' && r.timeOut !== '')
+      !r.exceededMonthlyCap &&
+      (r.otHours >= 1 || (r.isHoliday && r.timeIn !== '' && r.timeOut !== ''))
     );
     // Only generate detail pages for employees with actual valid records
     if (validRecords.length === 0) return;
@@ -205,7 +207,7 @@ export function buildPDF(
       rec.dayName,
       rec.timeIn,
       rec.timeOut,
-      rec.otHours.toString(),
+      rec.isHoliday ? '—' : rec.otHours.toString(),
       formatAmount(rec.amount),
       rec.remarks || ''
     ]);

@@ -181,9 +181,11 @@ export function parseJSON(
     // --- Hours ---
     const explicitOT = toHours(pick(row, ['otHours', 'ot_hours', 'overtimeHours', 'overtime_hours', 'ot']));
     const totalWorkedHours = toHours(pick(row, ['hours', 'totalWorkedHours', 'total_worked_hours']));
-    const otHours = explicitOT > 0
-      ? explicitOT
-      : Math.max(0, +(totalWorkedHours - shiftDurationHours).toFixed(2));
+
+    // OT is time-based: it starts at shift END, not at (totalWorked − shiftDuration).
+    // Only trust explicit OT from the source; otherwise the engine computes from
+    // (timeOut − officeEnd) using the canonical shift schedule.
+    const otHours = explicitOT > 0 ? explicitOT : 0;
 
     // --- Status / holiday ---
     const status = String(pick(row, ['status']) ?? '').trim();
