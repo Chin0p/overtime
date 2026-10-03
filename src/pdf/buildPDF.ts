@@ -207,7 +207,7 @@ export function buildPDF(
       rec.dayName,
       rec.timeIn,
       rec.timeOut,
-      rec.isHoliday ? '—' : rec.otHours.toString(),
+      rec.isHoliday ? '-' : rec.otHours.toString(),
       formatAmount(rec.amount),
       rec.remarks || ''
     ]);
