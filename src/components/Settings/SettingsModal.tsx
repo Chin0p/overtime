@@ -124,7 +124,7 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
             </nav>
           </aside>
 
-          <main className="flex-1 overflow-y-auto p-3 sm:p-5 bg-card">
+          <main className="flex-1 min-w-0 overflow-y-auto p-3 sm:p-5 bg-card">
             {activeTab === 'calculation' && (
               <CalculationTab policy={tempPolicy} onChange={updatePolicy} />
             )}

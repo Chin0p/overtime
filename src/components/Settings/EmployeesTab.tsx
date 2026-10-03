@@ -1,10 +1,18 @@
 import { useState, useMemo, Fragment } from 'react';
-import { Search, Layers, X } from 'lucide-react';
+import { Search, Layers, X, ChevronDown } from 'lucide-react';
 import { EmployeeRow, EmployeeCategory } from '../../types';
 import { NumberInput } from '../ui/NumberInput';
 import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
-import { Button } from '../ui/button';
+import { Button, buttonVariants } from '../ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { resolveRateType, resolveCapExempt } from '../../parser/parserUtils';
 import { toTitleCase, cn } from '../../lib/utils';
 
@@ -21,12 +29,6 @@ interface EmployeesTabProps {
     capExempt: Record<string, boolean>,
   ) => void;
 }
-
-const CATEGORY_OPTIONS: { value: EmployeeCategory; label: string }[] = [
-  { value: 'support', label: 'Support' },
-  { value: 'official', label: 'Official' },
-  { value: 'exempt', label: 'Exempt' },
-];
 
 const BADGE_STYLES = {
   Support: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
@@ -64,7 +66,6 @@ export function EmployeesTab({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkPay, setBulkPay] = useState(0);
 
-  // ---- Effective resolvers (fold in defaults from parser utils) ----
   const effectiveCategory = (designation: string): EmployeeCategory =>
     designationCategories[designation] ??
     (designation.toLowerCase().includes('officer') ? 'exempt' : 'official');
@@ -75,7 +76,6 @@ export function EmployeesTab({
   const effectiveCap = (designation: string, rate: 'fixed' | 'dynamic'): boolean =>
     resolveCapExempt(designation, rate, { designationCapExempt });
 
-  // ---- Filter + sort ----
   const displayEmployees = useMemo(() => {
     let list = [...employees];
     if (search.trim()) {
@@ -97,7 +97,6 @@ export function EmployeesTab({
     return list;
   }, [employees, search, groupByDesignation]);
 
-  // ---- Selection ----
   const visibleErps = useMemo(() => displayEmployees.map((e) => e.erp), [displayEmployees]);
   const allVisibleSelected =
     visibleErps.length > 0 && visibleErps.every((erp) => selected.has(erp));
@@ -105,11 +104,8 @@ export function EmployeesTab({
   const toggleSelectAll = () => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (allVisibleSelected) {
-        visibleErps.forEach((erp) => next.delete(erp));
-      } else {
-        visibleErps.forEach((erp) => next.add(erp));
-      }
+      if (allVisibleSelected) visibleErps.forEach((erp) => next.delete(erp));
+      else visibleErps.forEach((erp) => next.add(erp));
       return next;
     });
   };
@@ -122,7 +118,6 @@ export function EmployeesTab({
     });
   };
 
-  // Unique designations of the currently selected employees
   const selectedDesignations = useMemo(() => {
     const s = new Set<string>();
     employees.forEach((e) => {
@@ -131,7 +126,6 @@ export function EmployeesTab({
     return Array.from(s);
   }, [employees, selected]);
 
-  // ---- Basic pay ----
   const updateBasicPay = (erp: string, value: number) => {
     onBasicPayChange({ ...basicPay, [erp]: value });
   };
@@ -144,7 +138,6 @@ export function EmployeesTab({
     onBasicPayChange(next);
   };
 
-  // ---- Bulk designation actions ----
   const bulkSetCategory = (c: EmployeeCategory) => {
     const nextCat = { ...designationCategories };
     const nextRate = { ...designationRateTypes };
@@ -180,7 +173,6 @@ export function EmployeesTab({
     onDesignationChange(designationCategories, designationRateTypes, nextCap);
   };
 
-  // ---- Employee counts per designation (for group header) ----
   const designationCounts = useMemo(() => {
     const m: Record<string, number> = {};
     employees.forEach((e) => {
@@ -189,40 +181,36 @@ export function EmployeesTab({
     return m;
   }, [employees]);
 
-  // ---- Render helpers ----
   const renderBadges = (emp: EmployeeRow) => {
     const cat = effectiveCategory(emp.designation || '');
-    const rate = effectiveRate(emp.designation || '');
-    const capExempt = effectiveCap(emp.designation || '', rate);
-    const badges: React.ReactNode[] = [];
+    if (cat === 'exempt') return [<Badge key="cat" label="Exempt" />];
 
-    // Category chip (always shown inline next to designation, separate below)
-    if (cat !== 'exempt') {
-      badges.push(
-        <Badge key="rate" label={rate === 'fixed' ? 'Fixed' : 'Dynamic'} />,
-      );
-      if (rate === 'fixed' && !capExempt) {
-        badges.push(<Badge key="cap" label="Capped" />);
-      }
+    const rate = effectiveRate(emp.designation || '');
+    const badges: React.ReactNode[] = [
+      <Badge key="rate" label={rate === 'fixed' ? 'Fixed' : 'Dynamic'} />,
+    ];
+    if (rate === 'fixed') {
+      const capExempt = effectiveCap(emp.designation || '', rate);
+      if (!capExempt) badges.push(<Badge key="cap" label="Capped" />);
     }
     return badges;
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 w-full min-w-0">
       {/* Header */}
       <div>
-        <h3 className="text-[12px] font-bold text-foreground">Employees & Pay</h3>
+        <h3 className="text-[12px] font-bold text-foreground">Employees &amp; Pay</h3>
         <p className="text-[11px] text-muted-foreground mt-0.5">
           Set basic pay per employee, and manage designation rules via bulk actions.
         </p>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 min-w-0">
+      {/* Toolbar — fixed widths to prevent modal reflow */}
+      <div className="flex items-center gap-2 w-full min-w-0">
+        <div className="relative flex-1 min-w-0 max-w-full">
           <Search
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
             size={13}
           />
           <Input
@@ -230,7 +218,7 @@ export function EmployeesTab({
             placeholder="Search name, ERP, or designation..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 text-[12px] h-8"
+            className="pl-8 text-[12px] h-8 w-full"
           />
         </div>
         <Button
@@ -248,7 +236,7 @@ export function EmployeesTab({
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
-        <div className="rounded-lg border border-primary/20 bg-[var(--color-neutral-active)] p-2.5 space-y-2">
+        <div className="rounded-lg border border-primary/20 bg-[var(--color-neutral-active)] p-3 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-[var(--color-accent)]">
               {selected.size} selected
@@ -267,15 +255,16 @@ export function EmployeesTab({
             </button>
           </div>
 
-          {/* Basic pay bulk */}
+          {/* Basic pay */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">
               Basic Pay
             </span>
             <NumberInput
               value={bulkPay}
               onChange={setBulkPay}
               suffix="PKR"
+              maxDigits={5}
               className="w-32"
             />
             <Button
@@ -288,71 +277,68 @@ export function EmployeesTab({
             </Button>
           </div>
 
-          {/* Designation bulk */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Category
+          {/* Designation rules */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">
+              Rules
             </span>
-            {CATEGORY_OPTIONS.map((opt) => (
-              <Button
-                key={opt.value}
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => bulkSetCategory(opt.value)}
-                className="text-[10px] h-6 px-2"
+
+            {/* Category dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  buttonVariants({ variant: 'outline', size: 'sm' }),
+                  'gap-1.5 text-[11px] h-7 px-2.5',
+                )}
               >
-                {opt.label}
-              </Button>
-            ))}
+                <span>Category</span>
+                <ChevronDown size={12} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-36">
+                <DropdownMenuLabel>Set category</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => bulkSetCategory('support')}>
+                  Support
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => bulkSetCategory('official')}>
+                  Official
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => bulkSetCategory('exempt')}>
+                  Exempt
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            <div className="w-px h-4 bg-border mx-1" />
+            {/* Rate dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  buttonVariants({ variant: 'outline', size: 'sm' }),
+                  'gap-1.5 text-[11px] h-7 px-2.5',
+                )}
+              >
+                <span>Rate</span>
+                <ChevronDown size={12} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-36">
+                <DropdownMenuLabel>Set rate type</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => bulkSetRate('fixed')}>Fixed</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => bulkSetRate('dynamic')}>Dynamic</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Rate
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => bulkSetRate('fixed')}
-              className="text-[10px] h-6 px-2"
-            >
-              Fixed
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => bulkSetRate('dynamic')}
-              className="text-[10px] h-6 px-2"
-            >
-              Dynamic
-            </Button>
-
-            <div className="w-px h-4 bg-border mx-1" />
-
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Cap
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => bulkSetCap(false)}
-              className="text-[10px] h-6 px-2"
-            >
-              Apply
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => bulkSetCap(true)}
-              className="text-[10px] h-6 px-2"
-            >
-              Exempt
-            </Button>
+            {/* Cap checkbox */}
+            <label className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-card cursor-pointer select-none">
+              <Checkbox
+                size="sm"
+                checked={false}
+                onChange={(e) => bulkSetCap(e.target.checked)}
+              />
+              <span className="text-[11px] font-medium whitespace-nowrap">
+                Exempt from cap
+              </span>
+            </label>
           </div>
         </div>
       )}
@@ -367,7 +353,7 @@ export function EmployeesTab({
       ) : (
         <>
           {/* Desktop header */}
-          <div className="hidden md:grid grid-cols-[auto_1fr_140px_160px] gap-3 px-2 py-1.5 border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground items-center">
+          <div className="hidden md:grid grid-cols-[auto_1fr_auto] gap-3 px-2 py-1.5 border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground items-center">
             <Checkbox
               size="sm"
               checked={allVisibleSelected}
@@ -375,11 +361,9 @@ export function EmployeesTab({
               title="Select all"
             />
             <div>Employee</div>
-            <div>Rate & Cap</div>
-            <div>Basic Pay</div>
+            <div className="text-right pr-1">Basic Pay</div>
           </div>
 
-          {/* Rows */}
           <div className="space-y-2 md:space-y-1">
             {displayEmployees.map((emp, idx) => {
               const prev = displayEmployees[idx - 1];
@@ -395,6 +379,16 @@ export function EmployeesTab({
                 basicPay[emp.erp] !== undefined ? basicPay[emp.erp] : emp.basicPay || 0;
               const badges = renderBadges(emp);
 
+              // Input visibility rules:
+              // - Exempt → never show
+              // - Fixed  → mobile: hide, desktop: show disabled
+              // - Dynamic → show everywhere
+              const inputWrapperClass = cn(
+                'shrink-0',
+                isExempt && 'hidden',
+                isFixed && !isExempt && 'hidden md:block',
+              );
+
               return (
                 <Fragment key={emp.erp}>
                   {showGroupHeader && (
@@ -405,96 +399,50 @@ export function EmployeesTab({
                       <span className="h-px flex-1 bg-border" />
                       <span className="text-[10px] text-muted-foreground">
                         {designationCounts[emp.designation] || 0}{' '}
-                        {(designationCounts[emp.designation] || 0) === 1
-                          ? 'person'
-                          : 'people'}
+                        {(designationCounts[emp.designation] || 0) === 1 ? 'person' : 'people'}
                       </span>
                     </div>
                   )}
 
                   <div
                     className={cn(
-                      'rounded-lg border transition-colors p-3 md:px-2 md:py-2',
-                      'flex flex-col gap-3 md:grid md:grid-cols-[auto_1fr_140px_160px] md:gap-3 md:items-center',
+                      'rounded-lg border transition-colors p-2.5',
+                      'flex items-center gap-3',
                       isSelected
                         ? 'border-primary/40 bg-primary/5'
                         : 'border-border bg-muted/10 hover:bg-muted/20',
                       isExempt && 'opacity-60',
                     )}
                   >
-                    {/* Mobile top: checkbox + name */}
-                    <div className="flex items-start gap-3 md:contents">
-                      <Checkbox
-                        size="sm"
-                        checked={isSelected}
-                        onChange={() => toggleSelect(emp.erp)}
-                        className="mt-0.5 md:mt-0"
-                      />
+                    <Checkbox
+                      size="sm"
+                      checked={isSelected}
+                      onChange={() => toggleSelect(emp.erp)}
+                    />
 
-                      <div className="flex-1 min-w-0 md:min-w-0 space-y-1">
-                        {/* Name · Designation · Category chip */}
-                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                          <span className="text-[13px] md:text-[12px] font-semibold text-foreground truncate">
-                            {toTitleCase(emp.name)}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground truncate">
-                            {emp.designation}
-                          </span>
-                          <span
-                            className={cn(
-                              'inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-semibold leading-none whitespace-nowrap',
-                              BADGE_STYLES[cat === 'support' ? 'Support' : cat === 'official' ? 'Official' : 'Exempt'],
-                            )}
-                          >
-                            {cat === 'support' ? 'Support' : cat === 'official' ? 'Official' : 'Exempt'}
-                          </span>
-                        </div>
-                        {/* ERP */}
-                        <div className="text-[10px] font-mono text-muted-foreground truncate">
-                          {emp.erp}
-                        </div>
+                    {/* Info column: row1 = name + badges, row2 = erp · designation */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] md:text-[12px] font-semibold text-foreground truncate">
+                          {toTitleCase(emp.name)}
+                        </span>
+                        {badges}
+                      </div>
+                      <div className="text-[10px] font-mono text-muted-foreground truncate mt-0.5">
+                        {emp.erp}
+                        <span className="mx-1 opacity-50">·</span>
+                        <span className="font-sans not-italic">{emp.designation}</span>
                       </div>
                     </div>
 
-                    {/* Rate & Cap badges — mobile position */}
-                    <div className="flex items-center gap-1.5 md:hidden">
-                      {badges.length > 0 ? (
-                        badges
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">—</span>
-                      )}
-                    </div>
-
-                    {/* Basic pay — mobile position */}
-                    <div className="flex items-center gap-2 md:hidden">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Basic Pay
-                      </span>
+                    {/* Input column */}
+                    <div className={inputWrapperClass}>
                       <NumberInput
                         value={currentVal}
                         onChange={(v) => updateBasicPay(emp.erp, v)}
                         suffix="PKR"
-                        className="w-40"
-                        disabled={isFixed || isExempt}
-                      />
-                    </div>
-
-                    {/* Rate & Cap badges — desktop column */}
-                    <div className="hidden md:flex items-center gap-1.5">
-                      {badges.length > 0 ? (
-                        badges
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">—</span>
-                      )}
-                    </div>
-
-                    {/* Basic pay — desktop column */}
-                    <div className="hidden md:block">
-                      <NumberInput
-                        value={currentVal}
-                        onChange={(v) => updateBasicPay(emp.erp, v)}
-                        suffix="PKR"
-                        className="w-32"
+                        maxDigits={5}
+                        className="w-28 md:w-28"
                         disabled={isFixed || isExempt}
                       />
                     </div>
