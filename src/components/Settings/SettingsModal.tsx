@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { Settings, CreditCard, Calendar, Users, FileText, Database } from 'lucide-react';
 import { OTSettings, Holiday, EmployeeRow, EmployeeCategory } from '../../types';
 import { CalculationTab } from './CalculationTab';
-import { BasicPayTab } from './BasicPayTab';
 import { HolidaysTab } from './HolidaysTab';
-import { DesignationsTab } from './DesignationsTab';
 import { PDFTab } from './PDFTab';
+import { EmployeesTab } from './EmployeesTab';
 import { DataFlowTab } from './DataFlowTab';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
@@ -29,8 +28,9 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, employees, dates, onSave, onClose }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'calculation' | 'basic-pay' | 'holidays' | 'designations' | 'pdf' | 'data'>('calculation');
-  
+  const [activeTab, setActiveTab] = useState<
+    'calculation' | 'employees' | 'holidays' | 'pdf' | 'data'
+  >('calculation');
   const [tempPolicy, setTempPolicy] = useState(policy);
   const [tempAppearance, setTempAppearance] = useState(appearance);
   const [tempPdf, setTempPdf] = useState(pdf);
@@ -83,7 +83,7 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100dvh] max-h-[100dvh] my-0 rounded-none border-border bg-card gap-0 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:my-4 sm:rounded-xl">
-        
+
         <DialogHeader className="px-4 py-2 border-b border-border shrink-0 m-0">
           <DialogTitle className="text-[12px] font-bold">Settings</DialogTitle>
         </DialogHeader>
@@ -91,38 +91,32 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           <aside className="w-full md:w-[200px] border-b md:border-b-0 md:border-r border-border bg-muted/20 p-2 md:p-3 shrink-0 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
             <nav className="flex md:flex-col flex-row gap-1.5 md:gap-1 w-max md:w-auto">
-              <TabButton 
-                active={activeTab === 'calculation'} 
+              <TabButton
+                active={activeTab === 'calculation'}
                 onClick={() => setActiveTab('calculation')}
                 icon={<Settings size={15} />}
                 label="Calculation"
               />
-              <TabButton 
-                active={activeTab === 'basic-pay'} 
-                onClick={() => setActiveTab('basic-pay')}
-                icon={<CreditCard size={15} />}
-                label="Basic pay"
+              <TabButton
+                active={activeTab === 'employees'}
+                onClick={() => setActiveTab('employees')}
+                icon={<Users size={15} />}
+                label="Employees & Pay"
               />
-              <TabButton 
-                active={activeTab === 'holidays'} 
+              <TabButton
+                active={activeTab === 'holidays'}
                 onClick={() => setActiveTab('holidays')}
                 icon={<Calendar size={15} />}
                 label="Holidays"
               />
-              <TabButton 
-                active={activeTab === 'designations'} 
-                onClick={() => setActiveTab('designations')}
-                icon={<Users size={15} />}
-                label="Designations"
-              />
-              <TabButton 
-                active={activeTab === 'pdf'} 
+              <TabButton
+                active={activeTab === 'pdf'}
                 onClick={() => setActiveTab('pdf')}
                 icon={<FileText size={15} />}
                 label="PDF Export"
               />
-              <TabButton 
-                active={activeTab === 'data'} 
+              <TabButton
+                active={activeTab === 'data'}
                 onClick={() => setActiveTab('data')}
                 icon={<Database size={15} />}
                 label="Backup / Reset"
@@ -134,32 +128,25 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
             {activeTab === 'calculation' && (
               <CalculationTab policy={tempPolicy} onChange={updatePolicy} />
             )}
-            {activeTab === 'basic-pay' && (
-              <BasicPayTab 
-                basicPay={tempBasicPay} 
-                employees={employees} 
-                designationCategories={tempPolicy.designationCategories}
-                designationRateTypes={tempPolicy.designationRateTypes}
-                onChange={updateBasicPay} 
-              />
-            )}
             {activeTab === 'holidays' && (
               <HolidaysTab holidays={tempHolidays} dates={dates} onChange={updateHolidays} />
             )}
-            {activeTab === 'designations' && (
-              <DesignationsTab 
-                categories={tempPolicy.designationCategories}
-                rateTypes={tempPolicy.designationRateTypes || {}}
-                capExempt={tempPolicy.designationCapExempt || {}}
+            {activeTab === 'employees' && (
+              <EmployeesTab
+                basicPay={tempBasicPay}
                 employees={employees}
-                onChange={updateDesignationConfig} 
+                designationCategories={tempPolicy.designationCategories}
+                designationRateTypes={tempPolicy.designationRateTypes || {}}
+                designationCapExempt={tempPolicy.designationCapExempt || {}}
+                onBasicPayChange={updateBasicPay}
+                onDesignationChange={updateDesignationConfig}
               />
             )}
             {activeTab === 'pdf' && (
               <PDFTab pdf={tempPdf} employees={employees} onChange={updatePdf} />
             )}
             {activeTab === 'data' && (
-              <DataFlowTab 
+              <DataFlowTab
                 policy={tempPolicy}
                 appearance={tempAppearance}
                 pdf={tempPdf}
@@ -211,8 +198,8 @@ function TabButton({ active, onClick, icon, label }: { active: boolean, onClick:
       onClick={onClick}
       className={cn(
         "flex items-center w-auto md:w-full justify-start gap-2 rounded-[var(--radius-interactive)] transition-all shrink-0 px-2.5 py-1.5 text-[12px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring",
-        active 
-          ? "bg-[var(--color-neutral-active)] text-[var(--color-accent)] hover:bg-[var(--color-neutral-active)] hover:text-[var(--color-accent)]" 
+        active
+          ? "bg-[var(--color-neutral-active)] text-[var(--color-accent)] hover:bg-[var(--color-neutral-active)] hover:text-[var(--color-accent)]"
           : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-neutral-hover)]"
       )}
     >
