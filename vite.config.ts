@@ -22,7 +22,14 @@ export default defineConfig(({ mode }) => {
     // GitHub Pages serves this repo from /overtime/, not the domain root.
     // Only the normal (multi-file) build needs this — the singlefile build
     // has no separate asset requests to resolve.
-    base: isSingleFile ? '/' : '/overtime/',
+    base: '/',
+    server: {
+      host: '0.0.0.0',
+      port: 3000,
+      allowedHosts: true,
+      hmr: process.env.DISABLE_HMR !== 'true',
+      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
     build: {
       // keep the two build modes from overwriting each other
       outDir: isSingleFile ? 'dist-singlefile' : 'dist',

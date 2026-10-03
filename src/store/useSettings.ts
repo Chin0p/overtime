@@ -31,7 +31,8 @@ export function useSettings() {
         ...(saved?.official || {})
       },
       designationCategories: saved?.designationCategories || {},
-      designationRateTypes: saved?.designationRateTypes || {}
+      designationRateTypes: saved?.designationRateTypes || {},
+      designationCapExempt: saved?.designationCapExempt || {}
     };
   });
 
@@ -43,7 +44,10 @@ export function useSettings() {
     const saved = getSafeStorage(STORAGE_KEYS.PDF, DEFAULT_SETTINGS.pdf);
     return {
       ...DEFAULT_SETTINGS.pdf,
-      ...saved
+      ...saved,
+      signatureLeft: 'employee signature',
+      signatureRight: 'officer signature',
+      summarySubject: 'overtime of admin branch for the month'
     };
   });
 

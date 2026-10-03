@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
+import { cn, toTitleCase } from '../../lib/utils';
 import { ProcessedEmployee } from '../../types';
 import { AlertTriangle, Info } from 'lucide-react';
 
@@ -22,25 +22,25 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, isSelected
           : "hover:bg-[var(--color-neutral-hover)] active:bg-[var(--color-neutral-pressed)] text-[var(--color-text-main)]"
       )}
     >
-      <div className="flex justify-between items-center mb-1 w-full min-w-0">
+      <div className="flex justify-between items-center mb-0.5 w-full min-w-0">
         <h3 className={cn(
-          "font-medium text-sm truncate pr-2 flex-1",
+          "font-semibold text-[12px] truncate pr-2 flex-1",
           isSelected ? "text-[var(--color-accent)]" : "text-[var(--color-text-main)]"
         )}>
-          {employee.name}
+          {toTitleCase(employee.name)}
         </h3>
         <div className="flex items-center gap-1.5 shrink-0 select-none">
           {!hasBasicPay && employee.rateType === 'dynamic' && (
             <div className="group/tooltip relative">
-              <AlertTriangle size={14} className="text-[var(--color-danger)]" />
+              <AlertTriangle size={13} className="text-[var(--color-danger)]" />
             </div>
           )}
           {employee.isSupport && (
-            <div className="group/tooltip relative">
-              <Info size={14} className="text-[var(--color-text-muted)]" />
-            </div>
+            <span title="Support staff">
+              <Info size={13} className="text-[var(--color-text-muted)]" />
+            </span>
           )}
-          <span className="px-1.5 py-0.5 bg-card border border-[var(--color-border)] text-[10px] md:text-xs text-[var(--color-text-muted)] font-medium tracking-tight rounded-[var(--radius-interactive)] leading-none">
+          <span className="px-1.5 py-0.5 bg-card border border-[var(--color-border)] text-[10px] text-[var(--color-text-muted)] font-medium tracking-tight rounded-[var(--radius-interactive)] leading-none">
             {employee.totalOTHours}h
           </span>
         </div>
@@ -48,10 +48,10 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, isSelected
       
       <div className="flex items-center justify-between w-full min-w-0">
         <p className={cn(
-          "text-[11px] md:text-xs truncate w-full",
+          "text-[11px] truncate w-full",
           isSelected ? "text-[var(--color-accent)] opacity-85" : "text-[var(--color-text-muted)]"
         )}>
-          {employee.designation} <span className="mx-1 opacity-20">•</span> {employee.erp}
+          {employee.designation} <span className="mx-0.5 opacity-40">&bull;</span> {employee.erp}
         </p>
       </div>
     </button>

@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Download, Upload, AlertCircle } from 'lucide-react';
+import React, { useRef, useState, useMemo } from 'react';
+import { Download, Upload, AlertCircle, FileArchive } from 'lucide-react';
 import { OTSettings, Holiday } from '../../types';
 import { CustomConfirmDialog } from '../ui/CustomConfirmDialog';
 
@@ -21,6 +21,7 @@ interface DataFlowTabProps {
 export function DataFlowTab({ policy, appearance, pdf, basicPay, holidays, onImport }: DataFlowTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importData, setImportData] = useState<any>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const handleExport = () => {
     const data = {
@@ -55,14 +56,37 @@ export function DataFlowTab({ policy, appearance, pdf, basicPay, holidays, onImp
           throw new Error('Invalid settings file format.');
         }
         setImportData(json);
+        setImportError(null);
       } catch (err) {
-        // use toast in a real app, here we might just reset if it fails silently since native alert is banned
-        console.error('Failed to import settings:', err);
+        setImportError(err instanceof Error ? err.message : 'Failed to read settings file.');
       }
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
     reader.readAsText(file);
   };
+
+  const diffSummary = useMemo(() => {
+    if (!importData) return null;
+    const lines: string[] = [];
+    const inPolicy = importData.policy || {};
+    const policyDiffs: string[] = [];
+    if (inPolicy.minThreshold !== policy.minThreshold) policyDiffs.push('Min threshold');
+    if (inPolicy.shiftDurationHours !== policy.shiftDurationHours) policyDiffs.push('Shift duration');
+    if (inPolicy.roundingMode !== policy.roundingMode) policyDiffs.push('Rounding mode');
+    if (inPolicy.official?.dailyOTCap !== policy.official.dailyOTCap) policyDiffs.push('Dynamic daily cap');
+    if (inPolicy.support?.hourlyRate !== policy.support.hourlyRate) policyDiffs.push('Fixed hourly rate');
+    if (policyDiffs.length) lines.push(`Policy: ${policyDiffs.join(', ')}`);
+
+    const inBP = importData.basicPay || {};
+    const bpChanged = Object.keys(inBP).filter(k => basicPay[k] !== inBP[k]).length;
+    if (bpChanged) lines.push(`Basic pay: ${bpChanged} entr${bpChanged === 1 ? 'y' : 'ies'} changed`);
+
+    const inHol = importData.holidays || [];
+    if (inHol.length !== holidays.length) lines.push(`Holidays: ${holidays.length} → ${inHol.length}`);
+
+    if (!lines.length) lines.push('No differences detected.');
+    return lines;
+  }, [importData, policy, basicPay, holidays]);
 
   const confirmImport = () => {
     if (importData) {
@@ -78,32 +102,32 @@ export function DataFlowTab({ policy, appearance, pdf, basicPay, holidays, onImp
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <section>
-        <h3 className="text-lg font-bold text-foreground mb-4">Backup & Restore</h3>
-        <p className="text-sm text-muted-foreground mb-6">Backup your policies, basic pay records, and holidays to a JSON file.</p>
+        <h3 className="text-[12px] font-bold text-foreground mb-2">Backup & Restore</h3>
+        <p className="text-[11px] text-muted-foreground mb-4">Backup your policies, basic pay records, and holidays to a JSON file.</p>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             onClick={handleExport}
-            className="flex flex-col items-center justify-center p-6 bg-muted/20 border border-border rounded-lg hover:bg-muted/50 transition-all group active:scale-95"
+            className="flex flex-col items-center justify-center p-4 bg-muted/20 border border-border rounded-lg hover:bg-muted/50 transition-all group active:scale-95"
           >
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-3 group-hover:scale-110 transition-transform">
-              <Download size={24} />
+            <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2 group-hover:scale-105 transition-transform">
+              <Download size={18} />
             </div>
-            <span className="text-base md:text-sm font-bold text-foreground">Export Settings</span>
-            <span className="text-xs text-muted-foreground mt-1 text-center">Save to .json file</span>
+            <span className="text-[12px] font-bold text-foreground">Export Settings</span>
+            <span className="text-[10px] text-muted-foreground mt-0.5 text-center">Save to .json file</span>
           </button>
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center p-6 bg-muted/20 border border-border rounded-lg hover:bg-muted/50 transition-all group active:scale-95"
+            className="flex flex-col items-center justify-center p-4 bg-muted/20 border border-border rounded-lg hover:bg-muted/50 transition-all group active:scale-95"
           >
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-3 group-hover:scale-110 transition-transform">
-              <Upload size={24} />
+            <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2 group-hover:scale-105 transition-transform">
+              <Upload size={18} />
             </div>
-            <span className="text-base md:text-sm font-bold text-foreground">Import Settings</span>
-            <span className="text-xs text-muted-foreground mt-1 text-center">Load from .json file</span>
+            <span className="text-[12px] font-bold text-foreground">Import Settings</span>
+            <span className="text-[10px] text-muted-foreground mt-0.5 text-center">Load from .json file</span>
             <input
               type="file"
               ref={fileInputRef}
@@ -112,13 +136,36 @@ export function DataFlowTab({ policy, appearance, pdf, basicPay, holidays, onImp
               className="hidden"
             />
           </button>
+
+          <a
+            href="/project-source.zip"
+            download="overtime-manager-project.zip"
+            className="flex flex-col items-center justify-center p-4 bg-muted/20 border border-border rounded-lg hover:bg-muted/50 transition-all group active:scale-95"
+          >
+            <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2 group-hover:scale-105 transition-transform">
+              <FileArchive size={18} />
+            </div>
+            <span className="text-[12px] font-bold text-foreground">Project Source</span>
+            <span className="text-[10px] text-muted-foreground mt-0.5 text-center">Download project .zip</span>
+          </a>
         </div>
       </section>
+
+      {importError && (
+        <div className="p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-[11px] flex items-start gap-2">
+          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          <span>{importError}</span>
+        </div>
+      )}
 
       {importData && (
         <CustomConfirmDialog
           title="Import Settings"
-          message="This will overwrite all current settings. Are you sure?"
+          message={
+            `Backup version: ${importData.version || 'unknown'} · exported ${importData.timestamp ? new Date(importData.timestamp).toLocaleString() : 'unknown'}\n\n` +
+            (diffSummary ? diffSummary.join('\n') : '') +
+            '\n\nThis will overwrite all current settings.'
+          }
           onConfirm={confirmImport}
           onCancel={() => setImportData(null)}
           confirmText="Import"

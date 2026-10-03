@@ -9,15 +9,21 @@ interface NumberInputProps {
   className?: string;
   min?: number;
   max?: number;
+  disabled?: boolean;
 }
 
-export function NumberInput({ value, onChange, suffix, className, min = 0, max }: NumberInputProps) {
+export function NumberInput({ value, onChange, suffix, className, min = 0, max, disabled }: NumberInputProps) {
   return (
-    <div className={cn("relative flex items-center group w-28", className)}>
+    <div className={cn(
+      "relative flex items-center group w-28",
+      disabled && "opacity-60",
+      className,
+    )}>
       <Input
         type="number"
         min={min}
         max={max}
+        disabled={disabled}
         onWheel={(e) => (e.target as HTMLInputElement).blur()}
         onKeyDown={(e) => {
           if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {

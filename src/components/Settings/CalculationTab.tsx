@@ -1,10 +1,9 @@
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { OTSettings } from '../../types';
 import { NumberInput } from '../ui/NumberInput';
-import { Input } from '../ui/input';
 import { Switch } from '../ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { cn } from '../../lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
 
 interface CalculationTabProps {
   policy: OTSettings['policy'];
@@ -12,6 +11,20 @@ interface CalculationTabProps {
 }
 
 export function CalculationTab({ policy, onChange }: CalculationTabProps) {
+  const issues: string[] = [];
+  if (policy.minThreshold >= policy.official.dailyOTCap) {
+    issues.push(`Min threshold (${policy.minThreshold}h) ≥ dynamic daily cap (${policy.official.dailyOTCap}h) — no dynamic OT will ever be paid.`);
+  }
+  if (policy.minThreshold >= policy.support.dailyOTCap) {
+    issues.push(`Min threshold (${policy.minThreshold}h) ≥ fixed daily cap (${policy.support.dailyOTCap}h) — no fixed-rate OT will ever be paid.`);
+  }
+  if (policy.official.dailyOTCap <= 0) issues.push('Dynamic daily cap is zero.');
+  if (policy.support.dailyOTCap <= 0) issues.push('Fixed daily cap is zero.');
+  if (policy.official.maxDailyAmount <= 0) issues.push('Dynamic daily max amount is zero.');
+  if (policy.support.maxDailyAmount <= 0) issues.push('Fixed daily max amount is zero.');
+  if (policy.official.monthlyDayCap <= 0) issues.push('Monthly day cap is zero — no OT will be paid.');
+  if ((policy.shiftDurationHours ?? 8) <= 0) issues.push('Shift duration is zero.');
+
   const updateOfficial = (updates: Partial<typeof policy.official>) => {
     onChange({ ...policy, official: { ...policy.official, ...updates } });
   };
@@ -21,29 +34,33 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
+      {issues.length > 0 && (
+        <div className="p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[11px] space-y-1">
+          <div className="flex items-center gap-1.5 font-semibold text-[var(--color-warning)]">
+            <AlertTriangle size={13} />
+            <span>Policy issues</span>
+          </div>
+          <ul className="list-disc list-inside text-[var(--color-warning)]/90 space-y-0.5 pl-1">
+            {issues.map((s, i) => <li key={i}>{s}</li>)}
+          </ul>
+        </div>
+      )}
+
       <section>
-        <h3 className="text-lg font-bold text-foreground mb-6">Global Rules</h3>
-        <div className="space-y-6">
+        <h3 className="text-[12px] font-bold text-foreground mb-4">Global Rules</h3>
+        <div className="space-y-4">
           <SettingRow
-            title="Office timing"
-            description="Standard daily working hours."
+            title="Shift duration"
+            description="Standard daily working hours used to compute overtime from raw hours."
           >
-            <div className="flex items-center gap-2">
-              <Input
-                type="time"
-                value={policy.officeTiming.start}
-                onChange={(e) => onChange({ ...policy, officeTiming: { ...policy.officeTiming, start: e.target.value } })}
-                className="w-[110px]"
-              />
-              <span className="text-muted-foreground">-</span>
-              <Input
-                type="time"
-                value={policy.officeTiming.end}
-                onChange={(e) => onChange({ ...policy, officeTiming: { ...policy.officeTiming, end: e.target.value } })}
-                className="w-[110px]"
-              />
-            </div>
+            <NumberInput
+              value={policy.shiftDurationHours ?? 8}
+              onChange={(val) => onChange({ ...policy, shiftDurationHours: val })}
+              suffix="hrs"
+              min={1}
+              max={24}
+            />
           </SettingRow>
 
           <SettingRow
@@ -73,8 +90,8 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           >
             <div className="relative w-fit max-w-[200px]">
               <Select
-                value={(policy as any).roundingMode || 'floor'}
-                onValueChange={(val) => onChange({ ...policy, roundingMode: val as 'floor' | 'round' } as any)}
+                value={policy.roundingMode || 'round'}
+                onValueChange={(val) => onChange({ ...policy, roundingMode: val as 'floor' | 'round' })}
               >
                 <SelectTrigger>
                   <span className="truncate">{policy.roundingMode === 'round' ? 'Round' : 'Floor'}</span>
@@ -92,8 +109,8 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
       <div className="h-px bg-border" />
 
       <section>
-        <h3 className="text-lg font-bold text-foreground mb-6">Official staff</h3>
-        <div className="space-y-6">
+        <h3 className="text-[12px] font-bold text-foreground mb-4">Dynamic rate</h3>
+        <div className="space-y-4">
           <SettingRow
             title="Daily overtime cap"
             description="Maximum overtime hours allowed per day for official staff."
@@ -132,8 +149,8 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
       <div className="h-px bg-border" />
 
       <section>
-        <h3 className="text-lg font-bold text-foreground mb-6">Support staff</h3>
-        <div className="space-y-6">
+        <h3 className="text-[12px] font-bold text-foreground mb-4">Fixed rate</h3>
+        <div className="space-y-4">
           <SettingRow
             title="Daily overtime cap"
             description="Maximum overtime hours allowed per day for support staff."
@@ -174,10 +191,10 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
 
 function SettingRow({ title, description, children }: { title: string, description: string, children: React.ReactNode }) {
   return (
-    <div className="flex flex-row items-center justify-between gap-3 sm:gap-8">
+    <div className="flex flex-row items-center justify-between gap-3 sm:gap-6">
       <div className="flex-1 min-w-0 pr-2">
-        <h4 className="text-base md:text-sm font-bold text-foreground truncate">{title}</h4>
-        <p className="text-sm md:text-xs text-muted-foreground mt-1 leading-snug line-clamp-2 md:line-clamp-none">{description}</p>
+        <h4 className="text-[12px] font-semibold text-foreground truncate">{title}</h4>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{description}</p>
       </div>
       <div className="shrink-0 flex items-center">
         {children}

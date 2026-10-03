@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Holiday } from '../../types';
-import { flexibleParseDate, cn } from '../../lib/utils';
-import { format } from 'date-fns';
+import { flexibleParseDate, cn, formatCanonicalDate } from '../../lib/utils';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 
 interface HolidaysTabProps {
   holidays: Holiday[];
@@ -10,17 +10,26 @@ interface HolidaysTabProps {
 }
 
 export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
-  const parsedDates = useMemo(() => {
-    return dates.map(d => {
-      const dateObj = flexibleParseDate(d);
+  const calendarDates = useMemo(() => {
+    const validDates = dates.map(d => flexibleParseDate(d)).filter(d => !isNaN(d.getTime()));
+    if (validDates.length === 0) return [];
+    
+    // Get the month of the first valid date
+    const firstDate = validDates[0];
+    const monthStart = startOfMonth(firstDate);
+    const monthEnd = endOfMonth(firstDate);
+    
+    const allDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    return allDays.map(dateObj => {
       const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
       return { 
-        raw: d, 
         dateObj, 
         isWeekend, 
-        formatted: isNaN(dateObj.getTime()) ? d : format(dateObj, 'dd-MMM-yyyy') 
+        formatted: formatCanonicalDate(dateObj),
+        inCsv: validDates.some(vd => formatCanonicalDate(vd) === formatCanonicalDate(dateObj))
       };
-    }).filter(d => !isNaN(d.dateObj.getTime()));
+    });
   }, [dates]);
 
   const toggleHoliday = (dateFormatted: string) => {
@@ -35,31 +44,31 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-bold text-foreground">Holidays</h3>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h3 className="text-[12px] font-bold text-foreground">Holidays</h3>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
           Select the dates that should be marked as gazetted holidays. 
           Weekends (Saturday & Sunday) are already treated as off-days.
         </p>
       </div>
 
-      {parsedDates.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground text-sm border-2 border-dashed border-border rounded-lg select-none">
-          Upload a CSV to view the current month's dates
+      {calendarDates.length === 0 ? (
+        <div className="text-center py-10 text-muted-foreground text-[11px] border-2 border-dashed border-border rounded-lg select-none">
+          Upload a file (JSON or CSV) to view the current month's dates
         </div>
       ) : (
         <div className="grid grid-cols-7 gap-1 md:gap-3">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="text-center text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1 md:mb-2">
+            <div key={day} className="text-center text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1 md:mb-2">
               {day}
             </div>
           ))}
           
           {/* Fill empty slots before first day */}
-          {Array.from({ length: parsedDates[0].dateObj.getDay() }).map((_, i) => (
+          {Array.from({ length: calendarDates[0].dateObj.getDay() }).map((_, i) => (
             <div key={`empty-${i}`} className="p-1 md:p-3" />
           ))}
 
-          {parsedDates.map((pd, idx) => {
+          {calendarDates.map((pd, idx) => {
             const isHoliday = holidays.some(h => h.date === pd.formatted);
             const isWeekend = pd.isWeekend;
 
@@ -74,11 +83,13 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
                     ? "bg-muted/30 border-border/50 opacity-50 cursor-not-allowed"
                     : isHoliday 
                       ? "bg-primary/10 border-primary/30 shadow-sm"
-                      : "bg-card border-border hover:border-primary hover:bg-muted/50"
+                      : !pd.inCsv
+                        ? "bg-card border-border border-dashed opacity-50 hover:border-primary hover:opacity-100"
+                        : "bg-card border-border hover:border-primary hover:bg-muted/50"
                 )}
               >
                 <span className={cn(
-                  "text-sm font-bold",
+                  "text-[12px] font-bold",
                   isWeekend ? "text-muted-foreground" 
                   : isHoliday ? "text-primary" 
                   : "text-foreground"
@@ -95,7 +106,7 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
         </div>
       )}
       
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-4 items-center flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-muted/30 border border-border/50 opacity-50" />
           <span className="text-xs text-muted-foreground">Weekend</span>
@@ -103,6 +114,10 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded bg-primary/10 border border-primary/30" />
           <span className="text-xs text-muted-foreground">Holiday</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-card border border-dashed border-border opacity-50" />
+          <span className="text-xs text-muted-foreground">Not in file</span>
         </div>
       </div>
     </div>

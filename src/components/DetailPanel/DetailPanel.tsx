@@ -2,9 +2,9 @@ import { useState, useMemo } from 'react';
 import { ProcessedEmployee, ColumnId } from '../../types';
 import { RecordsTable } from './RecordsTable';
 import { EmployeeHeader } from './EmployeeHeader';
-import { ArrowDownAZ, ArrowUpZA, Filter, Check, Columns } from 'lucide-react';
+import { Filter, Check, Columns } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { Button, buttonVariants } from '../ui/button';
+import { buttonVariants } from '../ui/button';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -36,11 +36,14 @@ export function DetailPanel({ employee, monthLabel, onBack }: DetailPanelProps) 
   };
 
   const processedRecords = useMemo(() => {
-    let result = [...employee.records];
+    let result = [...(employee?.records || [])];
     
     // Filter
     if (filter === 'ot_only') {
-      result = result.filter(r => r.otHours >= 1 || r.isHoliday);
+      result = result.filter(r =>
+        r.otHours >= 1 ||
+        (r.isHoliday && r.timeIn !== '' && r.timeOut !== '')
+      );
     } else if (filter === 'holidays') {
       result = result.filter(r => r.isHoliday);
     }
@@ -51,19 +54,19 @@ export function DetailPanel({ employee, monthLabel, onBack }: DetailPanelProps) 
     }
 
     return result;
-  }, [employee.records, filter, sortOrder]);
+  }, [employee?.records, filter, sortOrder]);
 
   return (
-    <div className="min-h-full bg-background flex flex-col">
+    <div className="h-full bg-background flex flex-col overflow-hidden">
       <EmployeeHeader employee={employee} monthLabel={monthLabel} onBack={onBack} />
       
-      <div className="py-4 md:p-6 flex-1 flex flex-col px-0 md:px-6">
-        <div className="max-w-6xl mx-auto w-full space-y-2 md:space-y-4 flex-1 flex flex-col">
+      <div className="py-3 md:p-6 flex-1 min-h-0 flex flex-col px-0 md:px-6">
+        <div className="max-w-6xl mx-auto w-full flex-1 min-h-0 flex flex-col gap-2 md:gap-4">
           
-          <div className="flex flex-nowrap items-center justify-end gap-2 md:gap-4 px-4 md:px-0 shrink-0">
+          <div className="flex flex-nowrap items-center justify-end gap-2 md:gap-4 px-4 md:px-0 shrink-0 mb-1 md:mb-0">
             <div className="flex items-center gap-2 shrink-0">
               <DropdownMenu>
-                <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "gap-2 cursor-pointer", filter !== 'ot_only' && "text-primary border-primary")}>
+                <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "gap-2 cursor-pointer", filter !== 'all' && "text-primary border-primary")}>
                   <Filter size={16} />
                   <span className="hidden sm:inline">Filter</span>
                 </DropdownMenuTrigger>
@@ -109,8 +112,6 @@ export function DetailPanel({ employee, monthLabel, onBack }: DetailPanelProps) 
 
           <RecordsTable 
             records={processedRecords} 
-            totalAmount={employee.totalAmount} 
-            totalOTHours={employee.totalOTHours}
             visibleColumns={visibleColumns}
             sortOrder={sortOrder}
             onToggleSort={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}

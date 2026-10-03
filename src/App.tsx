@@ -1,27 +1,31 @@
-import { useState, useMemo, useEffect } from 'react';
-import { parseCSV } from './parser/csvParser';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { parseJSON } from './parser/jsonParser';
 import { processEmployees } from './engine/otCalculator';
 import { useSettings } from './store/useSettings';
-import { ParsedCSV } from './types';
+import { AttendanceData } from './types';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { DetailPanel } from './components/DetailPanel/DetailPanel';
+import { LandingPage } from './components/LandingPage';
 import { SettingsModal } from './components/Settings/SettingsModal';
-import { ThemeToggle } from './components/ThemeToggle';
 import { buildPDF } from './pdf/buildPDF';
 import { format } from 'date-fns';
 import { flexibleParseDate, cn } from './lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { AlertTriangle } from 'lucide-react';
 
 export default function App() {
   const { policy, appearance, pdf, basicPay, holidays, saveSettings, setAppearance } = useSettings();
   
-  const [uploadedData, setUploadedData] = useState<ParsedCSV | null>(null);
+  const [uploadedData, setUploadedData] = useState<AttendanceData | null>(null);
+  const [isLandingOpen, setIsLandingOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedErp, setSelectedErp] = useState<string | null>(null);
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const errorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const warningTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -64,7 +68,16 @@ export default function App() {
   }, [processedEmployees, searchQuery]);
 
   const selectedEmployee = useMemo(() => {
-    return processedEmployees.find(emp => emp.erp === selectedErp) || null;
+    if (!selectedErp) return null;
+    const cleanSel = String(selectedErp).trim().toLowerCase();
+    const numSel = parseInt(cleanSel, 10);
+    return processedEmployees.find(emp => {
+      const cleanEmp = String(emp.erp).trim().toLowerCase();
+      if (cleanEmp === cleanSel) return true;
+      if (!isNaN(numSel) && parseInt(cleanEmp, 10) === numSel) return true;
+      if (emp.name.trim().toLowerCase() === cleanSel) return true;
+      return false;
+    }) || null;
   }, [processedEmployees, selectedErp]);
 
   const monthLabel = useMemo(() => {
@@ -92,25 +105,91 @@ export default function App() {
     return `${firstMonth} ${firstYear} - ${lastMonth} ${lastYear}`;
   }, [uploadedData]);
 
-  const handleUpload = (csvText: string) => {
+  const handleUpload = (fileText: string, fileName?: string) => {
     try {
-      const data = parseCSV(csvText);
-      const processed = processEmployees(data, { policy, appearance, pdf }, basicPay, holidays);
-      
-      if (processed.length === 0) {
-        throw new Error('No employees found with overtime hours >= 1 or holiday work in this file.');
+      const data: AttendanceData = parseJSON(
+        fileText,
+        fileName || 'august-2026',
+        policy.shiftDurationHours,
+      );
+
+      if (data.employees.length === 0) {
+        throw new Error('No employees found in this file.');
+      }
+
+      // Merge rich JSON metadata into application settings if available
+      const updatedBasicPay = { ...basicPay };
+      let hasNewBasicPay = false;
+      data.employees.forEach(emp => {
+        if (emp.basicPay && emp.basicPay > 0 && !updatedBasicPay[emp.erp]) {
+          updatedBasicPay[emp.erp] = emp.basicPay;
+          hasNewBasicPay = true;
+        }
+      });
+
+      const updatedCategories = { ...policy.designationCategories };
+      let hasNewCategories = false;
+      data.employees.forEach(emp => {
+        if (emp.category && !updatedCategories[emp.designation]) {
+          updatedCategories[emp.designation] = emp.category;
+          hasNewCategories = true;
+        } else if (emp.isSupport !== undefined && !updatedCategories[emp.designation]) {
+          updatedCategories[emp.designation] = emp.isSupport ? 'support' : 'official';
+          hasNewCategories = true;
+        }
+      });
+
+      let updatedHolidays = [...holidays];
+      let hasNewHolidays = false;
+      if (data.holidays && data.holidays.length > 0) {
+        const existingDates = new Set(holidays.map(h => h.date));
+        data.holidays.forEach(h => {
+          if (!existingDates.has(h.date)) {
+            updatedHolidays.push(h);
+            existingDates.add(h.date);
+            hasNewHolidays = true;
+          }
+        });
+      }
+
+      if (hasNewBasicPay || hasNewCategories || hasNewHolidays) {
+        saveSettings(
+          {
+            ...policy,
+            designationCategories: updatedCategories,
+          },
+          appearance,
+          pdf,
+          updatedBasicPay,
+          updatedHolidays
+        );
       }
 
       setUploadedData(data);
+      setIsLandingOpen(false);
       setError(null);
-      if (processed.length > 0) {
-        setSelectedErp(processed[0].erp);
+
+      clearTimeout(warningTimer.current);
+      if (data.warnings && data.warnings.length > 0) {
+        setWarnings(data.warnings);
+        warningTimer.current = setTimeout(() => setWarnings([]), 5000);
+      } else {
+        setWarnings([]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse CSV file');
-      setTimeout(() => setError(null), 5000);
+      clearTimeout(errorTimer.current);
+      setError(err instanceof Error ? err.message : 'Failed to parse file');
+      errorTimer.current = setTimeout(() => setError(null), 5000);
     }
   };
+
+  useEffect(() => {
+    if (processedEmployees.length > 0 && !selectedErp) {
+      if (window.innerWidth >= 768) {
+        setSelectedErp(processedEmployees[0].erp);
+      }
+    }
+  }, [processedEmployees, selectedErp]);
 
   const handleExport = () => {
     if (processedEmployees.length === 0) return;
@@ -120,15 +199,16 @@ export default function App() {
     window.open(url, '_blank');
   };
 
+  const showLandingView = !uploadedData || isLandingOpen;
+
   return (
     <div className="h-[100dvh] w-screen bg-[var(--color-bg-app)] text-[var(--color-text-main)] font-sans overflow-hidden flex flex-col relative">
       <Navbar 
-        onUpload={handleUpload}
         onSettingsClick={() => setIsSettingsOpen(true)}
         onExportClick={handleExport}
+        onLandingClick={() => setIsLandingOpen(true)}
         hasData={processedEmployees.length > 0}
         theme={appearance.theme || 'system'}
-        organizationName={pdf.headerTitle || ''}
         onThemeChange={(theme) => {
           setAppearance({ ...appearance, theme });
           saveSettings(policy, { ...appearance, theme }, pdf, basicPay, holidays);
@@ -136,49 +216,58 @@ export default function App() {
       />
       
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-        <div className={cn(
-          "shrink-0 w-full md:w-[320px] h-full border-r border-[var(--color-border)]",
-          (!uploadedData) ? "hidden md:flex md:flex-col" : (selectedErp ? "hidden md:flex md:flex-col" : "flex flex-col")
-        )}>
-          <Sidebar 
-            employees={filteredEmployees}
-            selectedErp={selectedErp}
-            onSelect={setSelectedErp}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+        {showLandingView ? (
+          <LandingPage 
+            onUpload={handleUpload} 
+            error={error} 
+            hasExistingData={!!uploadedData}
+            onReturnToDashboard={() => setIsLandingOpen(false)}
           />
-        </div>
-        
-        <div className={cn(
-          "flex-1 min-h-0 relative",
-          selectedErp ? "flex flex-col h-full overflow-y-auto" : "hidden md:flex md:flex-col h-full overflow-y-auto"
-        )}>
-          {selectedEmployee ? (
-            <div className="flex flex-col min-h-full relative">
-              <DetailPanel 
-                employee={selectedEmployee} 
-                monthLabel={monthLabel}
-                onBack={() => setSelectedErp(null)}
+        ) : (
+          <>
+            <div className={cn(
+              "shrink-0 w-full md:w-[320px] h-full border-r border-[var(--color-border)]",
+              selectedErp ? "hidden md:flex md:flex-col" : "flex flex-col"
+            )}>
+              <Sidebar 
+                employees={filteredEmployees}
+                selectedErp={selectedErp}
+                onSelect={setSelectedErp}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
               />
             </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] p-8 text-center">
-              <div className="w-16 h-16 mb-4 opacity-10">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <h3 className="text-[var(--font-lg)] font-medium text-[var(--color-text-muted)]">
-                {uploadedData ? "No Employee Selected" : "Upload CSV Data"}
-              </h3>
-              <p className="max-w-xs mt-1 text-[var(--font-sm)]">
-                {uploadedData 
-                  ? "Select an employee from the sidebar to view details." 
-                  : "Please upload your attendance CSV file to view employee records and generate overtime reports."}
-              </p>
+            
+            <div className={cn(
+              "flex-1 min-h-0 relative",
+              selectedErp ? "flex flex-col h-full overflow-hidden" : "hidden md:flex md:flex-col h-full overflow-hidden"
+            )}>
+              {selectedEmployee ? (
+                <div className="flex flex-col h-full relative">
+                  <DetailPanel 
+                    employee={selectedEmployee} 
+                    monthLabel={monthLabel}
+                    onBack={() => setSelectedErp(null)}
+                  />
+                </div>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] p-8 text-center">
+                  <div className="w-16 h-16 mb-4 opacity-10">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-[12px] font-medium text-[var(--color-text-muted)]">
+                    No Employee Selected
+                  </h3>
+                  <p className="max-w-xs mt-1 text-[11px]">
+                    Select an employee from the sidebar to view details.
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
 
         {error && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-4 duration-300 w-[90%] md:w-[400px]">
@@ -189,24 +278,38 @@ export default function App() {
                 </svg>
               </div>
               <div>
-                <h4 className="font-bold text-[var(--font-sm)] text-[var(--color-danger)]">Upload Error</h4>
-                <p className="text-[var(--font-xs)] opacity-90">{error}</p>
+                <h4 className="font-bold text-[12px] text-[var(--color-danger)]">Upload Error</h4>
+                <p className="text-[11px] opacity-90">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {warnings.length > 0 && !error && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-4 duration-300 w-[90%] md:w-[500px]">
+            <div className="bg-[var(--color-bg-card)] border-l-4 border-[var(--color-warning)] text-[var(--color-text-main)] px-4 py-3 rounded shadow-xl">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={16} className="shrink-0 text-[var(--color-warning)] mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-[12px] text-[var(--color-warning)]">
+                    {warnings.length} row{warnings.length === 1 ? '' : 's'} skipped
+                  </h4>
+                  <ul className="text-[11px] opacity-90 mt-0.5 space-y-0.5 max-h-32 overflow-y-auto">
+                    {warnings.slice(0, 8).map((w, i) => <li key={i}>{w}</li>)}
+                    {warnings.length > 8 && <li className="italic">…and {warnings.length - 8} more.</li>}
+                  </ul>
+                </div>
+                <button
+                  onClick={() => setWarnings([])}
+                  className="shrink-0 text-muted-foreground hover:text-foreground text-[11px]"
+                >
+                  Dismiss
+                </button>
               </div>
             </div>
           </div>
         )}
       </main>
-
-      <div className="md:hidden fixed bottom-6 right-6 z-[var(--z-fixed)]">
-        <ThemeToggle 
-          theme={appearance.theme || 'system'} 
-          onChange={(theme) => {
-            setAppearance({ ...appearance, theme });
-            saveSettings(policy, { ...appearance, theme }, pdf, basicPay, holidays);
-          }}
-          className="bg-[var(--color-bg-card)] rounded-[var(--radius-interactive)] shadow-xl border border-[var(--color-border)]"
-        />
-      </div>
 
       {isSettingsOpen && (
         <SettingsModal 
@@ -216,6 +319,7 @@ export default function App() {
           basicPay={basicPay}
           holidays={holidays}
           employees={uploadedData?.employees || []}
+          dates={uploadedData?.dates || []}
           onSave={saveSettings}
           onClose={() => setIsSettingsOpen(false)}
         />

@@ -1,4 +1,4 @@
-import { formatAmount, formatDuration } from '../../lib/utils';
+import { formatAmount, formatDuration, formatTimeDisplay } from '../../lib/utils';
 import { ProcessedRecord, ColumnId } from '../../types';
 import { cn } from '../../lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
@@ -6,25 +6,23 @@ import { ArrowDownAZ, ArrowUpZA } from 'lucide-react';
 
 interface RecordsTableProps {
   records: ProcessedRecord[];
-  totalAmount: number;
-  totalOTHours: number;
   visibleColumns: ColumnId[];
   sortOrder: 'asc' | 'desc';
   onToggleSort: () => void;
 }
 
-export function RecordsTable({ records, totalAmount, totalOTHours, visibleColumns, sortOrder, onToggleSort }: RecordsTableProps) {
+export function RecordsTable({ records, visibleColumns, sortOrder, onToggleSort }: RecordsTableProps) {
   const visibleColsSet = new Set(visibleColumns);
   
   return (
-    <div className="bg-card rounded-none md:rounded-lg border-y md:border border-border overflow-hidden shadow-sm flex flex-col">
-      <div className="overflow-x-auto no-scrollbar">
+    <div className="flex-1 min-h-0 mx-3 md:mx-0 bg-card rounded-lg border border-border overflow-hidden shadow-sm flex flex-col">
+      <div className="flex-1 min-h-0 overflow-auto">
         <Table className="w-full text-left border-collapse data-table table-auto">
-          <TableHeader className="sticky top-0 z-10">
+          <TableHeader className="sticky top-0 z-20">
             <TableRow className="bg-muted/50 border-b border-border">
-              <TableHead className="text-center w-12 font-semibold">Sr.</TableHead>
+              <TableHead className="sticky top-0 z-20 bg-muted/50 text-center w-12 font-semibold">Sr.</TableHead>
               <TableHead 
-                className="font-semibold cursor-pointer hover:bg-muted transition-colors select-none group"
+                className="sticky top-0 left-0 z-30 bg-muted/50 font-semibold cursor-pointer hover:bg-muted transition-colors select-none group"
                 onClick={onToggleSort}
                 title="Toggle Sort Order"
               >
@@ -35,30 +33,41 @@ export function RecordsTable({ records, totalAmount, totalOTHours, visibleColumn
                   </div>
                 </div>
               </TableHead>
-              <TableHead className="font-semibold">Day</TableHead>
-              <TableHead className="font-semibold">In</TableHead>
-              <TableHead className="font-semibold">Out</TableHead>
-              {visibleColsSet.has('Office Timing') && <TableHead className="font-semibold">Office Timing</TableHead>}
-              {visibleColsSet.has('Total Hours Worked') && <TableHead className="font-semibold">Total Worked</TableHead>}
-              {visibleColsSet.has('Worked (OT)') && <TableHead className="font-semibold">Worked (OT)</TableHead>}
-              {visibleColsSet.has('Adjustment') && <TableHead className="font-semibold">Adjustment</TableHead>}
-              <TableHead className="font-semibold">OT Hrs</TableHead>
-              <TableHead className="font-semibold">Amount</TableHead>
-              <TableHead className="font-semibold">Remarks</TableHead>
+              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Day</TableHead>
+              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">In</TableHead>
+              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Out</TableHead>
+              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Office Timing</TableHead>}
+              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Total Worked</TableHead>}
+              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Worked (OT)</TableHead>}
+              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Adjustment</TableHead>}
+              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">OT Hrs</TableHead>
+              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Amount</TableHead>
+              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Remarks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-border">
-            {records.map((record, idx) => (
+            {records.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8 + visibleColumns.length} className="text-center py-8 text-muted-foreground text-xs">
+                  No records to display for this employee under the selected filter.
+                </TableCell>
+              </TableRow>
+            ) : (
+              records.map((record, idx) => (
               <TableRow 
                 key={record.date} 
               >
                 <TableCell className="text-muted-foreground font-mono text-center">{idx + 1}</TableCell>
-                <TableCell>
+                <TableCell className="sticky left-0 z-10 bg-card">
                   <span className="font-medium text-foreground whitespace-nowrap">{record.date}</span>
                 </TableCell>
                 <TableCell className="text-muted-foreground whitespace-nowrap">{record.dayName}</TableCell>
-                <TableCell className="font-mono text-muted-foreground whitespace-nowrap">{record.timeIn}</TableCell>
-                <TableCell className="font-mono text-muted-foreground whitespace-nowrap">{record.timeOut}</TableCell>
+                <TableCell className="font-mono text-muted-foreground whitespace-nowrap">
+                  {formatTimeDisplay(record.timeIn)}
+                </TableCell>
+                <TableCell className="font-mono text-muted-foreground whitespace-nowrap">
+                  {formatTimeDisplay(record.timeOut)}
+                </TableCell>
                 
                 {visibleColsSet.has('Office Timing') && (
                   <TableCell className="whitespace-nowrap">
@@ -93,7 +102,9 @@ export function RecordsTable({ records, totalAmount, totalOTHours, visibleColumn
                 )}
                 
                 <TableCell className="font-bold text-foreground whitespace-nowrap">{record.otHours || '-'}</TableCell>
-                <TableCell className="text-foreground whitespace-nowrap">{formatAmount(record.amount)}</TableCell>
+                <TableCell className="text-foreground whitespace-nowrap">
+                  {record.amount > 0 ? formatAmount(record.amount) : <span className="text-muted-foreground opacity-50">—</span>}
+                </TableCell>
                 
                 <TableCell className="whitespace-nowrap">
                   {record.remarks && (
@@ -109,7 +120,7 @@ export function RecordsTable({ records, totalAmount, totalOTHours, visibleColumn
                   )}
                 </TableCell>
               </TableRow>
-            ))}
+            )))}
           </TableBody>
         </Table>
       </div>

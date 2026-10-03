@@ -1,104 +1,80 @@
-import React, { useRef } from 'react';
-import { Settings, Download, Upload, Clock } from 'lucide-react';
+import { Settings, FileText, FolderOpen, Clock } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
 
 interface NavbarProps {
-  onUpload: (text: string) => void;
   onSettingsClick: () => void;
   onExportClick: () => void;
+  onLandingClick?: () => void;
   hasData: boolean;
   theme: 'light' | 'dark' | 'system';
   onThemeChange: (theme: 'light' | 'dark' | 'system') => void;
-  organizationName: string;
 }
 
-export function Navbar({ onUpload, onSettingsClick, onExportClick, hasData, theme, onThemeChange, organizationName }: NavbarProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = event.target?.result as string;
-        onUpload(text);
-      };
-      reader.readAsText(file);
-    }
-    if (e.target) e.target.value = '';
-  };
+export function Navbar({ 
+  onSettingsClick, 
+  onExportClick, 
+  onLandingClick,
+  hasData, 
+  theme, 
+  onThemeChange 
+}: NavbarProps) {
 
   return (
-    <nav className="h-16 shrink-0 bg-background border-b border-border px-4 flex items-center justify-between z-50 relative">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center shadow-lg shadow-primary/20 text-primary-foreground">
-          <Clock size={18} strokeWidth={2.5} />
+    <nav className="h-14 shrink-0 bg-background border-b border-border px-3 md:px-4 flex items-center justify-between z-50 relative gap-2">
+      <div 
+        className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 pr-1 cursor-pointer select-none"
+        onClick={onLandingClick}
+        title="Go to Landing Page"
+      >
+        <div className="w-7 h-7 rounded-md bg-primary shrink-0 flex items-center justify-center text-primary-foreground shadow-xs">
+          <Clock size={15} strokeWidth={2.5} />
         </div>
-        <div className="min-w-0">
-          <h1 className="text-sm md:text-lg font-bold tracking-tight text-foreground truncate">Overtime Manager</h1>
-          {organizationName && <p className="text-[10px] md:text-xs font-medium text-muted-foreground tracking-wide uppercase truncate">{organizationName}</p>}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-[12px] font-bold text-foreground truncate">Overtime Manager</h1>
+          </div>
+          <p className="text-[10px] font-normal text-muted-foreground truncate leading-tight">
+            RHO Islamabad
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-3">
-        <input
-          type="file"
-          accept=".csv"
-          className="hidden"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-        />
-        
+      <div className="flex items-center gap-1 md:gap-2 shrink-0">
+        {/* Choose / Change File without any up/down arrows */}
         <Button 
           variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-          className="hidden md:flex gap-2"
+          onClick={onLandingClick}
+          className="text-[12px] h-8 px-2.5 gap-1.5 font-medium"
+          title="Open landing page or choose file"
         >
-          <Upload size={16} />
-          <span>Upload CSV</span>
-        </Button>
-        
-        <Button 
-          variant="outline"
-          size="icon"
-          onClick={() => fileInputRef.current?.click()}
-          className="md:hidden"
-        >
-          <Upload size={18} />
+          <FolderOpen size={14} />
+          <span className="hidden sm:inline">{hasData ? 'Change File' : 'Choose File'}</span>
         </Button>
 
         {hasData && (
-          <>
-            <Button 
-              onClick={onExportClick}
-              className="hidden md:flex gap-2"
-            >
-              <Download size={16} />
-              <span>Export PDF</span>
-            </Button>
-            
-            <Button 
-              size="icon"
-              onClick={onExportClick}
-              className="md:hidden"
-            >
-              <Download size={18} />
-            </Button>
-          </>
+          <Button 
+            onClick={onExportClick}
+            className="text-[12px] h-8 px-2.5 gap-1.5 font-semibold bg-primary text-primary-foreground"
+            title="Export PDF Report"
+          >
+            <FileText size={14} />
+            <span>Export PDF</span>
+          </Button>
         )}
 
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-5 bg-border mx-0.5" />
 
-        <ThemeToggle theme={theme} onChange={onThemeChange} className="hidden md:block" />
+        <ThemeToggle theme={theme} onChange={onThemeChange} />
 
         <Button 
           variant="ghost"
           size="icon"
           onClick={onSettingsClick}
           title="Settings"
+          className="size-8"
         >
-          <Settings size={20} />
+          <Settings size={16} />
         </Button>
       </div>
     </nav>

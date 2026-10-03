@@ -1,5 +1,5 @@
-import React, { useState, startTransition } from 'react';
-import { X, Settings, CreditCard, Calendar, Users, FileText, Database } from 'lucide-react';
+import React, { useState } from 'react';
+import { Settings, CreditCard, Calendar, Users, FileText, Database } from 'lucide-react';
 import { OTSettings, Holiday, EmployeeRow, EmployeeCategory } from '../../types';
 import { CalculationTab } from './CalculationTab';
 import { BasicPayTab } from './BasicPayTab';
@@ -8,6 +8,7 @@ import { DesignationsTab } from './DesignationsTab';
 import { PDFTab } from './PDFTab';
 import { DataFlowTab } from './DataFlowTab';
 import { cn } from '../../lib/utils';
+import { Button } from '../ui/button';
 import {
   Dialog,
   DialogContent,
@@ -22,25 +23,30 @@ interface SettingsModalProps {
   basicPay: Record<string, number>;
   holidays: Holiday[];
   employees: EmployeeRow[];
+  dates: string[];
   onSave: (policy: OTSettings['policy'], appearance: OTSettings['appearance'], pdf: OTSettings['pdf'], basicPay: Record<string, number>, holidays: Holiday[]) => void;
   onClose: () => void;
 }
 
-export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, employees, onSave, onClose }: SettingsModalProps) {
+export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, employees, dates, onSave, onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<'calculation' | 'basic-pay' | 'holidays' | 'designations' | 'pdf' | 'data'>('calculation');
   
   const [tempPolicy, setTempPolicy] = useState(policy);
   const [tempAppearance, setTempAppearance] = useState(appearance);
   const [tempPdf, setTempPdf] = useState(pdf);
-  const [tempBasicPay, setTempBasicPay] = useState(basicPay);
+  const [tempBasicPay, setTempBasicPay] = useState(() => {
+    const initial = { ...basicPay };
+    employees.forEach(emp => {
+      if (initial[emp.erp] === undefined && emp.basicPay !== undefined && emp.basicPay > 0) {
+        initial[emp.erp] = emp.basicPay;
+      }
+    });
+    return initial;
+  });
   const [tempHolidays, setTempHolidays] = useState(holidays);
 
   const updatePolicy = (newPolicy: OTSettings['policy']) => {
     setTempPolicy(newPolicy);
-  };
-
-  const updateAppearance = (newAppearance: OTSettings['appearance']) => {
-    setTempAppearance(newAppearance);
   };
 
   const updatePdf = (newPdf: OTSettings['pdf']) => {
@@ -55,67 +61,76 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
     setTempHolidays(newHolidays);
   };
 
-  const updateDesignationCategories = (categories: Record<string, EmployeeCategory>, rateTypes: Record<string, 'fixed' | 'dynamic'>) => {
-    const newPolicy = { ...tempPolicy, designationCategories: categories, designationRateTypes: rateTypes };
+  const updateDesignationConfig = (
+    categories: Record<string, EmployeeCategory>,
+    rateTypes: Record<string, 'fixed' | 'dynamic'>,
+    capExempt: Record<string, boolean>,
+  ) => {
+    const newPolicy = {
+      ...tempPolicy,
+      designationCategories: categories,
+      designationRateTypes: rateTypes,
+      designationCapExempt: capExempt,
+    };
     updatePolicy(newPolicy);
   };
 
-  const handleClose = () => {
+  const handleSaveAndClose = () => {
     onSave(tempPolicy, tempAppearance, tempPdf, tempBasicPay, tempHolidays);
     onClose();
   };
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-[700px] md:max-w-[850px] lg:max-w-[950px] max-w-[95vw] p-0 overflow-hidden flex flex-col h-[85vh] md:h-[500px] border-border bg-card gap-0">
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100dvh] max-h-[100dvh] my-0 rounded-none border-border bg-card gap-0 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:my-4 sm:rounded-xl">
         
         <DialogHeader className="px-4 py-2 border-b border-border shrink-0 m-0">
-          <DialogTitle className="text-base font-bold">Settings</DialogTitle>
+          <DialogTitle className="text-[12px] font-bold">Settings</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          <aside className="w-full md:w-[220px] border-b md:border-b-0 md:border-r border-border bg-muted/20 p-3 md:p-4 shrink-0 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <nav className="flex md:flex-col flex-row gap-2 md:gap-1 w-max md:w-auto">
+          <aside className="w-full md:w-[200px] border-b md:border-b-0 md:border-r border-border bg-muted/20 p-2 md:p-3 shrink-0 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <nav className="flex md:flex-col flex-row gap-1.5 md:gap-1 w-max md:w-auto">
               <TabButton 
                 active={activeTab === 'calculation'} 
                 onClick={() => setActiveTab('calculation')}
-                icon={<Settings size={18} />}
+                icon={<Settings size={15} />}
                 label="Calculation"
               />
               <TabButton 
                 active={activeTab === 'basic-pay'} 
                 onClick={() => setActiveTab('basic-pay')}
-                icon={<CreditCard size={18} />}
+                icon={<CreditCard size={15} />}
                 label="Basic pay"
               />
               <TabButton 
                 active={activeTab === 'holidays'} 
                 onClick={() => setActiveTab('holidays')}
-                icon={<Calendar size={18} />}
+                icon={<Calendar size={15} />}
                 label="Holidays"
               />
               <TabButton 
                 active={activeTab === 'designations'} 
                 onClick={() => setActiveTab('designations')}
-                icon={<Users size={18} />}
+                icon={<Users size={15} />}
                 label="Designations"
               />
               <TabButton 
                 active={activeTab === 'pdf'} 
                 onClick={() => setActiveTab('pdf')}
-                icon={<FileText size={18} />}
+                icon={<FileText size={15} />}
                 label="PDF Export"
               />
               <TabButton 
                 active={activeTab === 'data'} 
                 onClick={() => setActiveTab('data')}
-                icon={<Database size={18} />}
+                icon={<Database size={15} />}
                 label="Backup / Reset"
               />
             </nav>
           </aside>
 
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-card">
+          <main className="flex-1 overflow-y-auto p-3 sm:p-5 bg-card">
             {activeTab === 'calculation' && (
               <CalculationTab policy={tempPolicy} onChange={updatePolicy} />
             )}
@@ -124,22 +139,24 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
                 basicPay={tempBasicPay} 
                 employees={employees} 
                 designationCategories={tempPolicy.designationCategories}
+                designationRateTypes={tempPolicy.designationRateTypes}
                 onChange={updateBasicPay} 
               />
             )}
             {activeTab === 'holidays' && (
-              <HolidaysTab holidays={tempHolidays} dates={employees.length > 0 ? Object.keys(employees[0].attendance) : []} onChange={updateHolidays} />
+              <HolidaysTab holidays={tempHolidays} dates={dates} onChange={updateHolidays} />
             )}
             {activeTab === 'designations' && (
               <DesignationsTab 
                 categories={tempPolicy.designationCategories}
                 rateTypes={tempPolicy.designationRateTypes || {}}
+                capExempt={tempPolicy.designationCapExempt || {}}
                 employees={employees}
-                onChange={updateDesignationCategories} 
+                onChange={updateDesignationConfig} 
               />
             )}
             {activeTab === 'pdf' && (
-              <PDFTab pdf={tempPdf} onChange={updatePdf} />
+              <PDFTab pdf={tempPdf} employees={employees} onChange={updatePdf} />
             )}
             {activeTab === 'data' && (
               <DataFlowTab 
@@ -154,11 +171,34 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
                   setTempPdf(data.pdf);
                   setTempBasicPay(data.basicPay);
                   setTempHolidays(data.holidays);
-                  onSave(data.policy, data.appearance, data.pdf, data.basicPay, data.holidays);
                 }}
               />
             )}
           </main>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="px-4 py-2.5 border-t border-border bg-muted/10 shrink-0 flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground hidden sm:inline">
+            Changes automatically recalculate dashboard reports
+          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="text-[12px] h-7 px-3"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveAndClose}
+              className="text-[12px] h-7 px-3 font-semibold"
+            >
+              Save & Apply
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -170,7 +210,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean, onClick:
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center w-auto md:w-full justify-start gap-2 rounded-[var(--radius-interactive)] transition-all shrink-0 px-3 py-2 text-sm font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring",
+        "flex items-center w-auto md:w-full justify-start gap-2 rounded-[var(--radius-interactive)] transition-all shrink-0 px-2.5 py-1.5 text-[12px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring",
         active 
           ? "bg-[var(--color-neutral-active)] text-[var(--color-accent)] hover:bg-[var(--color-neutral-active)] hover:text-[var(--color-accent)]" 
           : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-neutral-hover)]"

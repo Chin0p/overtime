@@ -1,28 +1,38 @@
-export interface OfficeTiming {
-  start: string;
-  end: string;
-  durationHours: number;
-}
-
 export interface AttendanceCell {
   timeIn: string;
   timeOut: string;
 }
 
-export interface EmployeeRow {
+export interface EmployeeDetails {
   erp: string;
   name: string;
   designation: string;
+  dates: Record<string, AttendanceCell>;
   attendance: Record<string, AttendanceCell>;
+  category?: EmployeeCategory;
+  isSupport?: boolean;
+  basicPay?: number;
+  totalOTHours?: number;
+  totalAmount?: number;
+  precalculatedRecords?: ProcessedRecord[];
+  holidayDates?: string[];
 }
 
-export interface ParsedCSV {
+export type EmployeeRow = EmployeeDetails & {
+  [key: string]: any;
+};
+
+export interface AttendanceData extends Array<EmployeeRow> {
   dates: string[];
   employees: EmployeeRow[];
+  holidays?: Holiday[];
+  sourceType?: 'json';
+  /** Non-fatal issues L1 accumulated during parse (skipped rows, etc.). */
+  warnings?: string[];
 }
 
 export interface Holiday {
-  date: string; // dd-mm-yyyy
+  date: string; // canonical format: dd-MMM-yyyy
   name: string;
 }
 
@@ -36,6 +46,7 @@ export interface OTSettings {
       start: string;
       end: string;
     };
+    shiftDurationHours: number;
     minThreshold: number;
     lateArrivalToggle: boolean;
     official: {
@@ -48,31 +59,27 @@ export interface OTSettings {
       maxDailyAmount: number;
       hourlyRate: number;
       holidayRate: number;
-      designations?: string[]; // Deprecated, keep for backwards compatibility if needed
     };
     designationCategories: Record<string, EmployeeCategory>;
     designationRateTypes?: Record<string, 'fixed' | 'dynamic'>;
+    /** Per-designation monthly-cap exemption. Only meaningful for fixed-rate designations. */
+    designationCapExempt?: Record<string, boolean>;
     roundingMode?: "floor" | "round";
   };
   appearance: {
-    fontSize: number;
-    fontFamily: string;
-    accentColor: string;
     theme?: 'system' | 'light' | 'dark';
   };
   pdf: {
     tableFontSize: number;
     cellPadding: number;
-    headerFontSize: number;
     labelFontSize: number;
     pageSize: string;
     margin: number;
-    headerTitle?: string;
-    branchName?: string;
     summarySubject?: string;
     signatureLeft?: string;
     signatureRight?: string;
     sortByDesignation?: boolean;
+    pdfExcludedDesignations?: string[];
   };
 }
 
@@ -85,6 +92,8 @@ export interface ProcessedRecord {
   workedHours: number;
   officeHours: number;
   officeTiming?: string;
+  officeStart?: string;  // HH:MM, per-day override from source data
+  officeEnd?: string;    // HH:MM, per-day override from source data
   otHours: number;
   adjustment: number;
   amount: number;
@@ -103,4 +112,6 @@ export interface ProcessedEmployee {
   totalAmount: number;
   isSupport: boolean;
   rateType: 'fixed' | 'dynamic';
+  hourlyRate?: number;
+  dayRate?: number;
 }
