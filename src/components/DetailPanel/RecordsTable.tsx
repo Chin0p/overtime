@@ -2,16 +2,18 @@ import { formatAmount, formatDuration, formatTimeDisplay } from '../../lib/utils
 import { ProcessedRecord, ColumnId } from '../../types';
 import { cn } from '../../lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { ArrowDownAZ, ArrowUpZA } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpZA, ArrowUpDown } from 'lucide-react';
 
 interface RecordsTableProps {
   records: ProcessedRecord[];
   visibleColumns: ColumnId[];
   sortOrder: 'asc' | 'desc';
+  /** Which column the rows are currently ordered by. */
+  sortKey?: 'date' | 'ot' | 'amount';
   onToggleSort: () => void;
 }
 
-export function RecordsTable({ records, visibleColumns, sortOrder, onToggleSort }: RecordsTableProps) {
+export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'date', onToggleSort }: RecordsTableProps) {
   const visibleColsSet = new Set(visibleColumns);
   
   return (
@@ -24,29 +26,29 @@ export function RecordsTable({ records, visibleColumns, sortOrder, onToggleSort 
         >
           <TableHeader>
             <TableRow className="border-b-0">
-              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
               <TableHead 
-                className="sticky top-11 md:top-0 left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold cursor-pointer hover:bg-accent transition-colors select-none group"
+                className="sticky top-11 left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold cursor-pointer hover:bg-accent transition-colors select-none group"
                 onClick={onToggleSort}
                 title="Toggle Sort Order"
               >
                 <div className="flex items-center gap-1.5">
                   Date
                   <div className="text-muted-foreground group-hover:text-foreground">
-                    {sortOrder === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpZA size={14} />}
+                    {sortKey !== 'date' ? <ArrowUpDown size={14} /> : sortOrder === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpZA size={14} />}
                   </div>
                 </div>
               </TableHead>
-              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
-              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">In</TableHead>
-              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Out</TableHead>
-              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Office Timing</TableHead>}
-              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Total Worked</TableHead>}
-              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Worked (OT)</TableHead>}
-              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Adjustment</TableHead>}
-              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
-              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
-              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">In</TableHead>
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Out</TableHead>
+              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Office Timing</TableHead>}
+              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Total Worked</TableHead>}
+              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Worked (OT)</TableHead>}
+              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Adjustment</TableHead>}
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-border [&_tr:last-child_td:first-child]:rounded-bl-lg [&_tr:last-child_td:last-child]:rounded-br-lg">

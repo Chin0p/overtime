@@ -82,7 +82,7 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100dvh] max-h-[100dvh] rounded-none border-border bg-card gap-0 tall:h-[min(85dvh,780px)] tall:max-h-[calc(100dvh-2rem)] tall:rounded-xl">
+      <DialogContent className="max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100svh] max-h-[100svh] rounded-none border-border bg-card gap-0 tall:h-[min(85svh,780px)] tall:max-h-[calc(100svh-2rem)] tall:rounded-xl">
 
         <DialogHeader className="px-4 py-2 border-b border-border shrink-0 m-0">
           <DialogTitle className="text-[12px] font-bold">Settings</DialogTitle>

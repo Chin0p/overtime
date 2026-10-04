@@ -1,4 +1,4 @@
-import { Search, Layers, ArrowUpDown, SlidersHorizontal, Check, ChevronLeft, X } from 'lucide-react';
+import { Search, Layers, ArrowUpDown, SlidersHorizontal, Check, ChevronLeft, X, AlertCircle } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Checkbox } from '../ui/checkbox';
 import { Button, buttonVariants } from '../ui/button';
@@ -272,16 +272,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                           <span className="font-sans">{emp.designation}</span>
                         </div>
                       </button>
-                      {usesPay && (
-                        <span
-                          className={cn(
-                            'shrink-0 text-[11px] font-mono tabular-nums',
-                            info.pay > 0 ? 'text-foreground' : 'text-[var(--color-warning)]',
-                          )}
-                        >
-                          {info.pay > 0 ? formatAmount(info.pay) : 'No pay'}
-                        </span>
-                      )}
+                      <PayCell info={info} usesPay={usesPay} />
                     </div>
                   );
                 })}
@@ -309,6 +300,38 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Right-aligned pay column: amount over a unit caption; clear state for missing / not-applicable pay. */
+function PayCell({ info, usesPay }: { info: EmployeeInfo; usesPay: boolean }) {
+  if (!usesPay) {
+    return (
+      <div className="shrink-0 w-[72px] text-right" title="Basic pay isn't used for this designation">
+        <div className="text-[11px] text-muted-foreground/60 leading-none">—</div>
+        <div className="mt-1 text-[9px] uppercase tracking-wider text-muted-foreground/60 leading-none">
+          {info.category === 'exempt' ? 'Exempt' : 'Fixed rate'}
+        </div>
+      </div>
+    );
+  }
+  if (info.pay <= 0) {
+    return (
+      <div className="shrink-0 w-[72px] flex justify-end">
+        <span className="inline-flex items-center gap-1 px-1.5 py-1 rounded-md border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning)] text-[10px] font-semibold leading-none whitespace-nowrap">
+          <AlertCircle size={11} className="shrink-0" />
+          Set pay
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="shrink-0 w-[72px] text-right">
+      <div className="text-[12px] font-semibold font-mono tabular-nums text-foreground leading-none">
+        {formatAmount(info.pay)}
+      </div>
+      <div className="mt-1 text-[9px] uppercase tracking-wider text-muted-foreground leading-none">PKR / month</div>
     </div>
   );
 }

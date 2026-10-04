@@ -37,7 +37,7 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
           <Input
             type="text"
-            placeholder="Search name or ERP..."
+            placeholder="Search name, ERP or designation..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-8 pr-9 text-[12px] h-8"

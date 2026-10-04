@@ -17,7 +17,6 @@ export default function App() {
   const { policy, appearance, pdf, basicPay, holidays, saveSettings, setAppearance } = useSettings();
   
   const [uploadedData, setUploadedData] = useState<AttendanceData | null>(null);
-  const [isLandingOpen, setIsLandingOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedErp, setSelectedErp] = useState<string | null>(null);
   
@@ -61,10 +60,13 @@ export default function App() {
   }, [uploadedData, policy, appearance, pdf, basicPay, holidays]);
 
   const filteredEmployees = useMemo(() => {
-    return processedEmployees.filter(emp => 
-      emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.erp.includes(searchQuery)
-    );
+    // Every word must match somewhere in name, ERP or designation.
+    const terms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return processedEmployees;
+    return processedEmployees.filter(emp => {
+      const haystack = `${emp.name} ${emp.erp} ${emp.designation}`.toLowerCase();
+      return terms.every(t => haystack.includes(t));
+    });
   }, [processedEmployees, searchQuery]);
 
   const selectedEmployee = useMemo(() => {
@@ -171,7 +173,6 @@ export default function App() {
         setSelectedErp(null);
       }
       setUploadedData(data);
-      setIsLandingOpen(false);
       setError(null);
 
       clearTimeout(warningTimer.current);
@@ -204,14 +205,13 @@ export default function App() {
     window.open(url, '_blank');
   };
 
-  const showLandingView = !uploadedData || isLandingOpen;
+  const showLandingView = !uploadedData;
 
   return (
     <div className="h-[100dvh] w-screen bg-[var(--color-bg-app)] text-[var(--color-text-main)] font-sans overflow-hidden flex flex-col relative">
       <Navbar 
         onSettingsClick={() => setIsSettingsOpen(true)}
         onExportClick={handleExport}
-        onLandingClick={() => setIsLandingOpen(true)}
         hasData={processedEmployees.length > 0}
         theme={appearance.theme || 'system'}
         onThemeChange={(theme) => {
@@ -225,8 +225,6 @@ export default function App() {
           <LandingPage 
             onUpload={handleUpload} 
             error={error} 
-            hasExistingData={!!uploadedData}
-            onReturnToDashboard={() => setIsLandingOpen(false)}
           />
         ) : (
           <>
@@ -248,7 +246,7 @@ export default function App() {
               selectedEmployee ? "flex flex-col h-full overflow-hidden" : "hidden md:flex md:flex-col h-full overflow-hidden"
             )}>
               {selectedEmployee ? (
-                <div className="flex flex-col h-full relative">
+                <div key={selectedEmployee.erp} className="flex flex-col h-full relative">
                   <DetailPanel 
                     employee={selectedEmployee} 
                     monthLabel={monthLabel}

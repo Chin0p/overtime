@@ -61,7 +61,9 @@ function SelectContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  // Open below the trigger like a normal dropdown. The "overlay the trigger" mode resizes
+  // and repositions itself against the viewport, which misbehaves on mobile browsers.
+  alignItemWithTrigger = false,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<

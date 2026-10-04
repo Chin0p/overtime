@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { formatCurrency, cn, toTitleCase } from '../../lib/utils';
 import { ProcessedEmployee } from '../../types';
 import { CreditCard, Clock, Calendar, Zap, AlertTriangle, ChevronLeft, Activity, Lock } from 'lucide-react';
@@ -13,10 +13,12 @@ const CATEGORY_LABEL = { support: 'Support', official: 'Official', exempt: 'Exem
 
 /**
  * Renders as siblings inside DetailPanel's scroll content:
- *  - mobile: a pinned bar (Back + name + month) so "back to list" is always reachable
- *  - a header with 2 rows (name/badges/month, then ERP · designation) + stat cards
- * Every pinned element uses `sticky left-0 w-[100cqw]` so it stays put while the
- * records table scrolls sideways beneath it.
+ *  - a pinned "title bar" (44px). On phones it is always visible (Back + name + month).
+ *    As the full header scrolls out of view it condenses: the tags (category, rate, ERP)
+ *    slide in next to the name and the month swaps for the total. On desktop the bar is
+ *    hidden until then, so the page starts with just the full header.
+ *  - the full header: 2 rows (name/badges/month, then ERP · designation) + stat cards.
+ * Pinned elements use `sticky left-0 w-[100cqw]` so they stay put while the table scrolls sideways.
  */
 export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderProps) {
   const isExempt = employee.category === 'exempt';
@@ -25,6 +27,21 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
   const dayRate = employee.dayRate ?? 0;
   const missingPay = isDynamic && !isExempt && employee.basicPay <= 0;
   const name = toTitleCase(employee.name);
+
+  // "Condensed" once the full header has scrolled up under the title bar.
+  const headerRef = useRef<HTMLElement>(null);
+  const [condensed, setCondensed] = useState(false);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const root = el.closest('[data-scroll-root]');
+    const io = new IntersectionObserver(
+      ([entry]) => setCondensed(!entry.isIntersecting),
+      { root, rootMargin: '-44px 0px 0px 0px', threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const categoryBadge = (
     <span className="shrink-0 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
@@ -60,23 +77,52 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
 
   return (
     <>
-      {/* Mobile pinned bar */}
-      <div className="md:hidden sticky top-0 left-0 z-30 w-[100cqw] h-11 bg-card border-b border-border flex items-center gap-1 pl-1.5 pr-3">
+      {/* Pinned title bar */}
+      <div
+        className={cn(
+          'sticky top-0 left-0 z-30 w-[100cqw] h-11 md:-mb-11 bg-card border-b border-border',
+          'flex items-center gap-1.5 pl-1.5 pr-3 transition-[opacity,transform,box-shadow] duration-200 ease-out',
+          condensed
+            ? 'opacity-100 translate-y-0 shadow-sm'
+            : 'md:opacity-0 md:-translate-y-1 md:pointer-events-none',
+        )}
+      >
         {onBack && (
           <button
             onClick={onBack}
-            className="size-9 shrink-0 flex items-center justify-center rounded-[var(--radius-interactive)] hover:bg-muted text-foreground transition-colors"
+            className="md:hidden size-9 shrink-0 flex items-center justify-center rounded-[var(--radius-interactive)] hover:bg-muted text-foreground transition-colors"
             aria-label="Back to employee list"
             id="mobile-back-button"
           >
             <ChevronLeft size={20} />
           </button>
         )}
-        <h1 className="flex-1 min-w-0 truncate text-[14px] font-bold text-foreground tracking-tight">{name}</h1>
-        {monthChip}
+        <h2 className="min-w-0 truncate text-[14px] font-bold text-foreground tracking-tight pl-1 md:pl-3">{name}</h2>
+
+        {/* Tags slide in next to the name once condensed (always shown on desktop, where the bar only appears when condensed) */}
+        <div
+          className={cn(
+            'flex items-center gap-1.5 overflow-hidden whitespace-nowrap transition-all duration-200 ease-out',
+            condensed ? 'max-w-[240px] opacity-100' : 'max-w-0 opacity-0 md:max-w-[240px] md:opacity-100',
+          )}
+        >
+          {categoryBadge}
+          <span className="hidden sm:inline-flex">{rateBadge}</span>
+          <span className="font-mono text-[11px] font-semibold text-muted-foreground">{employee.erp}</span>
+        </div>
+
+        <div className="ml-auto pl-2 shrink-0">
+          {condensed ? (
+            <span className="animate-in fade-in duration-200 font-mono tabular-nums text-[12px] font-extrabold text-primary whitespace-nowrap">
+              {formatCurrency(employee.totalAmount)}
+            </span>
+          ) : (
+            <span className="md:hidden">{monthChip}</span>
+          )}
+        </div>
       </div>
 
-      <header className="sticky left-0 w-[100cqw] bg-card border-b border-border px-4 lg:px-8 py-3 lg:py-5 shadow-xs">
+      <header ref={headerRef} className="sticky left-0 w-[100cqw] bg-card border-b border-border px-4 lg:px-8 py-3 lg:py-5 shadow-xs">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-6">
           <div className="flex flex-col min-w-0 flex-1 gap-1.5">
             {/* Row 1 (md+): name · category · rate ........ month */}
@@ -91,9 +137,9 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
 
             {/* Row 2: ERP · designation (+ badges on mobile, where row 1 is the pinned bar) */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground min-w-0">
-              <span className="font-mono font-semibold text-foreground shrink-0">{employee.erp}</span>
+              <span className="font-mono font-medium text-foreground shrink-0">{employee.erp}</span>
               <span className="text-muted-foreground/40 select-none shrink-0">•</span>
-              <span className="font-medium text-foreground/90 min-w-0 break-words">{employee.designation}</span>
+              <span className="font-medium text-foreground min-w-0 break-words">{employee.designation}</span>
               <span className="md:hidden inline-flex items-center gap-2">
                 {categoryBadge}
                 {rateBadge}
