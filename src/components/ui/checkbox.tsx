@@ -10,6 +10,8 @@ export function Checkbox({ className, size = 'md', ...props }: CheckboxProps) {
     <label
       className={cn(
         'relative inline-flex items-center justify-center cursor-pointer select-none shrink-0',
+        // enlarge the tap target without changing the visual size
+        'before:absolute before:-inset-3 before:content-[""] md:before:-inset-1.5',
         size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4',
         className,
       )}

@@ -1,8 +1,8 @@
-import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { OTSettings } from '../../types';
 import { NumberInput } from '../ui/NumberInput';
 import { Switch } from '../ui/switch';
+import { SettingRow } from './SettingRow';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
 
 interface CalculationTabProps {
@@ -88,12 +88,12 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
             title="Rounding mode"
             description="How calculated hours and money values are rounded."
           >
-            <div className="relative w-fit max-w-[200px]">
+            <div className="w-28">
               <Select
                 value={policy.roundingMode || 'round'}
                 onValueChange={(val) => onChange({ ...policy, roundingMode: val as 'floor' | 'round' })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <span className="truncate">{policy.roundingMode === 'round' ? 'Round' : 'Floor'}</span>
                 </SelectTrigger>
                 <SelectContent>
@@ -185,20 +185,6 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           </SettingRow>
         </div>
       </section>
-    </div>
-  );
-}
-
-function SettingRow({ title, description, children }: { title: string, description: string, children: React.ReactNode }) {
-  return (
-    <div className="flex flex-row items-center justify-between gap-3 sm:gap-6">
-      <div className="flex-1 min-w-0 pr-2">
-        <h4 className="text-[12px] font-semibold text-foreground truncate">{title}</h4>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{description}</p>
-      </div>
-      <div className="shrink-0 flex items-center">
-        {children}
-      </div>
     </div>
   );
 }

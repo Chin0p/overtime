@@ -9,87 +9,114 @@ interface EmployeeHeaderProps {
   onBack?: () => void;
 }
 
+const CATEGORY_LABEL = { support: 'Support', official: 'Official', exempt: 'Exempt' } as const;
+
+/**
+ * Renders as siblings inside DetailPanel's scroll content:
+ *  - mobile: a pinned bar (Back + name + month) so "back to list" is always reachable
+ *  - a header with 2 rows (name/badges/month, then ERP · designation) + stat cards
+ * Every pinned element uses `sticky left-0 w-[100cqw]` so it stays put while the
+ * records table scrolls sideways beneath it.
+ */
 export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderProps) {
+  const isExempt = employee.category === 'exempt';
   const isDynamic = employee.rateType === 'dynamic';
   const hourlyRate = employee.hourlyRate ?? 0;
   const dayRate = employee.dayRate ?? 0;
+  const missingPay = isDynamic && !isExempt && employee.basicPay <= 0;
+  const name = toTitleCase(employee.name);
+
+  const categoryBadge = (
+    <span className="shrink-0 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+      {CATEGORY_LABEL[employee.category] ?? (employee.isSupport ? 'Support' : 'Official')}
+    </span>
+  );
+
+  const rateBadge = isExempt ? null : (
+    <span
+      className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground"
+      title={!isDynamic ? 'Fixed Rate Policy' : 'Dynamic Rate calculated from Basic Pay'}
+    >
+      {!isDynamic ? (
+        <>
+          <Lock size={12} className="shrink-0" />
+          <span>Fixed</span>
+        </>
+      ) : (
+        <>
+          <Activity size={12} className="shrink-0 text-emerald-500" />
+          <span className="text-foreground">Dynamic</span>
+        </>
+      )}
+    </span>
+  );
+
+  const monthChip = monthLabel ? (
+    <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground whitespace-nowrap">
+      <Calendar size={12} className="text-primary/70 shrink-0" />
+      <span className="font-medium">{monthLabel}</span>
+    </span>
+  ) : null;
 
   return (
-    <header className="bg-card border-b border-border px-4 lg:px-8 py-4 lg:py-5 shrink-0 shadow-xs">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
-          
-          <div className="flex flex-col min-w-0 flex-1">
-            {/* Row 1: Back + Name + Tag */}
-            <div className="flex items-center gap-2 min-w-0">
-              {onBack && (
-                <button 
-                  onClick={onBack}
-                  className="md:hidden p-1.5 -ml-1.5 shrink-0 rounded-[var(--radius-interactive)] hover:bg-muted text-foreground transition-colors"
-                  aria-label="Back to employee list"
-                  id="mobile-back-button"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-              )}
-              <h1 className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight truncate min-w-0">
-                {toTitleCase(employee.name)}
+    <>
+      {/* Mobile pinned bar */}
+      <div className="md:hidden sticky top-0 left-0 z-30 w-[100cqw] h-11 bg-card border-b border-border flex items-center gap-1 pl-1.5 pr-3">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="size-9 shrink-0 flex items-center justify-center rounded-[var(--radius-interactive)] hover:bg-muted text-foreground transition-colors"
+            aria-label="Back to employee list"
+            id="mobile-back-button"
+          >
+            <ChevronLeft size={20} />
+          </button>
+        )}
+        <h1 className="flex-1 min-w-0 truncate text-[14px] font-bold text-foreground tracking-tight">{name}</h1>
+        {monthChip}
+      </div>
+
+      <header className="sticky left-0 w-[100cqw] bg-card border-b border-border px-4 lg:px-8 py-3 lg:py-5 shadow-xs">
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-6">
+          <div className="flex flex-col min-w-0 flex-1 gap-1.5">
+            {/* Row 1 (md+): name · category · rate ........ month */}
+            <div className="hidden md:flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0">
+              <h1 className="text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight break-words min-w-0">
+                {name}
               </h1>
-              <span className="shrink-0 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
-                {employee.isSupport ? 'Support' : 'Official'}
-              </span>
+              {categoryBadge}
+              {rateBadge}
+              {monthChip && <span className="md:ml-auto">{monthChip}</span>}
             </div>
 
-            {/* Row 2: ERP · Designation */}
-            <div className="flex items-center gap-2 text-xs sm:text-sm mt-1.5 text-muted-foreground min-w-0">
+            {/* Row 2: ERP · designation (+ badges on mobile, where row 1 is the pinned bar) */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground min-w-0">
               <span className="font-mono font-semibold text-foreground shrink-0">{employee.erp}</span>
               <span className="text-muted-foreground/40 select-none shrink-0">•</span>
-              <span className="font-medium text-foreground/90 truncate">{employee.designation}</span>
-            </div>
-
-            {/* Row 3: Rate badge · Month */}
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <div
-                className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground"
-                title={!isDynamic ? 'Fixed Rate Policy' : 'Dynamic Rate calculated from Basic Pay'}
-              >
-                {!isDynamic ? (
-                  <>
-                    <Lock size={12} className="shrink-0" />
-                    <span>Fixed Rate</span>
-                  </>
-                ) : (
-                  <>
-                    <Activity size={12} className="shrink-0 text-emerald-500" />
-                    <span className="text-foreground">Dynamic Rate</span>
-                  </>
-                )}
-              </div>
-
-              {monthLabel && (
-                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground">
-                  <Calendar size={12} className="text-primary/70 shrink-0" />
-                  <span className="font-medium truncate">{monthLabel}</span>
-                </div>
-              )}
+              <span className="font-medium text-foreground/90 min-w-0 break-words">{employee.designation}</span>
+              <span className="md:hidden inline-flex items-center gap-2">
+                {categoryBadge}
+                {rateBadge}
+              </span>
             </div>
           </div>
 
           <div className="w-full lg:w-auto flex flex-col lg:flex-row gap-2.5">
-            {/* Mobile missing basic pay warning */}
-            {isDynamic && employee.basicPay <= 0 && (
-              <div className="lg:hidden w-full p-2.5 bg-[var(--color-warning-light)] border border-[var(--color-warning)]/20 rounded-md flex items-center justify-center gap-1.5 text-[var(--color-warning)]"> 
-                <AlertTriangle size={14} /> 
+            {missingPay && (
+              <div className="lg:hidden w-full p-2.5 bg-[var(--color-warning-light)] border border-[var(--color-warning)]/20 rounded-md flex items-center justify-center gap-1.5 text-[var(--color-warning)]">
+                <AlertTriangle size={14} />
                 <span className="text-xs font-semibold">Basic Pay is required for dynamic rate calculations</span>
               </div>
             )}
-            
-            {/* Stat Cards */}
-            <div className={cn(
-              "grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-nowrap gap-2 select-none",
-              isDynamic && employee.basicPay <= 0 && "hidden lg:flex"
-            )}>
-              {isDynamic && (
+
+            {/* Stat cards: one horizontal strip on phones (Total first), a row on desktop */}
+            <div
+              className={cn(
+                'flex gap-2 select-none overflow-x-auto no-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0 lg:overflow-visible',
+                missingPay && 'hidden lg:flex',
+              )}
+            >
+              {isDynamic && !isExempt && (
                 <StatCard
                   icon={<CreditCard size={13} />}
                   label="Basic Pay"
@@ -120,35 +147,38 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
                 value={formatCurrency(employee.totalAmount)}
                 color="bg-primary/10 text-primary border-primary/20"
                 highlight
+                className="order-first lg:order-last"
               />
             </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
 
-function StatCard({ 
-  icon, 
-  label, 
-  value, 
+function StatCard({
+  icon,
+  label,
+  value,
   color,
-  highlight 
-}: { 
-  icon: React.ReactNode; 
-  label: string; 
-  value: React.ReactNode; 
+  highlight,
+  className,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
   color: string;
   highlight?: boolean;
+  className?: string;
 }) {
   return (
-    <div className={`px-3 py-2 rounded-lg border ${color} flex flex-col justify-center gap-1 shadow-xs min-w-0`}>
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-75 leading-none">
+    <div className={cn('shrink-0 min-w-[104px] px-3 py-2 rounded-lg border flex flex-col justify-center gap-1 shadow-xs', color, className)}>
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-75 leading-none whitespace-nowrap">
         {icon}
         <span>{label}</span>
       </div>
-      <div className={`font-mono tabular-nums leading-tight truncate ${highlight ? 'text-[13px] sm:text-sm font-extrabold text-primary' : 'text-[12px] sm:text-[13px] font-bold text-foreground'}`}>
+      <div className={`font-mono tabular-nums leading-tight whitespace-nowrap ${highlight ? 'text-[13px] sm:text-sm font-extrabold text-primary' : 'text-[12px] sm:text-[13px] font-bold text-foreground'}`}>
         {value}
       </div>
     </div>

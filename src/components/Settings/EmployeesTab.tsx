@@ -1,20 +1,20 @@
-import { useState, useMemo, Fragment } from 'react';
-import { Search, Layers, X, ChevronDown } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { EmployeeRow, EmployeeCategory } from '../../types';
-import { NumberInput } from '../ui/NumberInput';
-import { Input } from '../ui/input';
-import { Checkbox } from '../ui/checkbox';
-import { Button, buttonVariants } from '../ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
 import { resolveRateType, resolveCapExempt } from '../../parser/parserUtils';
-import { toTitleCase, cn } from '../../lib/utils';
+import { EmployeeListPanel } from './EmployeeListPanel';
+import { EmployeeDetailPanel } from './EmployeeDetailPanel';
+import {
+  CATEGORY_LABEL,
+  EMPTY_FILTERS,
+  EmployeeInfo,
+  Filters,
+  GroupBy,
+  InfoGroup,
+  Rate,
+  RuleChange,
+  SortBy,
+} from './employeeShared';
+import { cn, formatAmount } from '../../lib/utils';
 
 interface EmployeesTabProps {
   basicPay: Record<string, number>;
@@ -30,27 +30,10 @@ interface EmployeesTabProps {
   ) => void;
 }
 
-const BADGE_STYLES = {
-  Support: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  Official: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20',
-  Exempt: 'bg-muted text-muted-foreground border-border',
-  Fixed: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-  Dynamic: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-  Capped: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-} as const;
+const CATEGORY_ORDER: EmployeeCategory[] = ['support', 'official', 'exempt'];
 
-function Badge({ label }: { label: keyof typeof BADGE_STYLES }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-semibold leading-none whitespace-nowrap',
-        BADGE_STYLES[label],
-      )}
-    >
-      {label}
-    </span>
-  );
-}
+const defaultCategory = (designation: string): EmployeeCategory =>
+  designation.toLowerCase().includes('officer') ? 'exempt' : 'official';
 
 export function EmployeesTab({
   basicPay,
@@ -62,397 +45,190 @@ export function EmployeesTab({
   onDesignationChange,
 }: EmployeesTabProps) {
   const [search, setSearch] = useState('');
-  const [groupByDesignation, setGroupByDesignation] = useState(false);
+  const [groupBy, setGroupBy] = useState<GroupBy>('none');
+  const [sortBy, setSortBy] = useState<SortBy>('name');
+  const [sortDesc, setSortDesc] = useState(false);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkPay, setBulkPay] = useState(0);
+  const [activeErp, setActiveErp] = useState<string | null>(null);
+  // Below `lg` the list and detail are separate screens.
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
 
-  const effectiveCategory = (designation: string): EmployeeCategory =>
-    designationCategories[designation] ??
-    (designation.toLowerCase().includes('officer') ? 'exempt' : 'official');
+  // Everything derived about each employee, computed once per change.
+  const infos = useMemo<EmployeeInfo[]>(
+    () =>
+      employees.map((emp) => {
+        const designation = emp.designation || '';
+        const category = designationCategories[designation] ?? defaultCategory(designation);
+        const rate = resolveRateType(designation, { designationRateTypes });
+        return {
+          emp,
+          category,
+          rate,
+          capExempt: resolveCapExempt(designation, rate, { designationCapExempt }),
+          pay: basicPay[emp.erp] !== undefined ? basicPay[emp.erp] : emp.basicPay || 0,
+        };
+      }),
+    [employees, basicPay, designationCategories, designationRateTypes, designationCapExempt],
+  );
 
-  const effectiveRate = (designation: string): 'fixed' | 'dynamic' =>
-    resolveRateType(designation, { designationRateTypes });
-
-  const effectiveCap = (designation: string, rate: 'fixed' | 'dynamic'): boolean =>
-    resolveCapExempt(designation, rate, { designationCapExempt });
-
-  const displayEmployees = useMemo(() => {
-    let list = [...employees];
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (emp) =>
-          emp.name.toLowerCase().includes(q) ||
-          emp.erp.includes(q) ||
-          (emp.designation || '').toLowerCase().includes(q),
-      );
-    }
-    list.sort((a, b) => {
-      if (groupByDesignation) {
-        const dc = (a.designation || '').localeCompare(b.designation || '');
-        if (dc !== 0) return dc;
-      }
-      return (a.name || '').localeCompare(b.name || '');
-    });
-    return list;
-  }, [employees, search, groupByDesignation]);
-
-  const visibleErps = useMemo(() => displayEmployees.map((e) => e.erp), [displayEmployees]);
-  const allVisibleSelected =
-    visibleErps.length > 0 && visibleErps.every((erp) => selected.has(erp));
-
-  const toggleSelectAll = () => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (allVisibleSelected) visibleErps.forEach((erp) => next.delete(erp));
-      else visibleErps.forEach((erp) => next.add(erp));
-      return next;
-    });
-  };
-
-  const toggleSelect = (erp: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(erp) ? next.delete(erp) : next.add(erp);
-      return next;
-    });
-  };
-
-  const selectedDesignations = useMemo(() => {
-    const s = new Set<string>();
+  const designationCounts = useMemo(() => {
+    const m: Record<string, number> = {};
     employees.forEach((e) => {
-      if (selected.has(e.erp) && e.designation) s.add(e.designation);
+      const d = e.designation || '';
+      m[d] = (m[d] || 0) + 1;
     });
-    return Array.from(s);
-  }, [employees, selected]);
+    return m;
+  }, [employees]);
 
-  const updateBasicPay = (erp: string, value: number) => {
-    onBasicPayChange({ ...basicPay, [erp]: value });
+  const groups = useMemo<InfoGroup[]>(() => {
+    const q = search.trim().toLowerCase();
+    let list = infos.filter((i) => {
+      if (q && !(i.emp.name.toLowerCase().includes(q) || i.emp.erp.includes(q) || (i.emp.designation || '').toLowerCase().includes(q))) return false;
+      if (filters.categories.length && !filters.categories.includes(i.category)) return false;
+      if (filters.rates.length && (i.category === 'exempt' || !filters.rates.includes(i.rate))) return false;
+      if (filters.missingPay && !(i.category !== 'exempt' && i.rate === 'dynamic' && i.pay === 0)) return false;
+      return true;
+    });
+
+    const byName = (a: EmployeeInfo, b: EmployeeInfo) => (a.emp.name || '').localeCompare(b.emp.name || '');
+    const dir = sortDesc ? -1 : 1;
+    list = [...list].sort((a, b) => {
+      let c = 0;
+      if (sortBy === 'erp') c = a.emp.erp.localeCompare(b.emp.erp, undefined, { numeric: true });
+      else if (sortBy === 'designation') c = (a.emp.designation || '').localeCompare(b.emp.designation || '');
+      else if (sortBy === 'pay') c = a.pay - b.pay;
+      else c = byName(a, b);
+      return c !== 0 ? c * dir : byName(a, b);
+    });
+
+    if (groupBy === 'none') return list.length ? [{ key: 'all', label: '', items: list }] : [];
+
+    const map = new Map<string, InfoGroup>();
+    list.forEach((i) => {
+      const key =
+        groupBy === 'designation' ? i.emp.designation || '—' : groupBy === 'pay' ? String(i.pay) : i.category;
+      const label =
+        groupBy === 'designation'
+          ? i.emp.designation || 'No designation'
+          : groupBy === 'pay'
+            ? i.pay > 0 ? `PKR ${formatAmount(i.pay)}` : 'No basic pay'
+            : CATEGORY_LABEL[i.category];
+      if (!map.has(key)) map.set(key, { key, label, items: [] });
+      map.get(key)!.items.push(i);
+    });
+    const out = Array.from(map.values());
+    if (groupBy === 'designation') out.sort((a, b) => a.label.localeCompare(b.label));
+    else if (groupBy === 'pay') out.sort((a, b) => (Number(a.key) === 0 ? 1 : Number(b.key) === 0 ? -1 : Number(b.key) - Number(a.key)));
+    else out.sort((a, b) => CATEGORY_ORDER.indexOf(a.key as EmployeeCategory) - CATEGORY_ORDER.indexOf(b.key as EmployeeCategory));
+    return out;
+  }, [infos, search, filters, sortBy, sortDesc, groupBy]);
+
+  const visible = useMemo(() => groups.flatMap((g) => g.items), [groups]);
+  const allVisibleSelected = visible.length > 0 && visible.every((i) => selected.has(i.emp.erp));
+
+  const setMany = (items: EmployeeInfo[], on: boolean) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      items.forEach((i) => (on ? next.add(i.emp.erp) : next.delete(i.emp.erp)));
+      return next;
+    });
+
+  const toggleOne = (erp: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(erp)) next.delete(erp);
+      else next.add(erp);
+      return next;
+    });
+
+  const clearSelection = () => {
+    setSelected(new Set());
+    setMobileView('list');
   };
 
-  const bulkSetPay = () => {
+  const selectedInfos = useMemo(() => infos.filter((i) => selected.has(i.emp.erp)), [infos, selected]);
+  const active = useMemo(() => infos.find((i) => i.emp.erp === activeErp) ?? null, [infos, activeErp]);
+
+  const handlePay = (erps: string[], value: number) => {
     const next = { ...basicPay };
-    selected.forEach((erp) => {
-      next[erp] = bulkPay;
-    });
+    erps.forEach((erp) => (next[erp] = value));
     onBasicPayChange(next);
   };
 
-  const bulkSetCategory = (c: EmployeeCategory) => {
+  // Same semantics as the old bulk bar, keyed by designation.
+  const handleRules = (designations: string[], change: RuleChange) => {
     const nextCat = { ...designationCategories };
     const nextRate = { ...designationRateTypes };
     const nextCap = { ...designationCapExempt };
-    selectedDesignations.forEach((d) => {
-      nextCat[d] = c;
-      if (c === 'exempt') {
-        delete nextRate[d];
-        delete nextCap[d];
+    designations.forEach((d) => {
+      if (change.category) {
+        nextCat[d] = change.category;
+        if (change.category === 'exempt') {
+          delete nextRate[d];
+          delete nextCap[d];
+        }
+      }
+      const exempt = (nextCat[d] ?? defaultCategory(d)) === 'exempt';
+      if (change.rate && !exempt) {
+        nextRate[d] = change.rate;
+        if (change.rate !== 'fixed') delete nextCap[d];
+      }
+      if (change.capExempt !== undefined && !exempt) {
+        const rate: Rate = resolveRateType(d, { designationRateTypes: nextRate });
+        if (rate === 'fixed') nextCap[d] = change.capExempt;
       }
     });
     onDesignationChange(nextCat, nextRate, nextCap);
   };
 
-  const bulkSetRate = (rt: 'fixed' | 'dynamic') => {
-    const nextRate = { ...designationRateTypes };
-    const nextCap = { ...designationCapExempt };
-    selectedDesignations.forEach((d) => {
-      if (effectiveCategory(d) === 'exempt') return;
-      nextRate[d] = rt;
-      if (rt !== 'fixed') delete nextCap[d];
-    });
-    onDesignationChange(designationCategories, nextRate, nextCap);
-  };
-
-  const bulkSetCap = (exempt: boolean) => {
-    const nextCap = { ...designationCapExempt };
-    selectedDesignations.forEach((d) => {
-      if (effectiveCategory(d) === 'exempt') return;
-      if (effectiveRate(d) !== 'fixed') return;
-      nextCap[d] = exempt;
-    });
-    onDesignationChange(designationCategories, designationRateTypes, nextCap);
-  };
-
-  const designationCounts = useMemo(() => {
-    const m: Record<string, number> = {};
-    employees.forEach((e) => {
-      if (e.designation) m[e.designation] = (m[e.designation] || 0) + 1;
-    });
-    return m;
-  }, [employees]);
-
-  const renderBadges = (emp: EmployeeRow) => {
-    const cat = effectiveCategory(emp.designation || '');
-    if (cat === 'exempt') return [<Badge key="cat" label="Exempt" />];
-
-    const rate = effectiveRate(emp.designation || '');
-    const badges: React.ReactNode[] = [
-      <Badge key="rate" label={rate === 'fixed' ? 'Fixed' : 'Dynamic'} />,
-    ];
-    if (rate === 'fixed') {
-      const capExempt = effectiveCap(emp.designation || '', rate);
-      if (!capExempt) badges.push(<Badge key="cap" label="Capped" />);
-    }
-    return badges;
-  };
+  if (employees.length === 0) {
+    return (
+      <div className="absolute inset-0 p-5">
+        <h3 className="text-[12px] font-bold text-foreground">Employees &amp; Pay</h3>
+        <div className="mt-3 text-center py-10 text-muted-foreground text-[11px] border-2 border-dashed border-border rounded-lg select-none">
+          Upload a file to see the employee list
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-3 w-full min-w-0">
-      {/* Header */}
-      <div>
-        <h3 className="text-[12px] font-bold text-foreground">Employees &amp; Pay</h3>
-        <p className="text-[11px] text-muted-foreground mt-0.5">
-          Set basic pay per employee, and manage designation rules via bulk actions.
-        </p>
-      </div>
-
-      {/* Toolbar — fixed widths to prevent modal reflow */}
-      <div className="flex items-center gap-2 w-full min-w-0">
-        <div className="relative flex-1 min-w-0 max-w-full">
-          <Search
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-            size={13}
-          />
-          <Input
-            type="text"
-            placeholder="Search name, ERP, or designation..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 text-[12px] h-8 w-full"
-          />
-        </div>
-        <Button
-          type="button"
-          variant={groupByDesignation ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setGroupByDesignation((v) => !v)}
-          className="text-[11px] h-8 px-2.5 gap-1.5 shrink-0"
-          title="Group by designation"
-        >
-          <Layers size={13} />
-          <span className="hidden sm:inline">Group</span>
-        </Button>
-      </div>
-
-      {/* Bulk action bar */}
-      {selected.size > 0 && (
-        <div className="rounded-lg border border-primary/20 bg-[var(--color-neutral-active)] p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-[var(--color-accent)]">
-              {selected.size} selected
-              {selectedDesignations.length > 0 &&
-                ` · ${selectedDesignations.length} designation${
-                  selectedDesignations.length === 1 ? '' : 's'
-                }`}
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelected(new Set())}
-              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-card/50"
-              title="Clear selection"
-            >
-              <X size={12} />
-            </button>
-          </div>
-
-          {/* Basic pay */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">
-              Basic Pay
-            </span>
-            <NumberInput
-              value={bulkPay}
-              onChange={setBulkPay}
-              suffix="PKR"
-              maxDigits={5}
-              className="w-32"
-            />
-            <Button
-              type="button"
-              size="sm"
-              onClick={bulkSetPay}
-              className="text-[11px] h-7 px-2.5"
-            >
-              Apply to {selected.size}
-            </Button>
-          </div>
-
-          {/* Designation rules */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">
-              Rules
-            </span>
-
-            {/* Category dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={cn(
-                  buttonVariants({ variant: 'outline', size: 'sm' }),
-                  'gap-1.5 text-[11px] h-7 px-2.5',
-                )}
-              >
-                <span>Category</span>
-                <ChevronDown size={12} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-36">
-                <DropdownMenuLabel>Set category</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => bulkSetCategory('support')}>
-                  Support
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => bulkSetCategory('official')}>
-                  Official
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => bulkSetCategory('exempt')}>
-                  Exempt
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Rate dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={cn(
-                  buttonVariants({ variant: 'outline', size: 'sm' }),
-                  'gap-1.5 text-[11px] h-7 px-2.5',
-                )}
-              >
-                <span>Rate</span>
-                <ChevronDown size={12} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-36">
-                <DropdownMenuLabel>Set rate type</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => bulkSetRate('fixed')}>Fixed</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => bulkSetRate('dynamic')}>Dynamic</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Cap checkbox */}
-            <label className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-card cursor-pointer select-none">
-              <Checkbox
-                size="sm"
-                checked={false}
-                onChange={(e) => bulkSetCap(e.target.checked)}
-              />
-              <span className="text-[11px] font-medium whitespace-nowrap">
-                Exempt from cap
-              </span>
-            </label>
-          </div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {displayEmployees.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground text-[11px] border-2 border-dashed border-border rounded-lg select-none">
-          {employees.length === 0
-            ? 'Upload a file to see the employee list'
-            : 'No employees match your search'}
-        </div>
-      ) : (
-        <>
-          {/* Desktop header */}
-          <div className="hidden md:grid grid-cols-[auto_1fr_auto] gap-3 px-2 py-1.5 border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground items-center">
-            <Checkbox
-              size="sm"
-              checked={allVisibleSelected}
-              onChange={toggleSelectAll}
-              title="Select all"
-            />
-            <div>Employee</div>
-            <div className="text-right pr-1">Basic Pay</div>
-          </div>
-
-          <div className="space-y-2 md:space-y-1">
-            {displayEmployees.map((emp, idx) => {
-              const prev = displayEmployees[idx - 1];
-              const showGroupHeader =
-                groupByDesignation && (!prev || prev.designation !== emp.designation);
-
-              const isSelected = selected.has(emp.erp);
-              const cat = effectiveCategory(emp.designation || '');
-              const isExempt = cat === 'exempt';
-              const rate = effectiveRate(emp.designation || '');
-              const isFixed = rate === 'fixed';
-              const currentVal =
-                basicPay[emp.erp] !== undefined ? basicPay[emp.erp] : emp.basicPay || 0;
-              const badges = renderBadges(emp);
-
-              // Input visibility rules:
-              // - Exempt → never show
-              // - Fixed  → mobile: hide, desktop: show disabled
-              // - Dynamic → show everywhere
-              const inputWrapperClass = cn(
-                'shrink-0',
-                isExempt && 'hidden',
-                isFixed && !isExempt && 'hidden md:block',
-              );
-
-              return (
-                <Fragment key={emp.erp}>
-                  {showGroupHeader && (
-                    <div className="flex items-center gap-2 pt-3 pb-1 first:pt-0">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        {emp.designation}
-                      </span>
-                      <span className="h-px flex-1 bg-border" />
-                      <span className="text-[10px] text-muted-foreground">
-                        {designationCounts[emp.designation] || 0}{' '}
-                        {(designationCounts[emp.designation] || 0) === 1 ? 'person' : 'people'}
-                      </span>
-                    </div>
-                  )}
-
-                  <div
-                    className={cn(
-                      'rounded-lg border transition-colors p-2.5',
-                      'flex items-center gap-3',
-                      isSelected
-                        ? 'border-primary/40 bg-primary/5'
-                        : 'border-border bg-muted/10 hover:bg-muted/20',
-                      isExempt && 'opacity-60',
-                    )}
-                  >
-                    <Checkbox
-                      size="sm"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(emp.erp)}
-                    />
-
-                    {/* Info column: row1 = name + badges, row2 = erp · designation */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] md:text-[12px] font-semibold text-foreground truncate">
-                          {toTitleCase(emp.name)}
-                        </span>
-                        {badges}
-                      </div>
-                      <div className="text-[10px] font-mono text-muted-foreground truncate mt-0.5">
-                        {emp.erp}
-                        <span className="mx-1 opacity-50">·</span>
-                        <span className="font-sans not-italic">{emp.designation}</span>
-                      </div>
-                    </div>
-
-                    {/* Input column */}
-                    <div className={inputWrapperClass}>
-                      <NumberInput
-                        value={currentVal}
-                        onChange={(v) => updateBasicPay(emp.erp, v)}
-                        suffix="PKR"
-                        maxDigits={5}
-                        className="w-28 md:w-28"
-                        disabled={isFixed || isExempt}
-                      />
-                    </div>
-                  </div>
-                </Fragment>
-              );
-            })}
-          </div>
-        </>
-      )}
+    <div className="absolute inset-0 flex">
+      <EmployeeListPanel
+        className={cn('w-full lg:w-[340px] lg:shrink-0 lg:border-r lg:border-border', mobileView === 'detail' ? 'hidden lg:flex' : 'flex')}
+        totalCount={employees.length}
+        visibleCount={visible.length}
+        groups={groups}
+        search={search}
+        onSearchChange={setSearch}
+        groupBy={groupBy}
+        onGroupByChange={setGroupBy}
+        sortBy={sortBy}
+        sortDesc={sortDesc}
+        onSortChange={(by, desc) => { setSortBy(by); setSortDesc(desc); }}
+        filters={filters}
+        onFiltersChange={setFilters}
+        selected={selected}
+        activeErp={activeErp}
+        allVisibleSelected={allVisibleSelected}
+        onToggleAll={() => setMany(visible, !allVisibleSelected)}
+        onToggleOne={toggleOne}
+        onToggleGroup={(items) => setMany(items, !items.every((i) => selected.has(i.emp.erp)))}
+        onOpen={(erp) => { setActiveErp(erp); setMobileView('detail'); }}
+        onClearSelection={clearSelection}
+        onEditSelected={() => setMobileView('detail')}
+      />
+      <EmployeeDetailPanel
+        className={cn('flex-1', mobileView === 'list' ? 'hidden lg:flex' : 'flex')}
+        selectedInfos={selectedInfos}
+        active={active}
+        designationCounts={designationCounts}
+        onBack={() => setMobileView('list')}
+        onPayChange={handlePay}
+        onRulesChange={handleRules}
+        onClearSelection={clearSelection}
+      />
     </div>
   );
 }

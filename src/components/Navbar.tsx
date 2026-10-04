@@ -30,7 +30,7 @@ export function Navbar({
         <div className="w-7 h-7 rounded-md bg-primary shrink-0 flex items-center justify-center text-primary-foreground shadow-xs">
           <Clock size={15} strokeWidth={2.5} />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 hidden sm:block">
           <div className="flex items-center gap-1.5">
             <h1 className="text-[12px] font-bold text-foreground truncate">Overtime Manager</h1>
           </div>

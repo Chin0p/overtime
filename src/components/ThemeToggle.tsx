@@ -17,7 +17,7 @@ export function ThemeToggle({ theme, onChange, className }: ThemeToggleProps) {
   return (
     <div className={cn("relative", className)}>
       <DropdownMenu>
-        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "cursor-pointer")} title="Theme">
+        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "cursor-pointer size-8")} title="Theme">
           <Icon size={18} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

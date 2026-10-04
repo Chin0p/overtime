@@ -57,13 +57,16 @@ export function DetailPanel({ employee, monthLabel, onBack }: DetailPanelProps) 
   }, [employee?.records, filter, sortOrder]);
 
   return (
-    <div className="h-full bg-background flex flex-col overflow-hidden">
-      <EmployeeHeader employee={employee} monthLabel={monthLabel} onBack={onBack} />
-      
-      <div className="py-3 md:p-6 flex-1 min-h-0 flex flex-col px-0 md:px-6">
-        <div className="max-w-6xl mx-auto w-full flex-1 min-h-0 flex flex-col gap-2 md:gap-4">
-          
-          <div className="flex flex-nowrap items-center justify-end gap-2 md:gap-4 px-4 md:px-0 shrink-0 mb-1 md:mb-0">
+    // The panel is the ONE scroll container (both axes). `@container` lets the
+    // pinned bars size themselves to the visible width (100cqw) while the table
+    // scrolls sideways underneath them.
+    <div className="@container h-full min-h-0 bg-background overflow-auto overscroll-contain">
+      <div className="w-max min-w-full">
+        <EmployeeHeader employee={employee} monthLabel={monthLabel} onBack={onBack} />
+
+        <div className="max-w-6xl mx-auto px-3 md:px-6 pt-3 pb-6 md:pt-5 flex flex-col gap-2 md:gap-4">
+
+          <div className="sticky left-0 w-[calc(100cqw-1.5rem)] md:w-[calc(100cqw-3rem)] flex flex-nowrap items-center justify-end gap-2 md:gap-4">
             <div className="flex items-center gap-2 shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "gap-2 cursor-pointer", filter !== 'all' && "text-primary border-primary")}>

@@ -1,0 +1,2205 @@
+diff --git a/src/App.tsx b/src/App.tsx
+index 8dcc895..810cdc0 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -11,7 +11,7 @@ import { SettingsModal } from './components/Settings/SettingsModal';
+ import { buildPDF } from './pdf/buildPDF';
+ import { format } from 'date-fns';
+ import { flexibleParseDate, cn } from './lib/utils';
+-import { AlertTriangle } from 'lucide-react';
++import { AlertTriangle, Users } from 'lucide-react';
+ 
+ export default function App() {
+   const { policy, appearance, pdf, basicPay, holidays, saveSettings, setAppearance } = useSettings();
+@@ -165,6 +165,11 @@ export default function App() {
+         );
+       }
+ 
++      // A previously selected employee may not exist in the new file; clear it so
++      // mobile never lands on an empty detail view with the list hidden.
++      if (selectedErp && !data.employees.some((e) => e.erp === selectedErp)) {
++        setSelectedErp(null);
++      }
+       setUploadedData(data);
+       setIsLandingOpen(false);
+       setError(null);
+@@ -227,7 +232,7 @@ export default function App() {
+           <>
+             <div className={cn(
+               "shrink-0 w-full md:w-[320px] h-full border-r border-[var(--color-border)]",
+-              selectedErp ? "hidden md:flex md:flex-col" : "flex flex-col"
++              selectedEmployee ? "hidden md:flex md:flex-col" : "flex flex-col"
+             )}>
+               <Sidebar 
+                 employees={filteredEmployees}
+@@ -240,7 +245,7 @@ export default function App() {
+             
+             <div className={cn(
+               "flex-1 min-h-0 relative",
+-              selectedErp ? "flex flex-col h-full overflow-hidden" : "hidden md:flex md:flex-col h-full overflow-hidden"
++              selectedEmployee ? "flex flex-col h-full overflow-hidden" : "hidden md:flex md:flex-col h-full overflow-hidden"
+             )}>
+               {selectedEmployee ? (
+                 <div className="flex flex-col h-full relative">
+@@ -252,11 +257,7 @@ export default function App() {
+                 </div>
+               ) : (
+                 <div className="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] p-8 text-center">
+-                  <div className="w-16 h-16 mb-4 opacity-10">
+-                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+-                    </svg>
+-                  </div>
++                  <Users className="w-16 h-16 mb-4 opacity-10" strokeWidth={1.5} />
+                   <h3 className="text-[12px] font-medium text-[var(--color-text-muted)]">
+                     No Employee Selected
+                   </h3>
+diff --git a/src/components/DetailPanel/DetailPanel.tsx b/src/components/DetailPanel/DetailPanel.tsx
+index 3f6de6f..d4961d4 100644
+--- a/src/components/DetailPanel/DetailPanel.tsx
++++ b/src/components/DetailPanel/DetailPanel.tsx
+@@ -57,13 +57,16 @@ export function DetailPanel({ employee, monthLabel, onBack }: DetailPanelProps)
+   }, [employee?.records, filter, sortOrder]);
+ 
+   return (
+-    <div className="h-full bg-background flex flex-col overflow-hidden">
+-      <EmployeeHeader employee={employee} monthLabel={monthLabel} onBack={onBack} />
+-      
+-      <div className="py-3 md:p-6 flex-1 min-h-0 flex flex-col px-0 md:px-6">
+-        <div className="max-w-6xl mx-auto w-full flex-1 min-h-0 flex flex-col gap-2 md:gap-4">
+-          
+-          <div className="flex flex-nowrap items-center justify-end gap-2 md:gap-4 px-4 md:px-0 shrink-0 mb-1 md:mb-0">
++    // The panel is the ONE scroll container (both axes). `@container` lets the
++    // pinned bars size themselves to the visible width (100cqw) while the table
++    // scrolls sideways underneath them.
++    <div className="@container h-full min-h-0 bg-background overflow-auto overscroll-contain">
++      <div className="w-max min-w-full">
++        <EmployeeHeader employee={employee} monthLabel={monthLabel} onBack={onBack} />
++
++        <div className="max-w-6xl mx-auto px-3 md:px-6 pt-3 pb-6 md:pt-5 flex flex-col gap-2 md:gap-4">
++
++          <div className="sticky left-0 w-[calc(100cqw-1.5rem)] md:w-[calc(100cqw-3rem)] flex flex-nowrap items-center justify-end gap-2 md:gap-4">
+             <div className="flex items-center gap-2 shrink-0">
+               <DropdownMenu>
+                 <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "gap-2 cursor-pointer", filter !== 'all' && "text-primary border-primary")}>
+diff --git a/src/components/DetailPanel/EmployeeHeader.tsx b/src/components/DetailPanel/EmployeeHeader.tsx
+index dd31f3a..973725e 100644
+--- a/src/components/DetailPanel/EmployeeHeader.tsx
++++ b/src/components/DetailPanel/EmployeeHeader.tsx
+@@ -9,87 +9,114 @@ interface EmployeeHeaderProps {
+   onBack?: () => void;
+ }
+ 
++const CATEGORY_LABEL = { support: 'Support', official: 'Official', exempt: 'Exempt' } as const;
++
++/**
++ * Renders as siblings inside DetailPanel's scroll content:
++ *  - mobile: a pinned bar (Back + name + month) so "back to list" is always reachable
++ *  - a header with 2 rows (name/badges/month, then ERP · designation) + stat cards
++ * Every pinned element uses `sticky left-0 w-[100cqw]` so it stays put while the
++ * records table scrolls sideways beneath it.
++ */
+ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderProps) {
++  const isExempt = employee.category === 'exempt';
+   const isDynamic = employee.rateType === 'dynamic';
+   const hourlyRate = employee.hourlyRate ?? 0;
+   const dayRate = employee.dayRate ?? 0;
++  const missingPay = isDynamic && !isExempt && employee.basicPay <= 0;
++  const name = toTitleCase(employee.name);
++
++  const categoryBadge = (
++    <span className="shrink-0 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
++      {CATEGORY_LABEL[employee.category] ?? (employee.isSupport ? 'Support' : 'Official')}
++    </span>
++  );
++
++  const rateBadge = isExempt ? null : (
++    <span
++      className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground"
++      title={!isDynamic ? 'Fixed Rate Policy' : 'Dynamic Rate calculated from Basic Pay'}
++    >
++      {!isDynamic ? (
++        <>
++          <Lock size={12} className="shrink-0" />
++          <span>Fixed</span>
++        </>
++      ) : (
++        <>
++          <Activity size={12} className="shrink-0 text-emerald-500" />
++          <span className="text-foreground">Dynamic</span>
++        </>
++      )}
++    </span>
++  );
++
++  const monthChip = monthLabel ? (
++    <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground whitespace-nowrap">
++      <Calendar size={12} className="text-primary/70 shrink-0" />
++      <span className="font-medium">{monthLabel}</span>
++    </span>
++  ) : null;
+ 
+   return (
+-    <header className="bg-card border-b border-border px-4 lg:px-8 py-4 lg:py-5 shrink-0 shadow-xs">
+-      <div className="max-w-6xl mx-auto">
+-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
+-          
+-          <div className="flex flex-col min-w-0 flex-1">
+-            {/* Row 1: Back + Name + Tag */}
+-            <div className="flex items-center gap-2 min-w-0">
+-              {onBack && (
+-                <button 
+-                  onClick={onBack}
+-                  className="md:hidden p-1.5 -ml-1.5 shrink-0 rounded-[var(--radius-interactive)] hover:bg-muted text-foreground transition-colors"
+-                  aria-label="Back to employee list"
+-                  id="mobile-back-button"
+-                >
+-                  <ChevronLeft size={20} />
+-                </button>
+-              )}
+-              <h1 className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight truncate min-w-0">
+-                {toTitleCase(employee.name)}
++    <>
++      {/* Mobile pinned bar */}
++      <div className="md:hidden sticky top-0 left-0 z-30 w-[100cqw] h-11 bg-card border-b border-border flex items-center gap-1 pl-1.5 pr-3">
++        {onBack && (
++          <button
++            onClick={onBack}
++            className="size-9 shrink-0 flex items-center justify-center rounded-[var(--radius-interactive)] hover:bg-muted text-foreground transition-colors"
++            aria-label="Back to employee list"
++            id="mobile-back-button"
++          >
++            <ChevronLeft size={20} />
++          </button>
++        )}
++        <h1 className="flex-1 min-w-0 truncate text-[14px] font-bold text-foreground tracking-tight">{name}</h1>
++        {monthChip}
++      </div>
++
++      <header className="sticky left-0 w-[100cqw] bg-card border-b border-border px-4 lg:px-8 py-3 lg:py-5 shadow-xs">
++        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-6">
++          <div className="flex flex-col min-w-0 flex-1 gap-1.5">
++            {/* Row 1 (md+): name · category · rate ........ month */}
++            <div className="hidden md:flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0">
++              <h1 className="text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight break-words min-w-0">
++                {name}
+               </h1>
+-              <span className="shrink-0 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+-                {employee.isSupport ? 'Support' : 'Official'}
+-              </span>
++              {categoryBadge}
++              {rateBadge}
++              {monthChip && <span className="md:ml-auto">{monthChip}</span>}
+             </div>
+ 
+-            {/* Row 2: ERP · Designation */}
+-            <div className="flex items-center gap-2 text-xs sm:text-sm mt-1.5 text-muted-foreground min-w-0">
++            {/* Row 2: ERP · designation (+ badges on mobile, where row 1 is the pinned bar) */}
++            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground min-w-0">
+               <span className="font-mono font-semibold text-foreground shrink-0">{employee.erp}</span>
+               <span className="text-muted-foreground/40 select-none shrink-0">•</span>
+-              <span className="font-medium text-foreground/90 truncate">{employee.designation}</span>
+-            </div>
+-
+-            {/* Row 3: Rate badge · Month */}
+-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+-              <div
+-                className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground"
+-                title={!isDynamic ? 'Fixed Rate Policy' : 'Dynamic Rate calculated from Basic Pay'}
+-              >
+-                {!isDynamic ? (
+-                  <>
+-                    <Lock size={12} className="shrink-0" />
+-                    <span>Fixed Rate</span>
+-                  </>
+-                ) : (
+-                  <>
+-                    <Activity size={12} className="shrink-0 text-emerald-500" />
+-                    <span className="text-foreground">Dynamic Rate</span>
+-                  </>
+-                )}
+-              </div>
+-
+-              {monthLabel && (
+-                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground">
+-                  <Calendar size={12} className="text-primary/70 shrink-0" />
+-                  <span className="font-medium truncate">{monthLabel}</span>
+-                </div>
+-              )}
++              <span className="font-medium text-foreground/90 min-w-0 break-words">{employee.designation}</span>
++              <span className="md:hidden inline-flex items-center gap-2">
++                {categoryBadge}
++                {rateBadge}
++              </span>
+             </div>
+           </div>
+ 
+           <div className="w-full lg:w-auto flex flex-col lg:flex-row gap-2.5">
+-            {/* Mobile missing basic pay warning */}
+-            {isDynamic && employee.basicPay <= 0 && (
+-              <div className="lg:hidden w-full p-2.5 bg-[var(--color-warning-light)] border border-[var(--color-warning)]/20 rounded-md flex items-center justify-center gap-1.5 text-[var(--color-warning)]"> 
+-                <AlertTriangle size={14} /> 
++            {missingPay && (
++              <div className="lg:hidden w-full p-2.5 bg-[var(--color-warning-light)] border border-[var(--color-warning)]/20 rounded-md flex items-center justify-center gap-1.5 text-[var(--color-warning)]">
++                <AlertTriangle size={14} />
+                 <span className="text-xs font-semibold">Basic Pay is required for dynamic rate calculations</span>
+               </div>
+             )}
+-            
+-            {/* Stat Cards */}
+-            <div className={cn(
+-              "grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-nowrap gap-2 select-none",
+-              isDynamic && employee.basicPay <= 0 && "hidden lg:flex"
+-            )}>
+-              {isDynamic && (
++
++            {/* Stat cards: one horizontal strip on phones (Total first), a row on desktop */}
++            <div
++              className={cn(
++                'flex gap-2 select-none overflow-x-auto no-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0 lg:overflow-visible',
++                missingPay && 'hidden lg:flex',
++              )}
++            >
++              {isDynamic && !isExempt && (
+                 <StatCard
+                   icon={<CreditCard size={13} />}
+                   label="Basic Pay"
+@@ -120,35 +147,38 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
+                 value={formatCurrency(employee.totalAmount)}
+                 color="bg-primary/10 text-primary border-primary/20"
+                 highlight
++                className="order-first lg:order-last"
+               />
+             </div>
+           </div>
+         </div>
+-      </div>
+-    </header>
++      </header>
++    </>
+   );
+ }
+ 
+-function StatCard({ 
+-  icon, 
+-  label, 
+-  value, 
++function StatCard({
++  icon,
++  label,
++  value,
+   color,
+-  highlight 
+-}: { 
+-  icon: React.ReactNode; 
+-  label: string; 
+-  value: React.ReactNode; 
++  highlight,
++  className,
++}: {
++  icon: React.ReactNode;
++  label: string;
++  value: React.ReactNode;
+   color: string;
+   highlight?: boolean;
++  className?: string;
+ }) {
+   return (
+-    <div className={`px-3 py-2 rounded-lg border ${color} flex flex-col justify-center gap-1 shadow-xs min-w-0`}>
+-      <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-75 leading-none">
++    <div className={cn('shrink-0 min-w-[104px] px-3 py-2 rounded-lg border flex flex-col justify-center gap-1 shadow-xs', color, className)}>
++      <div className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide opacity-75 leading-none whitespace-nowrap">
+         {icon}
+         <span>{label}</span>
+       </div>
+-      <div className={`font-mono tabular-nums leading-tight truncate ${highlight ? 'text-[13px] sm:text-sm font-extrabold text-primary' : 'text-[12px] sm:text-[13px] font-bold text-foreground'}`}>
++      <div className={`font-mono tabular-nums leading-tight whitespace-nowrap ${highlight ? 'text-[13px] sm:text-sm font-extrabold text-primary' : 'text-[12px] sm:text-[13px] font-bold text-foreground'}`}>
+         {value}
+       </div>
+     </div>
+diff --git a/src/components/DetailPanel/RecordsTable.tsx b/src/components/DetailPanel/RecordsTable.tsx
+index 25ba6df..dbcc6ad 100644
+--- a/src/components/DetailPanel/RecordsTable.tsx
++++ b/src/components/DetailPanel/RecordsTable.tsx
+@@ -15,14 +15,18 @@ export function RecordsTable({ records, visibleColumns, sortOrder, onToggleSort
+   const visibleColsSet = new Set(visibleColumns);
+   
+   return (
+-    <div className="flex-1 min-h-0 mx-3 md:mx-0 bg-card rounded-lg border border-border overflow-hidden shadow-sm flex flex-col">
+-      <div className="flex-1 min-h-0 overflow-auto">
+-        <Table className="w-full text-left border-collapse data-table table-auto">
+-          <TableHeader className="sticky top-0 z-20">
+-            <TableRow className="bg-muted/50 border-b border-border">
+-              <TableHead className="sticky top-0 z-20 bg-muted/50 text-center w-12 font-semibold">Sr.</TableHead>
++    // No overflow clipping here: sticky <th> must stick to the DetailPanel scroller.
++    <div className="w-full bg-card rounded-lg border border-border shadow-sm [&_thead_th:first-child]:rounded-tl-lg [&_thead_th:last-child]:rounded-tr-lg">
++      <div>
++        <Table
++          containerClassName="overflow-visible"
++          className="w-full text-left border-collapse data-table table-auto"
++        >
++          <TableHeader>
++            <TableRow className="border-b-0">
++              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
+               <TableHead 
+-                className="sticky top-0 left-0 z-30 bg-muted/50 font-semibold cursor-pointer hover:bg-muted transition-colors select-none group"
++                className="sticky top-11 md:top-0 left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold cursor-pointer hover:bg-accent transition-colors select-none group"
+                 onClick={onToggleSort}
+                 title="Toggle Sort Order"
+               >
+@@ -33,19 +37,19 @@ export function RecordsTable({ records, visibleColumns, sortOrder, onToggleSort
+                   </div>
+                 </div>
+               </TableHead>
+-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Day</TableHead>
+-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">In</TableHead>
+-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Out</TableHead>
+-              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Office Timing</TableHead>}
+-              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Total Worked</TableHead>}
+-              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Worked (OT)</TableHead>}
+-              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Adjustment</TableHead>}
+-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">OT Hrs</TableHead>
+-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Amount</TableHead>
+-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Remarks</TableHead>
++              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
++              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">In</TableHead>
++              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Out</TableHead>
++              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Office Timing</TableHead>}
++              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Total Worked</TableHead>}
++              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Worked (OT)</TableHead>}
++              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Adjustment</TableHead>}
++              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
++              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
++              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
+             </TableRow>
+           </TableHeader>
+-          <TableBody className="divide-y divide-border">
++          <TableBody className="divide-y divide-border [&_tr:last-child_td:first-child]:rounded-bl-lg [&_tr:last-child_td:last-child]:rounded-br-lg">
+             {records.length === 0 ? (
+               <TableRow>
+                 <TableCell colSpan={8 + visibleColumns.length} className="text-center py-8 text-muted-foreground text-xs">
+diff --git a/src/components/Navbar.tsx b/src/components/Navbar.tsx
+index 56f6195..53b8df8 100644
+--- a/src/components/Navbar.tsx
++++ b/src/components/Navbar.tsx
+@@ -30,7 +30,7 @@ export function Navbar({
+         <div className="w-7 h-7 rounded-md bg-primary shrink-0 flex items-center justify-center text-primary-foreground shadow-xs">
+           <Clock size={15} strokeWidth={2.5} />
+         </div>
+-        <div className="min-w-0 flex-1">
++        <div className="min-w-0 flex-1 hidden sm:block">
+           <div className="flex items-center gap-1.5">
+             <h1 className="text-[12px] font-bold text-foreground truncate">Overtime Manager</h1>
+           </div>
+diff --git a/src/components/Settings/CalculationTab.tsx b/src/components/Settings/CalculationTab.tsx
+index 609d125..1d093fd 100644
+--- a/src/components/Settings/CalculationTab.tsx
++++ b/src/components/Settings/CalculationTab.tsx
+@@ -1,8 +1,8 @@
+-import React from 'react';
+ import { AlertTriangle } from 'lucide-react';
+ import { OTSettings } from '../../types';
+ import { NumberInput } from '../ui/NumberInput';
+ import { Switch } from '../ui/switch';
++import { SettingRow } from './SettingRow';
+ import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
+ 
+ interface CalculationTabProps {
+@@ -88,12 +88,12 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
+             title="Rounding mode"
+             description="How calculated hours and money values are rounded."
+           >
+-            <div className="relative w-fit max-w-[200px]">
++            <div className="w-28">
+               <Select
+                 value={policy.roundingMode || 'round'}
+                 onValueChange={(val) => onChange({ ...policy, roundingMode: val as 'floor' | 'round' })}
+               >
+-                <SelectTrigger>
++                <SelectTrigger className="w-full">
+                   <span className="truncate">{policy.roundingMode === 'round' ? 'Round' : 'Floor'}</span>
+                 </SelectTrigger>
+                 <SelectContent>
+@@ -188,17 +188,3 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
+     </div>
+   );
+ }
+-
+-function SettingRow({ title, description, children }: { title: string, description: string, children: React.ReactNode }) {
+-  return (
+-    <div className="flex flex-row items-center justify-between gap-3 sm:gap-6">
+-      <div className="flex-1 min-w-0 pr-2">
+-        <h4 className="text-[12px] font-semibold text-foreground truncate">{title}</h4>
+-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{description}</p>
+-      </div>
+-      <div className="shrink-0 flex items-center">
+-        {children}
+-      </div>
+-    </div>
+-  );
+-}
+diff --git a/src/components/Settings/EmployeeDetailPanel.tsx b/src/components/Settings/EmployeeDetailPanel.tsx
+new file mode 100644
+index 0000000..16d588b
+--- /dev/null
++++ b/src/components/Settings/EmployeeDetailPanel.tsx
+@@ -0,0 +1,249 @@
++import { useState, type ReactNode } from 'react';
++import { ChevronLeft, X } from 'lucide-react';
++import { NumberInput } from '../ui/NumberInput';
++import { Switch } from '../ui/switch';
++import { Button } from '../ui/button';
++import { SettingRow } from './SettingRow';
++import { cn, toTitleCase } from '../../lib/utils';
++import { EmployeeCategory } from '../../types';
++import { EmployeeInfo, InfoBadges, Rate, RuleChange, RuleSelect } from './employeeShared';
++
++const CATEGORY_OPTIONS: { value: EmployeeCategory; label: string }[] = [
++  { value: 'support', label: 'Support' },
++  { value: 'official', label: 'Official' },
++  { value: 'exempt', label: 'Exempt' },
++];
++const RATE_OPTIONS: { value: Rate; label: string }[] = [
++  { value: 'fixed', label: 'Fixed' },
++  { value: 'dynamic', label: 'Dynamic' },
++];
++const CAP_OPTIONS = [
++  { value: 'capped', label: 'Capped' },
++  { value: 'exempt', label: 'Exempt' },
++];
++
++interface Props {
++  className?: string;
++  /** Everyone currently ticked in the list; non-empty puts the panel in bulk mode. */
++  selectedInfos: EmployeeInfo[];
++  /** The employee whose row was opened (single mode). */
++  active: EmployeeInfo | null;
++  /** How many employees share each designation (rule changes ripple to all of them). */
++  designationCounts: Record<string, number>;
++  onBack: () => void;
++  onPayChange: (erps: string[], value: number) => void;
++  onRulesChange: (designations: string[], change: RuleChange) => void;
++  onClearSelection: () => void;
++}
++
++export function EmployeeDetailPanel(props: Props) {
++  const { className, selectedInfos, active, onBack } = props;
++  const bulk = selectedInfos.length > 0;
++
++  return (
++    <div className={cn('flex flex-col min-h-0 min-w-0 bg-card', className)}>
++      <div className="lg:hidden shrink-0 h-10 flex items-center px-1.5 border-b border-border">
++        <button
++          type="button"
++          onClick={onBack}
++          className="flex items-center gap-1 h-8 pl-1 pr-2 rounded-[var(--radius-interactive)] text-[12px] font-medium hover:bg-muted"
++          aria-label="Back to employee list"
++        >
++          <ChevronLeft size={18} />
++          Employees
++        </button>
++      </div>
++
++      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
++        {bulk ? (
++          <BulkForm {...props} />
++        ) : active ? (
++          <SingleForm info={active} {...props} />
++        ) : (
++          <div className="h-full min-h-48 flex items-center justify-center text-center text-[11px] text-muted-foreground select-none">
++            Pick an employee to edit their pay,
++            <br />
++            or tick several to edit them together.
++          </div>
++        )}
++      </div>
++    </div>
++  );
++}
++
++function Card({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
++  return (
++    <section className="rounded-lg border border-border bg-muted/10 p-3 space-y-3">
++      <div>
++        <h4 className="text-[12px] font-bold text-foreground">{title}</h4>
++        {note && <p className="text-[11px] text-muted-foreground mt-0.5">{note}</p>}
++      </div>
++      {children}
++    </section>
++  );
++}
++
++function SingleForm({
++  info,
++  designationCounts,
++  onPayChange,
++  onRulesChange,
++}: { info: EmployeeInfo } & Props) {
++  const { emp, category, rate, capExempt, pay } = info;
++  const designation = emp.designation || '';
++  const isExempt = category === 'exempt';
++  const isFixed = rate === 'fixed';
++  const n = designationCounts[designation] || 1;
++
++  const payNote = isExempt
++    ? 'Not used — this designation is exempt from overtime.'
++    : isFixed
++      ? 'Not used — this designation is paid a fixed rate.'
++      : 'Used to derive the hourly and daily overtime rate.';
++
++  return (
++    <div className="space-y-4 max-w-xl">
++      <div>
++        <h3 className="text-[15px] font-bold text-foreground break-words">{toTitleCase(emp.name)}</h3>
++        <p className="text-[11px] text-muted-foreground mt-0.5 break-words">
++          <span className="font-mono">{emp.erp}</span> · {designation}
++        </p>
++        <div className="flex flex-wrap gap-1.5 mt-2">
++          <InfoBadges info={info} />
++        </div>
++      </div>
++
++      <Card title="Basic pay" note="Set per employee.">
++        <SettingRow title="Monthly basic pay" description={payNote}>
++          <NumberInput
++            value={pay}
++            onChange={(v) => onPayChange([emp.erp], v)}
++            suffix="PKR"
++            maxDigits={5}
++            className="w-32"
++            disabled={isFixed || isExempt}
++          />
++        </SettingRow>
++      </Card>
++
++      <Card
++        title="Designation rules"
++        note={`Applies to all ${n} employee${n === 1 ? '' : 's'} with the designation “${designation}”.`}
++      >
++        <RulesRows
++          category={category}
++          rate={isExempt ? null : rate}
++          cap={isExempt || !isFixed ? null : capExempt ? 'exempt' : 'capped'}
++          exempt={isExempt}
++          fixed={isFixed}
++          onChange={(c) => onRulesChange([designation], c)}
++        />
++      </Card>
++    </div>
++  );
++}
++
++function BulkForm({
++  selectedInfos,
++  designationCounts,
++  onPayChange,
++  onRulesChange,
++  onClearSelection,
++}: Props) {
++  const [bulkPay, setBulkPay] = useState(0);
++  const designations = Array.from(new Set(selectedInfos.map((i) => i.emp.designation || '')));
++  const affected = designations.reduce((sum, d) => sum + (designationCounts[d] || 0), 0);
++  const erps = selectedInfos.map((i) => i.emp.erp);
++
++  const same = <T,>(vals: T[]): T | null => (vals.length > 0 && vals.every((v) => v === vals[0]) ? vals[0] : null);
++  const category = same(selectedInfos.map((i) => i.category));
++  const ruled = selectedInfos.filter((i) => i.category !== 'exempt');
++  const rate = same(ruled.map((i) => i.rate));
++  const fixedOnes = ruled.filter((i) => i.rate === 'fixed');
++  const cap = same(fixedOnes.map((i) => (i.capExempt ? 'exempt' : 'capped')));
++
++  return (
++    <div className="space-y-4 max-w-xl">
++      <div className="flex items-start gap-2">
++        <div className="flex-1 min-w-0">
++          <h3 className="text-[15px] font-bold text-foreground">{selectedInfos.length} selected</h3>
++          <p className="text-[11px] text-muted-foreground mt-0.5">
++            Edit them all at once. Changes are kept when you press Save &amp; Apply.
++          </p>
++        </div>
++        <Button variant="outline" size="sm" className="h-7 px-2 text-[11px] gap-1" onClick={onClearSelection}>
++          <X size={12} /> Clear
++        </Button>
++      </div>
++
++      <Card title="Basic pay" note="People on the same pay? Set it once for everyone selected.">
++        <div className="flex flex-wrap items-center gap-2">
++          <NumberInput value={bulkPay} onChange={setBulkPay} suffix="PKR" maxDigits={5} className="w-32" />
++          <Button size="sm" className="h-8 px-3 text-[11px]" disabled={bulkPay <= 0} onClick={() => onPayChange(erps, bulkPay)}>
++            Apply to {selectedInfos.length}
++          </Button>
++        </div>
++      </Card>
++
++      <Card
++        title="Designation rules"
++        note={`Applies to ${designations.length} designation${designations.length === 1 ? '' : 's'} — ${affected} employee${affected === 1 ? '' : 's'} in total, including anyone not ticked.`}
++      >
++        <RulesRows
++          category={category}
++          rate={ruled.length === 0 ? null : rate}
++          cap={fixedOnes.length === 0 ? null : cap}
++          exempt={category === 'exempt'}
++          fixed={fixedOnes.length > 0}
++          onChange={(c) => onRulesChange(designations, c)}
++          showMixed
++        />
++      </Card>
++    </div>
++  );
++}
++
++function RulesRows({
++  category,
++  rate,
++  cap,
++  exempt,
++  fixed,
++  onChange,
++  showMixed,
++}: {
++  category: EmployeeCategory | null;
++  rate: Rate | null;
++  cap: string | null;
++  exempt: boolean;
++  fixed: boolean;
++  onChange: (c: RuleChange) => void;
++  showMixed?: boolean;
++}) {
++  const mixed = showMixed ? 'Mixed' : '—';
++  return (
++    <div className="space-y-4">
++      <SettingRow title="Category" description="Support, Official, or Exempt from overtime.">
++        <RuleSelect value={category} options={CATEGORY_OPTIONS} onChange={(v) => onChange({ category: v })} mixedLabel={mixed} />
++      </SettingRow>
++      <SettingRow
++        title="Rate type"
++        description={exempt ? 'Exempt designations have no overtime rate.' : 'Fixed uses the policy rate; Dynamic uses basic pay.'}
++      >
++        <RuleSelect value={rate} options={RATE_OPTIONS} onChange={(v) => onChange({ rate: v })} disabled={exempt} mixedLabel={mixed} />
++      </SettingRow>
++      <SettingRow
++        title="Monthly day cap"
++        description={fixed ? 'Exempt lets this designation go past the monthly day cap.' : 'Only available for fixed-rate designations.'}
++      >
++        <RuleSelect
++          value={cap as 'capped' | 'exempt' | null}
++          options={CAP_OPTIONS}
++          onChange={(v) => onChange({ capExempt: v === 'exempt' })}
++          disabled={!fixed || exempt}
++          mixedLabel={fixed ? mixed : '—'}
++        />
++      </SettingRow>
++    </div>
++  );
++}
+diff --git a/src/components/Settings/EmployeeListPanel.tsx b/src/components/Settings/EmployeeListPanel.tsx
+new file mode 100644
+index 0000000..6eaaa89
+--- /dev/null
++++ b/src/components/Settings/EmployeeListPanel.tsx
+@@ -0,0 +1,314 @@
++import { Search, Layers, ArrowUpDown, SlidersHorizontal, Check, ChevronLeft, X } from 'lucide-react';
++import { Input } from '../ui/input';
++import { Checkbox } from '../ui/checkbox';
++import { Button, buttonVariants } from '../ui/button';
++import {
++  DropdownMenu,
++  DropdownMenuCheckboxItem,
++  DropdownMenuContent,
++  DropdownMenuItem,
++  DropdownMenuLabel,
++  DropdownMenuSeparator,
++  DropdownMenuTrigger,
++} from '../ui/dropdown-menu';
++import { cn, toTitleCase, formatAmount } from '../../lib/utils';
++import { EmployeeCategory } from '../../types';
++import {
++  CATEGORY_LABEL,
++  EMPTY_FILTERS,
++  EmployeeInfo,
++  Filters,
++  GroupBy,
++  InfoBadges,
++  InfoGroup,
++  Rate,
++  SortBy,
++  filterCount,
++} from './employeeShared';
++
++interface EmployeeListPanelProps {
++  className?: string;
++  totalCount: number;
++  groups: InfoGroup[];
++  visibleCount: number;
++  search: string;
++  onSearchChange: (v: string) => void;
++  groupBy: GroupBy;
++  onGroupByChange: (v: GroupBy) => void;
++  sortBy: SortBy;
++  sortDesc: boolean;
++  onSortChange: (by: SortBy, desc: boolean) => void;
++  filters: Filters;
++  onFiltersChange: (f: Filters) => void;
++  selected: Set<string>;
++  activeErp: string | null;
++  allVisibleSelected: boolean;
++  onToggleAll: () => void;
++  onToggleOne: (erp: string) => void;
++  onToggleGroup: (items: EmployeeInfo[]) => void;
++  onOpen: (erp: string) => void;
++  onClearSelection: () => void;
++  onEditSelected: () => void;
++}
++
++const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
++  { value: 'none', label: 'No grouping' },
++  { value: 'designation', label: 'Designation' },
++  { value: 'pay', label: 'Basic pay' },
++  { value: 'category', label: 'Category' },
++];
++
++const SORT_OPTIONS: { value: SortBy; label: string }[] = [
++  { value: 'name', label: 'Name' },
++  { value: 'erp', label: 'ERP' },
++  { value: 'designation', label: 'Designation' },
++  { value: 'pay', label: 'Basic pay' },
++];
++
++const toolbarBtn = (active: boolean) =>
++  cn(
++    buttonVariants({ variant: 'outline', size: 'sm' }),
++    'h-8 gap-1.5 px-2.5 text-[11px] cursor-pointer',
++    active && 'text-primary border-primary',
++  );
++
++function toggle<T>(list: T[], item: T): T[] {
++  return list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
++}
++
++export function EmployeeListPanel(props: EmployeeListPanelProps) {
++  const {
++    className, totalCount, groups, visibleCount, search, onSearchChange, groupBy, onGroupByChange,
++    sortBy, sortDesc, onSortChange, filters, onFiltersChange, selected, activeErp,
++    allVisibleSelected, onToggleAll, onToggleOne, onToggleGroup, onOpen, onClearSelection, onEditSelected,
++  } = props;
++
++  const nFilters = filterCount(filters);
++  const hasActiveView = nFilters > 0 || search.trim() !== '' || groupBy !== 'none';
++
++  return (
++    <div className={cn('flex flex-col min-h-0 bg-card', className)}>
++      {/* Controls */}
++      <div className="shrink-0 p-2.5 space-y-2 border-b border-border">
++        <div className="relative">
++          <Search
++            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
++            size={13}
++          />
++          <Input
++            type="text"
++            placeholder="Search name, ERP, or designation..."
++            value={search}
++            onChange={(e) => onSearchChange(e.target.value)}
++            className="pl-8 text-[12px] h-8 w-full"
++          />
++        </div>
++
++        <div className="flex items-center gap-1.5 flex-wrap">
++          {/* Group */}
++          <DropdownMenu>
++            <DropdownMenuTrigger className={toolbarBtn(groupBy !== 'none')}>
++              <Layers size={13} />
++              <span>Group</span>
++            </DropdownMenuTrigger>
++            <DropdownMenuContent align="start" className="w-44">
++              <DropdownMenuLabel>Group by</DropdownMenuLabel>
++              <DropdownMenuSeparator />
++              {GROUP_OPTIONS.map((o) => (
++                <DropdownMenuItem key={o.value} onClick={() => onGroupByChange(o.value)}>
++                  {o.label}
++                  {groupBy === o.value && <Check size={14} className="ml-auto text-primary" />}
++                </DropdownMenuItem>
++              ))}
++            </DropdownMenuContent>
++          </DropdownMenu>
++
++          {/* Sort */}
++          <DropdownMenu>
++            <DropdownMenuTrigger className={toolbarBtn(sortBy !== 'name' || sortDesc)}>
++              <ArrowUpDown size={13} />
++              <span>Sort</span>
++            </DropdownMenuTrigger>
++            <DropdownMenuContent align="start" className="w-44">
++              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
++              <DropdownMenuSeparator />
++              {SORT_OPTIONS.map((o) => (
++                <DropdownMenuItem key={o.value} onClick={() => onSortChange(o.value, sortDesc)}>
++                  {o.label}
++                  {sortBy === o.value && <Check size={14} className="ml-auto text-primary" />}
++                </DropdownMenuItem>
++              ))}
++              <DropdownMenuSeparator />
++              <DropdownMenuItem onClick={() => onSortChange(sortBy, false)}>
++                Ascending
++                {!sortDesc && <Check size={14} className="ml-auto text-primary" />}
++              </DropdownMenuItem>
++              <DropdownMenuItem onClick={() => onSortChange(sortBy, true)}>
++                Descending
++                {sortDesc && <Check size={14} className="ml-auto text-primary" />}
++              </DropdownMenuItem>
++            </DropdownMenuContent>
++          </DropdownMenu>
++
++          {/* Filter */}
++          <DropdownMenu>
++            <DropdownMenuTrigger className={toolbarBtn(nFilters > 0)}>
++              <SlidersHorizontal size={13} />
++              <span>Filter</span>
++              {nFilters > 0 && (
++                <span className="min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] leading-4 text-center">
++                  {nFilters}
++                </span>
++              )}
++            </DropdownMenuTrigger>
++            <DropdownMenuContent align="start" className="w-48">
++              <DropdownMenuLabel>Category</DropdownMenuLabel>
++              {(['support', 'official', 'exempt'] as EmployeeCategory[]).map((c) => (
++                <DropdownMenuCheckboxItem
++                  key={c}
++                  checked={filters.categories.includes(c)}
++                  onCheckedChange={() => onFiltersChange({ ...filters, categories: toggle(filters.categories, c) })}
++                >
++                  {CATEGORY_LABEL[c]}
++                </DropdownMenuCheckboxItem>
++              ))}
++              <DropdownMenuSeparator />
++              <DropdownMenuLabel>Rate type</DropdownMenuLabel>
++              {(['fixed', 'dynamic'] as Rate[]).map((r) => (
++                <DropdownMenuCheckboxItem
++                  key={r}
++                  checked={filters.rates.includes(r)}
++                  onCheckedChange={() => onFiltersChange({ ...filters, rates: toggle(filters.rates, r) })}
++                >
++                  {r === 'fixed' ? 'Fixed' : 'Dynamic'}
++                </DropdownMenuCheckboxItem>
++              ))}
++              <DropdownMenuSeparator />
++              <DropdownMenuCheckboxItem
++                checked={filters.missingPay}
++                onCheckedChange={(v) => onFiltersChange({ ...filters, missingPay: !!v })}
++              >
++                Missing basic pay
++              </DropdownMenuCheckboxItem>
++            </DropdownMenuContent>
++          </DropdownMenu>
++
++          {hasActiveView && (
++            <button
++              type="button"
++              onClick={() => {
++                onFiltersChange(EMPTY_FILTERS);
++                onSearchChange('');
++                onGroupByChange('none');
++              }}
++              className="ml-auto text-[11px] text-muted-foreground hover:text-foreground px-1 py-1.5"
++            >
++              Reset
++            </button>
++          )}
++        </div>
++      </div>
++
++      {/* Select-all strip */}
++      <div className="shrink-0 flex items-center gap-2.5 px-3 py-1.5 border-b border-border bg-muted/30 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
++        <Checkbox size="sm" checked={allVisibleSelected} onChange={onToggleAll} title="Select all shown" />
++        <span>
++          {visibleCount === totalCount ? `${totalCount} employees` : `${visibleCount} of ${totalCount} employees`}
++        </span>
++      </div>
++
++      {/* List — scrolls on its own */}
++      <div className="flex-1 min-h-0 overflow-y-auto">
++        {visibleCount === 0 ? (
++          <div className="m-3 text-center py-10 text-muted-foreground text-[11px] border-2 border-dashed border-border rounded-lg select-none">
++            No employees match your search or filters
++          </div>
++        ) : (
++          groups.map((g) => {
++            const groupSelected = g.items.every((i) => selected.has(i.emp.erp));
++            return (
++              <section key={g.key}>
++                {groupBy !== 'none' && (
++                  <div className="sticky top-0 z-10 flex items-center gap-2.5 px-3 py-1.5 bg-muted border-b border-border">
++                    <Checkbox
++                      size="sm"
++                      checked={groupSelected}
++                      onChange={() => onToggleGroup(g.items)}
++                      title={`Select everyone in ${g.label}`}
++                    />
++                    <span className="flex-1 min-w-0 truncate text-[10px] font-semibold uppercase tracking-wide text-foreground">
++                      {g.label}
++                    </span>
++                    <span className="shrink-0 text-[10px] text-muted-foreground">{g.items.length}</span>
++                  </div>
++                )}
++                {g.items.map((info) => {
++                  const { emp } = info;
++                  const isSelected = selected.has(emp.erp);
++                  const isActive = activeErp === emp.erp && selected.size === 0;
++                  const usesPay = info.category !== 'exempt' && info.rate === 'dynamic';
++                  return (
++                    <div
++                      key={emp.erp}
++                      className={cn(
++                        'flex items-center gap-2.5 pl-3 pr-2 border-b border-border/60 transition-colors',
++                        isSelected ? 'bg-primary/5' : isActive ? 'bg-[var(--color-neutral-active)]' : 'hover:bg-muted/30',
++                        info.category === 'exempt' && 'opacity-70',
++                      )}
++                    >
++                      <Checkbox size="sm" checked={isSelected} onChange={() => onToggleOne(emp.erp)} />
++                      <button
++                        type="button"
++                        onClick={() => onOpen(emp.erp)}
++                        className="flex-1 min-w-0 text-left py-2.5 outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
++                      >
++                        <div className="flex items-center gap-1.5 flex-wrap">
++                          <span className="text-[12px] font-semibold text-foreground">{toTitleCase(emp.name)}</span>
++                          <InfoBadges info={info} />
++                        </div>
++                        <div className="text-[10px] font-mono text-muted-foreground truncate mt-0.5">
++                          {emp.erp}
++                          <span className="mx-1 opacity-50">·</span>
++                          <span className="font-sans">{emp.designation}</span>
++                        </div>
++                      </button>
++                      {usesPay && (
++                        <span
++                          className={cn(
++                            'shrink-0 text-[11px] font-mono tabular-nums',
++                            info.pay > 0 ? 'text-foreground' : 'text-[var(--color-warning)]',
++                          )}
++                        >
++                          {info.pay > 0 ? formatAmount(info.pay) : 'No pay'}
++                        </span>
++                      )}
++                    </div>
++                  );
++                })}
++              </section>
++            );
++          })
++        )}
++      </div>
++
++      {/* Selection bar */}
++      {selected.size > 0 && (
++        <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-t border-primary/20 bg-[var(--color-neutral-active)]">
++          <span className="text-[11px] font-semibold text-[var(--color-accent)]">{selected.size} selected</span>
++          <button
++            type="button"
++            onClick={onClearSelection}
++            className="p-1 rounded text-muted-foreground hover:text-foreground"
++            title="Clear selection"
++          >
++            <X size={13} />
++          </button>
++          <Button size="sm" className="ml-auto h-7 px-3 text-[11px] lg:hidden" onClick={onEditSelected}>
++            Edit
++            <ChevronLeft size={12} className="rotate-180" />
++          </Button>
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/src/components/Settings/EmployeesTab.tsx b/src/components/Settings/EmployeesTab.tsx
+index 48a577c..51b9d6a 100644
+--- a/src/components/Settings/EmployeesTab.tsx
++++ b/src/components/Settings/EmployeesTab.tsx
+@@ -1,20 +1,20 @@
+-import { useState, useMemo, Fragment } from 'react';
+-import { Search, Layers, X, ChevronDown } from 'lucide-react';
++import { useMemo, useState } from 'react';
+ import { EmployeeRow, EmployeeCategory } from '../../types';
+-import { NumberInput } from '../ui/NumberInput';
+-import { Input } from '../ui/input';
+-import { Checkbox } from '../ui/checkbox';
+-import { Button, buttonVariants } from '../ui/button';
+-import {
+-  DropdownMenu,
+-  DropdownMenuContent,
+-  DropdownMenuItem,
+-  DropdownMenuLabel,
+-  DropdownMenuSeparator,
+-  DropdownMenuTrigger,
+-} from '../ui/dropdown-menu';
+ import { resolveRateType, resolveCapExempt } from '../../parser/parserUtils';
+-import { toTitleCase, cn } from '../../lib/utils';
++import { EmployeeListPanel } from './EmployeeListPanel';
++import { EmployeeDetailPanel } from './EmployeeDetailPanel';
++import {
++  CATEGORY_LABEL,
++  EMPTY_FILTERS,
++  EmployeeInfo,
++  Filters,
++  GroupBy,
++  InfoGroup,
++  Rate,
++  RuleChange,
++  SortBy,
++} from './employeeShared';
++import { cn, formatAmount } from '../../lib/utils';
+ 
+ interface EmployeesTabProps {
+   basicPay: Record<string, number>;
+@@ -30,27 +30,10 @@ interface EmployeesTabProps {
+   ) => void;
+ }
+ 
+-const BADGE_STYLES = {
+-  Support: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+-  Official: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20',
+-  Exempt: 'bg-muted text-muted-foreground border-border',
+-  Fixed: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+-  Dynamic: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+-  Capped: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+-} as const;
++const CATEGORY_ORDER: EmployeeCategory[] = ['support', 'official', 'exempt'];
+ 
+-function Badge({ label }: { label: keyof typeof BADGE_STYLES }) {
+-  return (
+-    <span
+-      className={cn(
+-        'inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-semibold leading-none whitespace-nowrap',
+-        BADGE_STYLES[label],
+-      )}
+-    >
+-      {label}
+-    </span>
+-  );
+-}
++const defaultCategory = (designation: string): EmployeeCategory =>
++  designation.toLowerCase().includes('officer') ? 'exempt' : 'official';
+ 
+ export function EmployeesTab({
+   basicPay,
+@@ -62,397 +45,190 @@ export function EmployeesTab({
+   onDesignationChange,
+ }: EmployeesTabProps) {
+   const [search, setSearch] = useState('');
+-  const [groupByDesignation, setGroupByDesignation] = useState(false);
++  const [groupBy, setGroupBy] = useState<GroupBy>('none');
++  const [sortBy, setSortBy] = useState<SortBy>('name');
++  const [sortDesc, setSortDesc] = useState(false);
++  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+   const [selected, setSelected] = useState<Set<string>>(new Set());
+-  const [bulkPay, setBulkPay] = useState(0);
++  const [activeErp, setActiveErp] = useState<string | null>(null);
++  // Below `lg` the list and detail are separate screens.
++  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
++
++  // Everything derived about each employee, computed once per change.
++  const infos = useMemo<EmployeeInfo[]>(
++    () =>
++      employees.map((emp) => {
++        const designation = emp.designation || '';
++        const category = designationCategories[designation] ?? defaultCategory(designation);
++        const rate = resolveRateType(designation, { designationRateTypes });
++        return {
++          emp,
++          category,
++          rate,
++          capExempt: resolveCapExempt(designation, rate, { designationCapExempt }),
++          pay: basicPay[emp.erp] !== undefined ? basicPay[emp.erp] : emp.basicPay || 0,
++        };
++      }),
++    [employees, basicPay, designationCategories, designationRateTypes, designationCapExempt],
++  );
+ 
+-  const effectiveCategory = (designation: string): EmployeeCategory =>
+-    designationCategories[designation] ??
+-    (designation.toLowerCase().includes('officer') ? 'exempt' : 'official');
++  const designationCounts = useMemo(() => {
++    const m: Record<string, number> = {};
++    employees.forEach((e) => {
++      const d = e.designation || '';
++      m[d] = (m[d] || 0) + 1;
++    });
++    return m;
++  }, [employees]);
+ 
+-  const effectiveRate = (designation: string): 'fixed' | 'dynamic' =>
+-    resolveRateType(designation, { designationRateTypes });
++  const groups = useMemo<InfoGroup[]>(() => {
++    const q = search.trim().toLowerCase();
++    let list = infos.filter((i) => {
++      if (q && !(i.emp.name.toLowerCase().includes(q) || i.emp.erp.includes(q) || (i.emp.designation || '').toLowerCase().includes(q))) return false;
++      if (filters.categories.length && !filters.categories.includes(i.category)) return false;
++      if (filters.rates.length && (i.category === 'exempt' || !filters.rates.includes(i.rate))) return false;
++      if (filters.missingPay && !(i.category !== 'exempt' && i.rate === 'dynamic' && i.pay === 0)) return false;
++      return true;
++    });
+ 
+-  const effectiveCap = (designation: string, rate: 'fixed' | 'dynamic'): boolean =>
+-    resolveCapExempt(designation, rate, { designationCapExempt });
++    const byName = (a: EmployeeInfo, b: EmployeeInfo) => (a.emp.name || '').localeCompare(b.emp.name || '');
++    const dir = sortDesc ? -1 : 1;
++    list = [...list].sort((a, b) => {
++      let c = 0;
++      if (sortBy === 'erp') c = a.emp.erp.localeCompare(b.emp.erp, undefined, { numeric: true });
++      else if (sortBy === 'designation') c = (a.emp.designation || '').localeCompare(b.emp.designation || '');
++      else if (sortBy === 'pay') c = a.pay - b.pay;
++      else c = byName(a, b);
++      return c !== 0 ? c * dir : byName(a, b);
++    });
+ 
+-  const displayEmployees = useMemo(() => {
+-    let list = [...employees];
+-    if (search.trim()) {
+-      const q = search.toLowerCase();
+-      list = list.filter(
+-        (emp) =>
+-          emp.name.toLowerCase().includes(q) ||
+-          emp.erp.includes(q) ||
+-          (emp.designation || '').toLowerCase().includes(q),
+-      );
+-    }
+-    list.sort((a, b) => {
+-      if (groupByDesignation) {
+-        const dc = (a.designation || '').localeCompare(b.designation || '');
+-        if (dc !== 0) return dc;
+-      }
+-      return (a.name || '').localeCompare(b.name || '');
++    if (groupBy === 'none') return list.length ? [{ key: 'all', label: '', items: list }] : [];
++
++    const map = new Map<string, InfoGroup>();
++    list.forEach((i) => {
++      const key =
++        groupBy === 'designation' ? i.emp.designation || '—' : groupBy === 'pay' ? String(i.pay) : i.category;
++      const label =
++        groupBy === 'designation'
++          ? i.emp.designation || 'No designation'
++          : groupBy === 'pay'
++            ? i.pay > 0 ? `PKR ${formatAmount(i.pay)}` : 'No basic pay'
++            : CATEGORY_LABEL[i.category];
++      if (!map.has(key)) map.set(key, { key, label, items: [] });
++      map.get(key)!.items.push(i);
+     });
+-    return list;
+-  }, [employees, search, groupByDesignation]);
++    const out = Array.from(map.values());
++    if (groupBy === 'designation') out.sort((a, b) => a.label.localeCompare(b.label));
++    else if (groupBy === 'pay') out.sort((a, b) => (Number(a.key) === 0 ? 1 : Number(b.key) === 0 ? -1 : Number(b.key) - Number(a.key)));
++    else out.sort((a, b) => CATEGORY_ORDER.indexOf(a.key as EmployeeCategory) - CATEGORY_ORDER.indexOf(b.key as EmployeeCategory));
++    return out;
++  }, [infos, search, filters, sortBy, sortDesc, groupBy]);
+ 
+-  const visibleErps = useMemo(() => displayEmployees.map((e) => e.erp), [displayEmployees]);
+-  const allVisibleSelected =
+-    visibleErps.length > 0 && visibleErps.every((erp) => selected.has(erp));
++  const visible = useMemo(() => groups.flatMap((g) => g.items), [groups]);
++  const allVisibleSelected = visible.length > 0 && visible.every((i) => selected.has(i.emp.erp));
+ 
+-  const toggleSelectAll = () => {
++  const setMany = (items: EmployeeInfo[], on: boolean) =>
+     setSelected((prev) => {
+       const next = new Set(prev);
+-      if (allVisibleSelected) visibleErps.forEach((erp) => next.delete(erp));
+-      else visibleErps.forEach((erp) => next.add(erp));
++      items.forEach((i) => (on ? next.add(i.emp.erp) : next.delete(i.emp.erp)));
+       return next;
+     });
+-  };
+ 
+-  const toggleSelect = (erp: string) => {
++  const toggleOne = (erp: string) =>
+     setSelected((prev) => {
+       const next = new Set(prev);
+-      next.has(erp) ? next.delete(erp) : next.add(erp);
++      if (next.has(erp)) next.delete(erp);
++      else next.add(erp);
+       return next;
+     });
+-  };
+-
+-  const selectedDesignations = useMemo(() => {
+-    const s = new Set<string>();
+-    employees.forEach((e) => {
+-      if (selected.has(e.erp) && e.designation) s.add(e.designation);
+-    });
+-    return Array.from(s);
+-  }, [employees, selected]);
+ 
+-  const updateBasicPay = (erp: string, value: number) => {
+-    onBasicPayChange({ ...basicPay, [erp]: value });
++  const clearSelection = () => {
++    setSelected(new Set());
++    setMobileView('list');
+   };
+ 
+-  const bulkSetPay = () => {
++  const selectedInfos = useMemo(() => infos.filter((i) => selected.has(i.emp.erp)), [infos, selected]);
++  const active = useMemo(() => infos.find((i) => i.emp.erp === activeErp) ?? null, [infos, activeErp]);
++
++  const handlePay = (erps: string[], value: number) => {
+     const next = { ...basicPay };
+-    selected.forEach((erp) => {
+-      next[erp] = bulkPay;
+-    });
++    erps.forEach((erp) => (next[erp] = value));
+     onBasicPayChange(next);
+   };
+ 
+-  const bulkSetCategory = (c: EmployeeCategory) => {
++  // Same semantics as the old bulk bar, keyed by designation.
++  const handleRules = (designations: string[], change: RuleChange) => {
+     const nextCat = { ...designationCategories };
+     const nextRate = { ...designationRateTypes };
+     const nextCap = { ...designationCapExempt };
+-    selectedDesignations.forEach((d) => {
+-      nextCat[d] = c;
+-      if (c === 'exempt') {
+-        delete nextRate[d];
+-        delete nextCap[d];
++    designations.forEach((d) => {
++      if (change.category) {
++        nextCat[d] = change.category;
++        if (change.category === 'exempt') {
++          delete nextRate[d];
++          delete nextCap[d];
++        }
++      }
++      const exempt = (nextCat[d] ?? defaultCategory(d)) === 'exempt';
++      if (change.rate && !exempt) {
++        nextRate[d] = change.rate;
++        if (change.rate !== 'fixed') delete nextCap[d];
++      }
++      if (change.capExempt !== undefined && !exempt) {
++        const rate: Rate = resolveRateType(d, { designationRateTypes: nextRate });
++        if (rate === 'fixed') nextCap[d] = change.capExempt;
+       }
+     });
+     onDesignationChange(nextCat, nextRate, nextCap);
+   };
+ 
+-  const bulkSetRate = (rt: 'fixed' | 'dynamic') => {
+-    const nextRate = { ...designationRateTypes };
+-    const nextCap = { ...designationCapExempt };
+-    selectedDesignations.forEach((d) => {
+-      if (effectiveCategory(d) === 'exempt') return;
+-      nextRate[d] = rt;
+-      if (rt !== 'fixed') delete nextCap[d];
+-    });
+-    onDesignationChange(designationCategories, nextRate, nextCap);
+-  };
+-
+-  const bulkSetCap = (exempt: boolean) => {
+-    const nextCap = { ...designationCapExempt };
+-    selectedDesignations.forEach((d) => {
+-      if (effectiveCategory(d) === 'exempt') return;
+-      if (effectiveRate(d) !== 'fixed') return;
+-      nextCap[d] = exempt;
+-    });
+-    onDesignationChange(designationCategories, designationRateTypes, nextCap);
+-  };
+-
+-  const designationCounts = useMemo(() => {
+-    const m: Record<string, number> = {};
+-    employees.forEach((e) => {
+-      if (e.designation) m[e.designation] = (m[e.designation] || 0) + 1;
+-    });
+-    return m;
+-  }, [employees]);
+-
+-  const renderBadges = (emp: EmployeeRow) => {
+-    const cat = effectiveCategory(emp.designation || '');
+-    if (cat === 'exempt') return [<Badge key="cat" label="Exempt" />];
+-
+-    const rate = effectiveRate(emp.designation || '');
+-    const badges: React.ReactNode[] = [
+-      <Badge key="rate" label={rate === 'fixed' ? 'Fixed' : 'Dynamic'} />,
+-    ];
+-    if (rate === 'fixed') {
+-      const capExempt = effectiveCap(emp.designation || '', rate);
+-      if (!capExempt) badges.push(<Badge key="cap" label="Capped" />);
+-    }
+-    return badges;
+-  };
+-
+-  return (
+-    <div className="space-y-3 w-full min-w-0">
+-      {/* Header */}
+-      <div>
++  if (employees.length === 0) {
++    return (
++      <div className="absolute inset-0 p-5">
+         <h3 className="text-[12px] font-bold text-foreground">Employees &amp; Pay</h3>
+-        <p className="text-[11px] text-muted-foreground mt-0.5">
+-          Set basic pay per employee, and manage designation rules via bulk actions.
+-        </p>
+-      </div>
+-
+-      {/* Toolbar — fixed widths to prevent modal reflow */}
+-      <div className="flex items-center gap-2 w-full min-w-0">
+-        <div className="relative flex-1 min-w-0 max-w-full">
+-          <Search
+-            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+-            size={13}
+-          />
+-          <Input
+-            type="text"
+-            placeholder="Search name, ERP, or designation..."
+-            value={search}
+-            onChange={(e) => setSearch(e.target.value)}
+-            className="pl-8 text-[12px] h-8 w-full"
+-          />
++        <div className="mt-3 text-center py-10 text-muted-foreground text-[11px] border-2 border-dashed border-border rounded-lg select-none">
++          Upload a file to see the employee list
+         </div>
+-        <Button
+-          type="button"
+-          variant={groupByDesignation ? 'default' : 'outline'}
+-          size="sm"
+-          onClick={() => setGroupByDesignation((v) => !v)}
+-          className="text-[11px] h-8 px-2.5 gap-1.5 shrink-0"
+-          title="Group by designation"
+-        >
+-          <Layers size={13} />
+-          <span className="hidden sm:inline">Group</span>
+-        </Button>
+       </div>
++    );
++  }
+ 
+-      {/* Bulk action bar */}
+-      {selected.size > 0 && (
+-        <div className="rounded-lg border border-primary/20 bg-[var(--color-neutral-active)] p-3 space-y-3">
+-          <div className="flex items-center justify-between">
+-            <span className="text-[11px] font-semibold text-[var(--color-accent)]">
+-              {selected.size} selected
+-              {selectedDesignations.length > 0 &&
+-                ` · ${selectedDesignations.length} designation${
+-                  selectedDesignations.length === 1 ? '' : 's'
+-                }`}
+-            </span>
+-            <button
+-              type="button"
+-              onClick={() => setSelected(new Set())}
+-              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-card/50"
+-              title="Clear selection"
+-            >
+-              <X size={12} />
+-            </button>
+-          </div>
+-
+-          {/* Basic pay */}
+-          <div className="flex flex-wrap items-center gap-2">
+-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">
+-              Basic Pay
+-            </span>
+-            <NumberInput
+-              value={bulkPay}
+-              onChange={setBulkPay}
+-              suffix="PKR"
+-              maxDigits={5}
+-              className="w-32"
+-            />
+-            <Button
+-              type="button"
+-              size="sm"
+-              onClick={bulkSetPay}
+-              className="text-[11px] h-7 px-2.5"
+-            >
+-              Apply to {selected.size}
+-            </Button>
+-          </div>
+-
+-          {/* Designation rules */}
+-          <div className="flex flex-wrap items-center gap-2">
+-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground min-w-[70px]">
+-              Rules
+-            </span>
+-
+-            {/* Category dropdown */}
+-            <DropdownMenu>
+-              <DropdownMenuTrigger
+-                className={cn(
+-                  buttonVariants({ variant: 'outline', size: 'sm' }),
+-                  'gap-1.5 text-[11px] h-7 px-2.5',
+-                )}
+-              >
+-                <span>Category</span>
+-                <ChevronDown size={12} />
+-              </DropdownMenuTrigger>
+-              <DropdownMenuContent align="start" className="w-36">
+-                <DropdownMenuLabel>Set category</DropdownMenuLabel>
+-                <DropdownMenuSeparator />
+-                <DropdownMenuItem onClick={() => bulkSetCategory('support')}>
+-                  Support
+-                </DropdownMenuItem>
+-                <DropdownMenuItem onClick={() => bulkSetCategory('official')}>
+-                  Official
+-                </DropdownMenuItem>
+-                <DropdownMenuItem onClick={() => bulkSetCategory('exempt')}>
+-                  Exempt
+-                </DropdownMenuItem>
+-              </DropdownMenuContent>
+-            </DropdownMenu>
+-
+-            {/* Rate dropdown */}
+-            <DropdownMenu>
+-              <DropdownMenuTrigger
+-                className={cn(
+-                  buttonVariants({ variant: 'outline', size: 'sm' }),
+-                  'gap-1.5 text-[11px] h-7 px-2.5',
+-                )}
+-              >
+-                <span>Rate</span>
+-                <ChevronDown size={12} />
+-              </DropdownMenuTrigger>
+-              <DropdownMenuContent align="start" className="w-36">
+-                <DropdownMenuLabel>Set rate type</DropdownMenuLabel>
+-                <DropdownMenuSeparator />
+-                <DropdownMenuItem onClick={() => bulkSetRate('fixed')}>Fixed</DropdownMenuItem>
+-                <DropdownMenuItem onClick={() => bulkSetRate('dynamic')}>Dynamic</DropdownMenuItem>
+-              </DropdownMenuContent>
+-            </DropdownMenu>
+-
+-            {/* Cap checkbox */}
+-            <label className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-card cursor-pointer select-none">
+-              <Checkbox
+-                size="sm"
+-                checked={false}
+-                onChange={(e) => bulkSetCap(e.target.checked)}
+-              />
+-              <span className="text-[11px] font-medium whitespace-nowrap">
+-                Exempt from cap
+-              </span>
+-            </label>
+-          </div>
+-        </div>
+-      )}
+-
+-      {/* Empty state */}
+-      {displayEmployees.length === 0 ? (
+-        <div className="text-center py-10 text-muted-foreground text-[11px] border-2 border-dashed border-border rounded-lg select-none">
+-          {employees.length === 0
+-            ? 'Upload a file to see the employee list'
+-            : 'No employees match your search'}
+-        </div>
+-      ) : (
+-        <>
+-          {/* Desktop header */}
+-          <div className="hidden md:grid grid-cols-[auto_1fr_auto] gap-3 px-2 py-1.5 border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted-foreground items-center">
+-            <Checkbox
+-              size="sm"
+-              checked={allVisibleSelected}
+-              onChange={toggleSelectAll}
+-              title="Select all"
+-            />
+-            <div>Employee</div>
+-            <div className="text-right pr-1">Basic Pay</div>
+-          </div>
+-
+-          <div className="space-y-2 md:space-y-1">
+-            {displayEmployees.map((emp, idx) => {
+-              const prev = displayEmployees[idx - 1];
+-              const showGroupHeader =
+-                groupByDesignation && (!prev || prev.designation !== emp.designation);
+-
+-              const isSelected = selected.has(emp.erp);
+-              const cat = effectiveCategory(emp.designation || '');
+-              const isExempt = cat === 'exempt';
+-              const rate = effectiveRate(emp.designation || '');
+-              const isFixed = rate === 'fixed';
+-              const currentVal =
+-                basicPay[emp.erp] !== undefined ? basicPay[emp.erp] : emp.basicPay || 0;
+-              const badges = renderBadges(emp);
+-
+-              // Input visibility rules:
+-              // - Exempt → never show
+-              // - Fixed  → mobile: hide, desktop: show disabled
+-              // - Dynamic → show everywhere
+-              const inputWrapperClass = cn(
+-                'shrink-0',
+-                isExempt && 'hidden',
+-                isFixed && !isExempt && 'hidden md:block',
+-              );
+-
+-              return (
+-                <Fragment key={emp.erp}>
+-                  {showGroupHeader && (
+-                    <div className="flex items-center gap-2 pt-3 pb-1 first:pt-0">
+-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+-                        {emp.designation}
+-                      </span>
+-                      <span className="h-px flex-1 bg-border" />
+-                      <span className="text-[10px] text-muted-foreground">
+-                        {designationCounts[emp.designation] || 0}{' '}
+-                        {(designationCounts[emp.designation] || 0) === 1 ? 'person' : 'people'}
+-                      </span>
+-                    </div>
+-                  )}
+-
+-                  <div
+-                    className={cn(
+-                      'rounded-lg border transition-colors p-2.5',
+-                      'flex items-center gap-3',
+-                      isSelected
+-                        ? 'border-primary/40 bg-primary/5'
+-                        : 'border-border bg-muted/10 hover:bg-muted/20',
+-                      isExempt && 'opacity-60',
+-                    )}
+-                  >
+-                    <Checkbox
+-                      size="sm"
+-                      checked={isSelected}
+-                      onChange={() => toggleSelect(emp.erp)}
+-                    />
+-
+-                    {/* Info column: row1 = name + badges, row2 = erp · designation */}
+-                    <div className="flex-1 min-w-0">
+-                      <div className="flex items-center gap-2 flex-wrap">
+-                        <span className="text-[13px] md:text-[12px] font-semibold text-foreground truncate">
+-                          {toTitleCase(emp.name)}
+-                        </span>
+-                        {badges}
+-                      </div>
+-                      <div className="text-[10px] font-mono text-muted-foreground truncate mt-0.5">
+-                        {emp.erp}
+-                        <span className="mx-1 opacity-50">·</span>
+-                        <span className="font-sans not-italic">{emp.designation}</span>
+-                      </div>
+-                    </div>
+-
+-                    {/* Input column */}
+-                    <div className={inputWrapperClass}>
+-                      <NumberInput
+-                        value={currentVal}
+-                        onChange={(v) => updateBasicPay(emp.erp, v)}
+-                        suffix="PKR"
+-                        maxDigits={5}
+-                        className="w-28 md:w-28"
+-                        disabled={isFixed || isExempt}
+-                      />
+-                    </div>
+-                  </div>
+-                </Fragment>
+-              );
+-            })}
+-          </div>
+-        </>
+-      )}
++  return (
++    <div className="absolute inset-0 flex">
++      <EmployeeListPanel
++        className={cn('w-full lg:w-[340px] lg:shrink-0 lg:border-r lg:border-border', mobileView === 'detail' ? 'hidden lg:flex' : 'flex')}
++        totalCount={employees.length}
++        visibleCount={visible.length}
++        groups={groups}
++        search={search}
++        onSearchChange={setSearch}
++        groupBy={groupBy}
++        onGroupByChange={setGroupBy}
++        sortBy={sortBy}
++        sortDesc={sortDesc}
++        onSortChange={(by, desc) => { setSortBy(by); setSortDesc(desc); }}
++        filters={filters}
++        onFiltersChange={setFilters}
++        selected={selected}
++        activeErp={activeErp}
++        allVisibleSelected={allVisibleSelected}
++        onToggleAll={() => setMany(visible, !allVisibleSelected)}
++        onToggleOne={toggleOne}
++        onToggleGroup={(items) => setMany(items, !items.every((i) => selected.has(i.emp.erp)))}
++        onOpen={(erp) => { setActiveErp(erp); setMobileView('detail'); }}
++        onClearSelection={clearSelection}
++        onEditSelected={() => setMobileView('detail')}
++      />
++      <EmployeeDetailPanel
++        className={cn('flex-1', mobileView === 'list' ? 'hidden lg:flex' : 'flex')}
++        selectedInfos={selectedInfos}
++        active={active}
++        designationCounts={designationCounts}
++        onBack={() => setMobileView('list')}
++        onPayChange={handlePay}
++        onRulesChange={handleRules}
++        onClearSelection={clearSelection}
++      />
+     </div>
+   );
+-}
+\ No newline at end of file
++}
+diff --git a/src/components/Settings/HolidaysTab.tsx b/src/components/Settings/HolidaysTab.tsx
+index 47c4c22..679bc7c 100644
+--- a/src/components/Settings/HolidaysTab.tsx
++++ b/src/components/Settings/HolidaysTab.tsx
+@@ -9,31 +9,41 @@ interface HolidaysTabProps {
+   onChange: (holidays: Holiday[]) => void;
+ }
+ 
++const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
++
+ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
+-  const calendarDates = useMemo(() => {
++  // One calendar per month present in the file (files can span e.g. Jan–Feb).
++  const months = useMemo(() => {
+     const validDates = dates.map((d) => flexibleParseDate(d)).filter((d) => !isNaN(d.getTime()));
+     if (validDates.length === 0) return [];
+ 
+-    const firstDate = validDates[0];
+-    const monthStart = startOfMonth(firstDate);
+-    const monthEnd = endOfMonth(firstDate);
+-
+-    const allDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+-
+-    return allDays.map((dateObj) => {
+-      const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+-      return {
+-        dateObj,
+-        isWeekend,
+-        formatted: formatCanonicalDate(dateObj),
+-        inCsv: validDates.some((vd) => formatCanonicalDate(vd) === formatCanonicalDate(dateObj)),
+-      };
++    const inFile = new Set(validDates.map((d) => formatCanonicalDate(d)));
++    const monthStarts = new Map<number, Date>();
++    validDates.forEach((d) => {
++      const ms = startOfMonth(d);
++      monthStarts.set(ms.getTime(), ms);
+     });
++
++    return Array.from(monthStarts.values())
++      .sort((a, b) => a.getTime() - b.getTime())
++      .map((monthStart) => ({
++        monthStart,
++        days: eachDayOfInterval({ start: monthStart, end: endOfMonth(monthStart) }).map((dateObj) => {
++          const formatted = formatCanonicalDate(dateObj);
++          return {
++            dateObj,
++            formatted,
++            isWeekend: dateObj.getDay() === 0 || dateObj.getDay() === 6,
++            inCsv: inFile.has(formatted),
++          };
++        }),
++      }));
+   }, [dates]);
+ 
++  const holidaySet = useMemo(() => new Set(holidays.map((h) => h.date)), [holidays]);
++
+   const toggleHoliday = (dateFormatted: string) => {
+-    const exists = holidays.find((h) => h.date === dateFormatted);
+-    if (exists) {
++    if (holidaySet.has(dateFormatted)) {
+       onChange(holidays.filter((h) => h.date !== dateFormatted));
+     } else {
+       onChange([...holidays, { date: dateFormatted, name: 'Holiday' }]);
+@@ -41,95 +51,104 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
+   };
+ 
+   return (
+-    <div className="space-y-6">
+-      <div>
+-        <h3 className="text-[12px] font-bold text-foreground">Holidays</h3>
+-        <p className="text-[11px] text-muted-foreground mt-0.5">
+-          Select the dates that should be marked as gazetted holidays. Weekends (Saturday
+-          &amp; Sunday) are already treated as off-days.
+-        </p>
++    <div className="space-y-3">
++      {/* Title left, legend right — saves a row of vertical space */}
++      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
++        <div className="min-w-0 flex-1 basis-56">
++          <h3 className="text-[12px] font-bold text-foreground">Holidays</h3>
++          <p className="text-[11px] text-muted-foreground mt-0.5">
++            Select the dates that should be marked as gazetted holidays. Weekends (Saturday
++            &amp; Sunday) are already treated as off-days.
++          </p>
++        </div>
++        {months.length > 0 && (
++          <div className="flex flex-wrap gap-x-3 gap-y-1 items-center pt-0.5">
++            <LegendItem swatch="bg-muted/30 border-border/50 opacity-50" label="Weekend" />
++            <LegendItem swatch="bg-primary/10 border-primary/30" label="Holiday" />
++            <LegendItem swatch="bg-card border-dashed border-border opacity-50" label="Not in file" />
++          </div>
++        )}
+       </div>
+ 
+-      {calendarDates.length === 0 ? (
++      {months.length === 0 ? (
+         <div className="text-center py-10 text-muted-foreground text-[11px] border-2 border-dashed border-border rounded-lg select-none">
+           Upload a file (JSON or CSV) to view the current month's dates
+         </div>
+       ) : (
+-        <div className="max-w-[420px] mx-auto">
+-          <div className="grid grid-cols-7 gap-1.5">
+-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+-              <div
+-                key={day}
+-                className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1"
+-              >
+-                {day}
+-              </div>
+-            ))}
+-
+-            {/* Empty slots before first day */}
+-            {Array.from({ length: calendarDates[0].dateObj.getDay() }).map((_, i) => (
+-              <div key={`empty-${i}`} />
+-            ))}
+-
+-            {calendarDates.map((pd, idx) => {
+-              const isHoliday = holidays.some((h) => h.date === pd.formatted);
+-              const isWeekend = pd.isWeekend;
+-
+-              return (
+-                <button
+-                  key={idx}
+-                  type="button"
+-                  disabled={isWeekend}
+-                  onClick={() => toggleHoliday(pd.formatted)}
+-                  className={cn(
+-                    'relative flex items-center justify-center aspect-square rounded-lg border transition-all active:scale-95',
+-                    isWeekend
+-                      ? 'bg-muted/30 border-border/50 opacity-50 cursor-not-allowed'
+-                      : isHoliday
+-                        ? 'bg-primary/10 border-primary/30 shadow-sm'
+-                        : !pd.inCsv
+-                          ? 'bg-card border-border border-dashed opacity-50 hover:border-primary hover:opacity-100'
+-                          : 'bg-card border-border hover:border-primary hover:bg-muted/50',
+-                  )}
+-                >
+-                  <span
+-                    className={cn(
+-                      'text-[12px] font-bold',
+-                      isWeekend
+-                        ? 'text-muted-foreground'
+-                        : isHoliday
+-                          ? 'text-primary'
+-                          : 'text-foreground',
+-                    )}
++        <div className="space-y-5">
++          {months.map(({ monthStart, days }) => (
++            <div key={monthStart.getTime()} className="max-w-[420px] mx-auto">
++              {months.length > 1 && (
++                <h4 className="text-[11px] font-semibold text-foreground mb-1.5">
++                  {format(monthStart, 'MMMM yyyy')}
++                </h4>
++              )}
++              <div className="grid grid-cols-7 gap-1">
++                {WEEKDAYS.map((day) => (
++                  <div
++                    key={day}
++                    className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider"
+                   >
+-                    {format(pd.dateObj, 'd')}
+-                  </span>
++                    {day}
++                  </div>
++                ))}
+ 
+-                  {isHoliday && !isWeekend && (
+-                    <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+-                  )}
+-                </button>
+-              );
+-            })}
+-          </div>
++                {/* Empty slots so the 1st lands on its real weekday */}
++                {Array.from({ length: days[0].dateObj.getDay() }).map((_, i) => (
++                  <div key={`empty-${i}`} />
++                ))}
+ 
+-          {/* Legend */}
+-          <div className="flex flex-wrap gap-3 items-center mt-4">
+-            <div className="flex items-center gap-2">
+-              <div className="w-3 h-3 rounded bg-muted/30 border border-border/50 opacity-50" />
+-              <span className="text-[11px] text-muted-foreground">Weekend</span>
+-            </div>
+-            <div className="flex items-center gap-2">
+-              <div className="w-3 h-3 rounded bg-primary/10 border border-primary/30" />
+-              <span className="text-[11px] text-muted-foreground">Holiday</span>
+-            </div>
+-            <div className="flex items-center gap-2">
+-              <div className="w-3 h-3 rounded bg-card border border-dashed border-border opacity-50" />
+-              <span className="text-[11px] text-muted-foreground">Not in file</span>
++                {days.map((pd) => {
++                  const isHoliday = holidaySet.has(pd.formatted);
++                  return (
++                    <button
++                      key={pd.formatted}
++                      type="button"
++                      disabled={pd.isWeekend}
++                      onClick={() => toggleHoliday(pd.formatted)}
++                      className={cn(
++                        'relative flex items-center justify-center h-8 rounded-md border transition-all active:scale-95',
++                        pd.isWeekend
++                          ? 'bg-muted/30 border-border/50 opacity-50 cursor-not-allowed'
++                          : isHoliday
++                            ? 'bg-primary/10 border-primary/30 shadow-sm'
++                            : !pd.inCsv
++                              ? 'bg-card border-border border-dashed opacity-50 hover:border-primary hover:opacity-100'
++                              : 'bg-card border-border hover:border-primary hover:bg-muted/50',
++                      )}
++                    >
++                      <span
++                        className={cn(
++                          'text-[12px] font-bold',
++                          pd.isWeekend
++                            ? 'text-muted-foreground'
++                            : isHoliday
++                              ? 'text-primary'
++                              : 'text-foreground',
++                        )}
++                      >
++                        {format(pd.dateObj, 'd')}
++                      </span>
++                      {isHoliday && !pd.isWeekend && (
++                        <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
++                      )}
++                    </button>
++                  );
++                })}
++              </div>
+             </div>
+-          </div>
++          ))}
+         </div>
+       )}
+     </div>
+   );
+-}
+\ No newline at end of file
++}
++
++function LegendItem({ swatch, label }: { swatch: string; label: string }) {
++  return (
++    <div className="flex items-center gap-1.5">
++      <div className={cn('w-3 h-3 rounded border', swatch)} />
++      <span className="text-[11px] text-muted-foreground">{label}</span>
++    </div>
++  );
++}
+diff --git a/src/components/Settings/PDFTab.tsx b/src/components/Settings/PDFTab.tsx
+index 9d97f4e..7d2d478 100644
+--- a/src/components/Settings/PDFTab.tsx
++++ b/src/components/Settings/PDFTab.tsx
+@@ -1,9 +1,10 @@
+-import React, { useMemo, useState } from 'react';
++import { useMemo, useState } from 'react';
+ import { OTSettings, EmployeeRow } from '../../types';
+ import { NumberInput } from '../ui/NumberInput';
+ import { Switch } from '../ui/switch';
++import { SettingRow } from './SettingRow';
+ import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
+-import { AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react';
++import { AlertTriangle, ChevronDown } from 'lucide-react';
+ import { cn } from '../../lib/utils';
+ 
+ interface PDFTabProps {
+@@ -38,22 +39,6 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
+ 
+   return (
+     <div className="space-y-6">
+-      {/* Standardized Policy Notice */}
+-      <div className="p-3 rounded-lg border border-border bg-muted/40 text-[11px] space-y-1.5">
+-        <div className="flex items-center gap-1.5 font-semibold text-foreground text-[12px]">
+-          <CheckCircle2 size={14} className="text-primary shrink-0" />
+-          <span>Standardized Administrative Header & Signatures</span>
+-        </div>
+-        <p className="text-muted-foreground text-[11px] leading-relaxed">
+-          The following document attributes are hardcoded according to official organizational policy and cannot be altered:
+-        </p>
+-        <ul className="list-disc list-inside text-muted-foreground text-[10px] space-y-0.5 pl-1">
+-          <li><strong>Organization:</strong> Ministry Of Interior / National Database And Registration Authority / Regional Head Office Islamabad</li>
+-          <li><strong>Document Title:</strong> Overtime Of Admin Branch For The Month &lt;Month Year&gt;</li>
+-          <li><strong>Signatures:</strong> "Employee Signature" (left side) and "Officer Signature" (right side) on detail pages</li>
+-        </ul>
+-      </div>
+-
+       <section>
+         <h3 className="text-[12px] font-bold text-foreground mb-4">Summary Options</h3>
+         <div className="space-y-4">
+@@ -148,12 +133,12 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
+             title="Page Size"
+             description={currentSize.description}
+           >
+-            <div className="relative w-fit max-w-[160px]">
++            <div className="w-28">
+               <Select
+                 value={pdf.pageSize}
+                 onValueChange={(val) => onChange({ ...pdf, pageSize: val })}
+               >
+-                <SelectTrigger className="text-[12px]">
++                <SelectTrigger className="w-full text-[12px]">
+                   <span className="truncate">
+                     {pageSizes.find(s => s.id === pdf.pageSize)?.label || 'A4'}
+                   </span>
+@@ -219,17 +204,3 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
+     </div>
+   );
+ }
+-
+-function SettingRow({ title, description, children }: { title: string, description: string, children: React.ReactNode }) {
+-  return (
+-    <div className="flex flex-row items-center justify-between gap-3 sm:gap-6">
+-      <div className="flex-1 min-w-0 pr-2">
+-        <h4 className="text-[12px] font-semibold text-foreground truncate">{title}</h4>
+-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{description}</p>
+-      </div>
+-      <div className="shrink-0 flex items-center">
+-        {children}
+-      </div>
+-    </div>
+-  );
+-}
+diff --git a/src/components/Settings/SettingRow.tsx b/src/components/Settings/SettingRow.tsx
+index ced63ce..2cc1154 100644
+--- a/src/components/Settings/SettingRow.tsx
++++ b/src/components/Settings/SettingRow.tsx
+@@ -10,7 +10,7 @@ export function SettingRow({ title, description, children }: SettingRowProps) {
+   return (
+     <div className="flex flex-row items-center justify-between gap-3 sm:gap-6">
+       <div className="flex-1 min-w-0 pr-2">
+-        <h4 className="text-[12px] font-semibold text-foreground truncate">{title}</h4>
++        <h4 className="text-[12px] font-semibold text-foreground break-words">{title}</h4>
+         <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{description}</p>
+       </div>
+       <div className="shrink-0 flex items-center">
+diff --git a/src/components/Settings/SettingsModal.tsx b/src/components/Settings/SettingsModal.tsx
+index 92734e2..06efa2e 100644
+--- a/src/components/Settings/SettingsModal.tsx
++++ b/src/components/Settings/SettingsModal.tsx
+@@ -82,7 +82,7 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
+ 
+   return (
+     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+-      <DialogContent className="max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100dvh] max-h-[100dvh] my-0 rounded-none border-border bg-card gap-0 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:my-4 sm:rounded-xl">
++      <DialogContent className="max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100dvh] max-h-[100dvh] rounded-none border-border bg-card gap-0 tall:h-[min(85dvh,780px)] tall:max-h-[calc(100dvh-2rem)] tall:rounded-xl">
+ 
+         <DialogHeader className="px-4 py-2 border-b border-border shrink-0 m-0">
+           <DialogTitle className="text-[12px] font-bold">Settings</DialogTitle>
+@@ -124,7 +124,13 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
+             </nav>
+           </aside>
+ 
+-          <main className="flex-1 min-w-0 overflow-y-auto p-3 sm:p-5 bg-card">
++          <main
++            key={activeTab}
++            className={cn(
++              'flex-1 min-w-0 bg-card',
++              activeTab === 'employees' ? 'relative overflow-hidden' : 'overflow-y-auto p-3 sm:p-5',
++            )}
++          >
+             {activeTab === 'calculation' && (
+               <CalculationTab policy={tempPolicy} onChange={updatePolicy} />
+             )}
+diff --git a/src/components/Settings/employeeShared.tsx b/src/components/Settings/employeeShared.tsx
+new file mode 100644
+index 0000000..de8100f
+--- /dev/null
++++ b/src/components/Settings/employeeShared.tsx
+@@ -0,0 +1,114 @@
++import { EmployeeRow, EmployeeCategory } from '../../types';
++import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
++import { cn } from '../../lib/utils';
++
++export type Rate = 'fixed' | 'dynamic';
++export type GroupBy = 'none' | 'designation' | 'pay' | 'category';
++export type SortBy = 'name' | 'erp' | 'designation' | 'pay';
++
++/** An employee plus everything the Employees tab derives about them. */
++export interface EmployeeInfo {
++  emp: EmployeeRow;
++  category: EmployeeCategory;
++  rate: Rate;
++  capExempt: boolean;
++  pay: number;
++}
++
++export interface Filters {
++  categories: EmployeeCategory[];
++  rates: Rate[];
++  missingPay: boolean;
++}
++
++export const EMPTY_FILTERS: Filters = { categories: [], rates: [], missingPay: false };
++
++export const filterCount = (f: Filters) => f.categories.length + f.rates.length + (f.missingPay ? 1 : 0);
++
++/** Designation-level rule changes (rules are keyed by designation, not by person). */
++export interface RuleChange {
++  category?: EmployeeCategory;
++  rate?: Rate;
++  capExempt?: boolean;
++}
++
++export interface InfoGroup {
++  key: string;
++  label: string;
++  items: EmployeeInfo[];
++}
++
++export const CATEGORY_LABEL: Record<EmployeeCategory, string> = {
++  support: 'Support',
++  official: 'Official',
++  exempt: 'Exempt',
++};
++
++const BADGE_STYLES = {
++  Support: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
++  Official: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20',
++  Exempt: 'bg-muted text-muted-foreground border-border',
++  Fixed: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
++  Dynamic: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
++  Capped: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
++} as const;
++
++export function Badge({ label }: { label: keyof typeof BADGE_STYLES }) {
++  return (
++    <span
++      className={cn(
++        'inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-semibold leading-none whitespace-nowrap',
++        BADGE_STYLES[label],
++      )}
++    >
++      {label}
++    </span>
++  );
++}
++
++export function InfoBadges({ info }: { info: EmployeeInfo }) {
++  const cat = CATEGORY_LABEL[info.category] as 'Support' | 'Official' | 'Exempt';
++  return (
++    <>
++      <Badge label={cat} />
++      {info.category !== 'exempt' && <Badge label={info.rate === 'fixed' ? 'Fixed' : 'Dynamic'} />}
++      {info.category !== 'exempt' && info.rate === 'fixed' && !info.capExempt && <Badge label="Capped" />}
++    </>
++  );
++}
++
++/** Fixed-width (w-28, h-8) select used for every rule field so they line up. */
++export function RuleSelect<T extends string>({
++  value,
++  options,
++  onChange,
++  disabled,
++  mixedLabel = 'Mixed',
++}: {
++  /** `null` = the selection disagrees (bulk edit). */
++  value: T | null;
++  options: { value: T; label: string }[];
++  onChange: (v: T) => void;
++  disabled?: boolean;
++  mixedLabel?: string;
++}) {
++  const current = options.find((o) => o.value === value);
++  return (
++    <div className="w-28">
++      <Select value={value} onValueChange={(v) => v && onChange(v as T)} disabled={disabled}>
++        <SelectTrigger className="w-full">
++          <span className={cn('truncate', !current && 'text-muted-foreground')}>
++            {current ? current.label : mixedLabel}
++          </span>
++        </SelectTrigger>
++        <SelectContent>
++          {options.map((o) => (
++            <SelectItem key={o.value} value={o.value}>
++              {o.label}
++            </SelectItem>
++          ))}
++        </SelectContent>
++      </Select>
++    </div>
++  );
++}
+diff --git a/src/components/Sidebar/Sidebar.tsx b/src/components/Sidebar/Sidebar.tsx
+index 7907517..7e76732 100644
+--- a/src/components/Sidebar/Sidebar.tsx
++++ b/src/components/Sidebar/Sidebar.tsx
+@@ -40,10 +40,10 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
+             placeholder="Search name or ERP..."
+             value={searchQuery}
+             onChange={(e) => onSearchChange(e.target.value)}
+-            className="pl-8 pr-8 text-[12px] h-8"
++            className="pl-8 pr-9 text-[12px] h-8"
+           />
+           <DropdownMenu>
+-            <DropdownMenuTrigger className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-ring">
++            <DropdownMenuTrigger className="absolute right-0.5 top-1/2 -translate-y-1/2 size-7 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                 <Filter size={13} />
+             </DropdownMenuTrigger>
+             <DropdownMenuContent align="end" className="text-[12px]">
+diff --git a/src/components/ThemeToggle.tsx b/src/components/ThemeToggle.tsx
+index d038d06..f833d15 100644
+--- a/src/components/ThemeToggle.tsx
++++ b/src/components/ThemeToggle.tsx
+@@ -17,7 +17,7 @@ export function ThemeToggle({ theme, onChange, className }: ThemeToggleProps) {
+   return (
+     <div className={cn("relative", className)}>
+       <DropdownMenu>
+-        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "cursor-pointer")} title="Theme">
++        <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "cursor-pointer size-8")} title="Theme">
+           <Icon size={18} />
+         </DropdownMenuTrigger>
+         <DropdownMenuContent align="end">
+diff --git a/src/components/ui/NumberInput.tsx b/src/components/ui/NumberInput.tsx
+index 2491098..cad0153 100644
+--- a/src/components/ui/NumberInput.tsx
++++ b/src/components/ui/NumberInput.tsx
+@@ -66,7 +66,7 @@ export function NumberInput({
+         onChange={handleChange}
+         onBlur={handleBlur}
+         placeholder="0"
+-        className={cn('w-full text-right h-[38px]', suffix ? 'pr-12' : '')}
++        className={cn('w-full text-right h-8', suffix ? 'pr-12' : '')}
+       />
+       {suffix && (
+         <span className="absolute right-3 text-xs font-semibold text-muted-foreground pointer-events-none uppercase select-none">
+diff --git a/src/components/ui/checkbox.tsx b/src/components/ui/checkbox.tsx
+index bac949b..72c8f62 100644
+--- a/src/components/ui/checkbox.tsx
++++ b/src/components/ui/checkbox.tsx
+@@ -10,6 +10,8 @@ export function Checkbox({ className, size = 'md', ...props }: CheckboxProps) {
+     <label
+       className={cn(
+         'relative inline-flex items-center justify-center cursor-pointer select-none shrink-0',
++        // enlarge the tap target without changing the visual size
++        'before:absolute before:-inset-3 before:content-[""] md:before:-inset-1.5',
+         size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4',
+         className,
+       )}
+diff --git a/src/components/ui/table.tsx b/src/components/ui/table.tsx
+index 0b9a065..84772ca 100644
+--- a/src/components/ui/table.tsx
++++ b/src/components/ui/table.tsx
+@@ -2,11 +2,15 @@ import * as React from "react"
+ 
+ import { cn } from "@/lib/utils"
+ 
+-function Table({ className, ...props }: React.ComponentProps<"table">) {
++function Table({
++  className,
++  containerClassName,
++  ...props
++}: React.ComponentProps<"table"> & { containerClassName?: string }) {
+   return (
+     <div
+       data-slot="table-container"
+-      className="relative w-full overflow-x-auto"
++      className={cn("relative w-full overflow-x-auto", containerClassName)}
+     >
+       <table
+         data-slot="table"
+diff --git a/src/index.css b/src/index.css
+index bc7f07d..172e51e 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -1,4 +1,7 @@
+ @import "tailwindcss";
++
++/* Wide AND tall enough for a centred dialog; short landscape phones stay fullscreen. */
++@custom-variant tall (@media (min-width: 640px) and (min-height: 520px));
+ @import "tw-animate-css";
+ @import "shadcn/tailwind.css";
+ @import "@fontsource-variable/geist";

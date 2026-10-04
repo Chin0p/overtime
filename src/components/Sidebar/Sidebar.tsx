@@ -40,10 +40,10 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
             placeholder="Search name or ERP..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 pr-8 text-[12px] h-8"
+            className="pl-8 pr-9 text-[12px] h-8"
           />
           <DropdownMenu>
-            <DropdownMenuTrigger className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+            <DropdownMenuTrigger className="absolute right-0.5 top-1/2 -translate-y-1/2 size-7 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                 <Filter size={13} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="text-[12px]">

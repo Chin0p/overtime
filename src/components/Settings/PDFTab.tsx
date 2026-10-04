@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { OTSettings, EmployeeRow } from '../../types';
 import { NumberInput } from '../ui/NumberInput';
 import { Switch } from '../ui/switch';
+import { SettingRow } from './SettingRow';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
-import { AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react';
+import { AlertTriangle, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface PDFTabProps {
@@ -38,22 +39,6 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Standardized Policy Notice */}
-      <div className="p-3 rounded-lg border border-border bg-muted/40 text-[11px] space-y-1.5">
-        <div className="flex items-center gap-1.5 font-semibold text-foreground text-[12px]">
-          <CheckCircle2 size={14} className="text-primary shrink-0" />
-          <span>Standardized Administrative Header & Signatures</span>
-        </div>
-        <p className="text-muted-foreground text-[11px] leading-relaxed">
-          The following document attributes are hardcoded according to official organizational policy and cannot be altered:
-        </p>
-        <ul className="list-disc list-inside text-muted-foreground text-[10px] space-y-0.5 pl-1">
-          <li><strong>Organization:</strong> Ministry Of Interior / National Database And Registration Authority / Regional Head Office Islamabad</li>
-          <li><strong>Document Title:</strong> Overtime Of Admin Branch For The Month &lt;Month Year&gt;</li>
-          <li><strong>Signatures:</strong> "Employee Signature" (left side) and "Officer Signature" (right side) on detail pages</li>
-        </ul>
-      </div>
-
       <section>
         <h3 className="text-[12px] font-bold text-foreground mb-4">Summary Options</h3>
         <div className="space-y-4">
@@ -148,12 +133,12 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
             title="Page Size"
             description={currentSize.description}
           >
-            <div className="relative w-fit max-w-[160px]">
+            <div className="w-28">
               <Select
                 value={pdf.pageSize}
                 onValueChange={(val) => onChange({ ...pdf, pageSize: val })}
               >
-                <SelectTrigger className="text-[12px]">
+                <SelectTrigger className="w-full text-[12px]">
                   <span className="truncate">
                     {pageSizes.find(s => s.id === pdf.pageSize)?.label || 'A4'}
                   </span>
@@ -216,20 +201,6 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
           </SettingRow>
         </div>
       </section>
-    </div>
-  );
-}
-
-function SettingRow({ title, description, children }: { title: string, description: string, children: React.ReactNode }) {
-  return (
-    <div className="flex flex-row items-center justify-between gap-3 sm:gap-6">
-      <div className="flex-1 min-w-0 pr-2">
-        <h4 className="text-[12px] font-semibold text-foreground truncate">{title}</h4>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{description}</p>
-      </div>
-      <div className="shrink-0 flex items-center">
-        {children}
-      </div>
     </div>
   );
 }

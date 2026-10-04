@@ -15,14 +15,18 @@ export function RecordsTable({ records, visibleColumns, sortOrder, onToggleSort 
   const visibleColsSet = new Set(visibleColumns);
   
   return (
-    <div className="flex-1 min-h-0 mx-3 md:mx-0 bg-card rounded-lg border border-border overflow-hidden shadow-sm flex flex-col">
-      <div className="flex-1 min-h-0 overflow-auto">
-        <Table className="w-full text-left border-collapse data-table table-auto">
-          <TableHeader className="sticky top-0 z-20">
-            <TableRow className="bg-muted/50 border-b border-border">
-              <TableHead className="sticky top-0 z-20 bg-muted/50 text-center w-12 font-semibold">Sr.</TableHead>
+    // No overflow clipping here: sticky <th> must stick to the DetailPanel scroller.
+    <div className="w-full bg-card rounded-lg border border-border shadow-sm [&_thead_th:first-child]:rounded-tl-lg [&_thead_th:last-child]:rounded-tr-lg">
+      <div>
+        <Table
+          containerClassName="overflow-visible"
+          className="w-full text-left border-collapse data-table table-auto"
+        >
+          <TableHeader>
+            <TableRow className="border-b-0">
+              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
               <TableHead 
-                className="sticky top-0 left-0 z-30 bg-muted/50 font-semibold cursor-pointer hover:bg-muted transition-colors select-none group"
+                className="sticky top-11 md:top-0 left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold cursor-pointer hover:bg-accent transition-colors select-none group"
                 onClick={onToggleSort}
                 title="Toggle Sort Order"
               >
@@ -33,19 +37,19 @@ export function RecordsTable({ records, visibleColumns, sortOrder, onToggleSort 
                   </div>
                 </div>
               </TableHead>
-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Day</TableHead>
-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">In</TableHead>
-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Out</TableHead>
-              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Office Timing</TableHead>}
-              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Total Worked</TableHead>}
-              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Worked (OT)</TableHead>}
-              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Adjustment</TableHead>}
-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">OT Hrs</TableHead>
-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Amount</TableHead>
-              <TableHead className="sticky top-0 z-20 bg-muted/50 font-semibold">Remarks</TableHead>
+              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
+              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">In</TableHead>
+              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Out</TableHead>
+              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Office Timing</TableHead>}
+              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Total Worked</TableHead>}
+              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Worked (OT)</TableHead>}
+              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Adjustment</TableHead>}
+              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
+              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
+              <TableHead className="sticky top-11 md:top-0 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-border">
+          <TableBody className="divide-y divide-border [&_tr:last-child_td:first-child]:rounded-bl-lg [&_tr:last-child_td:last-child]:rounded-br-lg">
             {records.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8 + visibleColumns.length} className="text-center py-8 text-muted-foreground text-xs">

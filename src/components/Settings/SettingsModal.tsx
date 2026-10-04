@@ -82,7 +82,7 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100dvh] max-h-[100dvh] my-0 rounded-none border-border bg-card gap-0 sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:my-4 sm:rounded-xl">
+      <DialogContent className="max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100dvh] max-h-[100dvh] rounded-none border-border bg-card gap-0 tall:h-[min(85dvh,780px)] tall:max-h-[calc(100dvh-2rem)] tall:rounded-xl">
 
         <DialogHeader className="px-4 py-2 border-b border-border shrink-0 m-0">
           <DialogTitle className="text-[12px] font-bold">Settings</DialogTitle>
@@ -124,7 +124,13 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
             </nav>
           </aside>
 
-          <main className="flex-1 min-w-0 overflow-y-auto p-3 sm:p-5 bg-card">
+          <main
+            key={activeTab}
+            className={cn(
+              'flex-1 min-w-0 bg-card',
+              activeTab === 'employees' ? 'relative overflow-hidden' : 'overflow-y-auto p-3 sm:p-5',
+            )}
+          >
             {activeTab === 'calculation' && (
               <CalculationTab policy={tempPolicy} onChange={updatePolicy} />
             )}

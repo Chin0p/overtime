@@ -1,4 +1,7 @@
 @import "tailwindcss";
+
+/* Wide AND tall enough for a centred dialog; short landscape phones stay fullscreen. */
+@custom-variant tall (@media (min-width: 640px) and (min-height: 520px));
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";

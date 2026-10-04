@@ -11,7 +11,7 @@ import { SettingsModal } from './components/Settings/SettingsModal';
 import { buildPDF } from './pdf/buildPDF';
 import { format } from 'date-fns';
 import { flexibleParseDate, cn } from './lib/utils';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Users } from 'lucide-react';
 
 export default function App() {
   const { policy, appearance, pdf, basicPay, holidays, saveSettings, setAppearance } = useSettings();
@@ -165,6 +165,11 @@ export default function App() {
         );
       }
 
+      // A previously selected employee may not exist in the new file; clear it so
+      // mobile never lands on an empty detail view with the list hidden.
+      if (selectedErp && !data.employees.some((e) => e.erp === selectedErp)) {
+        setSelectedErp(null);
+      }
       setUploadedData(data);
       setIsLandingOpen(false);
       setError(null);
@@ -227,7 +232,7 @@ export default function App() {
           <>
             <div className={cn(
               "shrink-0 w-full md:w-[320px] h-full border-r border-[var(--color-border)]",
-              selectedErp ? "hidden md:flex md:flex-col" : "flex flex-col"
+              selectedEmployee ? "hidden md:flex md:flex-col" : "flex flex-col"
             )}>
               <Sidebar 
                 employees={filteredEmployees}
@@ -240,7 +245,7 @@ export default function App() {
             
             <div className={cn(
               "flex-1 min-h-0 relative",
-              selectedErp ? "flex flex-col h-full overflow-hidden" : "hidden md:flex md:flex-col h-full overflow-hidden"
+              selectedEmployee ? "flex flex-col h-full overflow-hidden" : "hidden md:flex md:flex-col h-full overflow-hidden"
             )}>
               {selectedEmployee ? (
                 <div className="flex flex-col h-full relative">
@@ -252,11 +257,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] p-8 text-center">
-                  <div className="w-16 h-16 mb-4 opacity-10">
-                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
+                  <Users className="w-16 h-16 mb-4 opacity-10" strokeWidth={1.5} />
                   <h3 className="text-[12px] font-medium text-[var(--color-text-muted)]">
                     No Employee Selected
                   </h3>
