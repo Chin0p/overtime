@@ -18,7 +18,6 @@ import {
 
 interface DetailPanelProps {
   employee: ProcessedEmployee;
-  monthLabel: string;
   onBack?: () => void;
   /** Filter / sort / columns, owned by App so they persist across employees. */
   view: RecordsView;
@@ -33,7 +32,7 @@ const SORT_OPTIONS: { key: SortKey; label: string; asc: string; desc: string }[]
 const btn = cn(buttonVariants({ variant: 'outline' }), 'w-full md:w-auto h-9 md:h-8 justify-center gap-1.5 px-3 cursor-pointer');
 const active = 'text-primary border-primary';
 
-export function DetailPanel({ employee, monthLabel, onBack, view }: DetailPanelProps) {
+export function DetailPanel({ employee, onBack, view }: DetailPanelProps) {
   const { filter, setFilter, sortKey, sortOrder, setSort, visibleColumns, toggleColumn } = view;
 
   const processedRecords = useMemo(() => {
@@ -69,7 +68,7 @@ export function DetailPanel({ employee, monthLabel, onBack, view }: DetailPanelP
     // scrolls sideways underneath them.
     <div data-scroll-root className="@container h-full min-h-0 bg-background overflow-auto overscroll-contain">
       <div className="w-max min-w-full">
-        <EmployeeHeader employee={employee} monthLabel={monthLabel} onBack={onBack} />
+        <EmployeeHeader employee={employee} onBack={onBack} />
 
         <div className="max-w-6xl mx-auto px-3 @3xl:px-6 pt-3 pb-6 md:pt-5 flex flex-col gap-2 md:gap-4">
 

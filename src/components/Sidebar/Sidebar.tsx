@@ -65,7 +65,7 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
   return (
     <aside className="w-full h-full bg-card flex flex-col shrink-0">
       <div className="p-2 md:p-3 border-b border-border">
-        <h2 className="hidden md:block text-[12px] font-bold text-foreground tracking-wide mb-2 uppercase">Employees</h2>
+        <h2 className="hidden md:block text-label text-foreground tracking-wide mb-2 uppercase">Employees</h2>
         <div className="flex items-center gap-1.5 mb-1">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
@@ -74,7 +74,7 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
               placeholder="Search name, ERP or designation..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-8 text-[12px] h-8"
+              className="pl-8 text-[13px] h-8"
             />
           </div>
 
@@ -82,18 +82,18 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
             <DropdownMenuTrigger className={cn(iconBtn, filterBy !== 'all' && activeCls)} title="Filter employees" aria-label="Filter employees">
               <Filter size={14} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="text-[12px]">
-              <DropdownMenuLabel className="text-[11px]">Filter Employees</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="text-[13px]">
+              <DropdownMenuLabel className="text-caption">Filter Employees</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setFilterBy('all')} className="text-[12px]">
+              <DropdownMenuItem onClick={() => setFilterBy('all')} className="text-[13px]">
                 All Employees
                 {filterBy === 'all' && <Check size={13} className="ml-auto text-primary" />}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterBy('missing_pay')} className="text-[12px]">
+              <DropdownMenuItem onClick={() => setFilterBy('missing_pay')} className="text-[13px]">
                 Missing Basic Pay
                 {filterBy === 'missing_pay' && <Check size={13} className="ml-auto text-primary" />}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterBy('has_ot')} className="text-[12px]">
+              <DropdownMenuItem onClick={() => setFilterBy('has_ot')} className="text-[13px]">
                 Has OT Hours
                 {filterBy === 'has_ot' && <Check size={13} className="ml-auto text-primary" />}
               </DropdownMenuItem>
@@ -110,12 +110,12 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
                   {i > 0 && <DropdownMenuSeparator />}
                   {opt.asc ? (
                     <>
-                      <DropdownMenuLabel className="text-[11px]">{opt.label}</DropdownMenuLabel>
+                      <DropdownMenuLabel className="text-caption">{opt.label}</DropdownMenuLabel>
                       {(['asc', 'desc'] as const).map((order) => (
                         <DropdownMenuItem
                           key={order}
                           onClick={() => { setSortKey(opt.key); setSortOrder(order); }}
-                          className="text-[12px]"
+                          className="text-[13px]"
                         >
                           {opt[order]}
                           {sortKey === opt.key && sortOrder === order && <Check size={13} className="ml-auto text-primary" />}
@@ -123,7 +123,7 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
                       ))}
                     </>
                   ) : (
-                    <DropdownMenuItem onClick={() => setSortKey('file')} className="text-[12px]">
+                    <DropdownMenuItem onClick={() => setSortKey('file')} className="text-[13px]">
                       {opt.label}
                       {sortKey === 'file' && <Check size={13} className="ml-auto text-primary" />}
                     </DropdownMenuItem>
@@ -146,7 +146,7 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
             />
           ))
         ) : (
-          <div className="p-6 w-full text-center text-[11px] text-muted-foreground select-none">
+          <div className="p-6 w-full text-center text-caption text-muted-foreground select-none">
             No employees found
           </div>
         )}

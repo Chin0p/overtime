@@ -26,9 +26,9 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
         >
           <TableHeader>
             <TableRow className="border-b-0">
-              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
+              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
               <TableHead 
-                className="sticky top-11 left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold cursor-pointer hover:bg-accent transition-colors select-none group"
+                className="sticky top-[var(--header-sticky)] left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold cursor-pointer hover:bg-accent transition-colors select-none group"
                 onClick={onToggleSort}
                 title="Toggle Sort Order"
               >
@@ -39,16 +39,16 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
                   </div>
                 </div>
               </TableHead>
-              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
-              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">In</TableHead>
-              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Out</TableHead>
-              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Office Timing</TableHead>}
-              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Total Worked</TableHead>}
-              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Worked (OT)</TableHead>}
-              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Adjustment</TableHead>}
-              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
-              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
-              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
+              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
+              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">In</TableHead>
+              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Out</TableHead>
+              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Office Timing</TableHead>}
+              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Total Worked</TableHead>}
+              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Worked (OT)</TableHead>}
+              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Adjustment</TableHead>}
+              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
+              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
+              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-border [&_tr:last-child_td:first-child]:rounded-bl-lg [&_tr:last-child_td:last-child]:rounded-br-lg">
@@ -76,11 +76,11 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
                 {visibleColsSet.has('Office Timing') && (
                   <TableCell className="whitespace-nowrap">
                     {record.officeTiming ? (
-                      <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border border-border pointer-events-none">
+                      <span className="text-caption font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border border-border pointer-events-none">
                         {record.officeTiming}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground opacity-50">-</span>
+                      <span className="text-muted-foreground opacity-50">—</span>
                     )}
                   </TableCell>
                 )}
@@ -100,12 +100,12 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
                     {record.adjustment > 0 ? (
                       <span className="text-[var(--color-warning)] font-medium">-{formatDuration(record.adjustment)}</span>
                     ) : (
-                      <span className="text-muted-foreground opacity-50">-</span>
+                      <span className="text-muted-foreground opacity-50">—</span>
                     )}
                   </TableCell>
                 )}
                 
-                <TableCell className="font-bold text-foreground whitespace-nowrap">{record.otHours || '-'}</TableCell>
+                <TableCell className="font-bold text-foreground whitespace-nowrap">{record.otHours || '—'}</TableCell>
                 <TableCell className="text-foreground whitespace-nowrap">
                   {record.amount > 0 ? formatAmount(record.amount) : <span className="text-muted-foreground opacity-50">—</span>}
                 </TableCell>
@@ -113,7 +113,7 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
                 <TableCell className="whitespace-nowrap">
                   {record.remarks && (
                     <span className={cn(
-                      "px-2 py-0.5 text-xs font-medium rounded-[var(--radius-interactive)] pointer-events-none",
+                      "px-2 py-0.5 text-caption font-medium rounded-[var(--radius-interactive)] pointer-events-none",
                       record.remarks === 'Holiday' ? "bg-[var(--color-holiday)]/10 text-[var(--color-holiday)]" :
                       record.remarks === 'Late Arrival' ? "bg-[var(--color-late-arrival)]/10 text-[var(--color-late-arrival)]" :
                       "bg-muted text-muted-foreground"

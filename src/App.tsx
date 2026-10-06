@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { parseJSON } from './parser/jsonParser';
+import { parseRecordsCSV } from './parser/csvParser';
 import { processEmployees } from './engine/otCalculator';
 import { useSettings } from './store/useSettings';
 import { useRecordsView } from './store/useRecordsView';
 import { mergeRecords } from './parser/mergeRecords';
 import { AttendanceData } from './types';
+import { DataDialog } from './components/DataDialog';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar/Sidebar';
 import { DetailPanel } from './components/DetailPanel/DetailPanel';
@@ -24,6 +26,11 @@ export default function App() {
   const [selectedErp, setSelectedErp] = useState<string | null>(null);
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDataOpen, setIsDataOpen] = useState(false);
+  // "Load a different file" shows the upload screen over the loaded data (Back returns to it).
+  const [loadingNewFile, setLoadingNewFile] = useState(false);
+  // One level of undo for records added from a CSV.
+  const [undoData, setUndoData] = useState<AttendanceData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const errorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -110,21 +117,31 @@ export default function App() {
     return `${firstMonth} ${firstYear} - ${lastMonth} ${lastYear}`;
   }, [uploadedData]);
 
-  /** Add records for one or more employees to the data that is already loaded (Settings > Backup / Reset). */
+  /** Add records for one or more employees to the data that is already loaded (menu > Add records). */
   const handleAddRecords = (incoming: AttendanceData) => {
     if (!uploadedData) return { addedEmployees: 0, updatedEmployees: 0, days: 0 };
     const { data, ...summary } = mergeRecords(uploadedData, incoming);
+    setUndoData(uploadedData);
     setUploadedData(data);
     return summary;
   };
 
+  const handleUndoRecords = () => {
+    if (!undoData) return;
+    setUploadedData(undoData);
+    setUndoData(null);
+  };
+
   const handleUpload = (fileText: string, fileName?: string) => {
     try {
-      const data: AttendanceData = parseJSON(
-        fileText,
-        fileName || 'august-2026',
-        policy.shiftDurationHours,
-      );
+      const isCsv = (fileName || '').toLowerCase().endsWith('.csv');
+      const data: AttendanceData = isCsv
+        ? parseRecordsCSV(fileText, policy.shiftDurationHours)
+        : parseJSON(
+            fileText,
+            fileName || '',
+            policy.shiftDurationHours,
+          );
 
       if (data.employees.length === 0) {
         throw new Error('No employees found in this file.');
@@ -184,19 +201,21 @@ export default function App() {
         setSelectedErp(null);
       }
       setUploadedData(data);
+      setLoadingNewFile(false);
+      setUndoData(null);
       setError(null);
 
       clearTimeout(warningTimer.current);
       if (data.warnings && data.warnings.length > 0) {
         setWarnings(data.warnings);
-        warningTimer.current = setTimeout(() => setWarnings([]), 5000);
+        warningTimer.current = setTimeout(() => setWarnings([]), 8000);
       } else {
         setWarnings([]);
       }
     } catch (err) {
       clearTimeout(errorTimer.current);
       setError(err instanceof Error ? err.message : 'Failed to parse file');
-      errorTimer.current = setTimeout(() => setError(null), 5000);
+      errorTimer.current = setTimeout(() => setError(null), 8000);
     }
   };
 
@@ -216,13 +235,15 @@ export default function App() {
     window.open(url, '_blank');
   };
 
-  const showLandingView = !uploadedData;
+  const showLandingView = !uploadedData || loadingNewFile;
 
   return (
-    <div className="h-[100dvh] w-screen bg-[var(--color-bg-app)] text-[var(--color-text-main)] font-sans overflow-hidden flex flex-col relative">
+    <div className="h-[100dvh] w-screen bg-background text-foreground font-sans overflow-hidden flex flex-col relative safe-x">
       <Navbar 
         onSettingsClick={() => setIsSettingsOpen(true)}
         onExportClick={handleExport}
+        onAddRecordsClick={() => setIsDataOpen(true)}
+        onLoadFileClick={() => setLoadingNewFile(true)}
         hasData={processedEmployees.length > 0}
         monthLabel={monthLabel}
         theme={appearance.theme || 'system'}
@@ -237,6 +258,8 @@ export default function App() {
           <LandingPage 
             onUpload={handleUpload} 
             error={error} 
+            hasExistingData={!!uploadedData}
+            onReturnToDashboard={() => setLoadingNewFile(false)}
           />
         ) : (
           <>
@@ -262,7 +285,6 @@ export default function App() {
                   <DetailPanel 
                     employee={selectedEmployee}
                     view={recordsView} 
-                    monthLabel={monthLabel}
                     onBack={() => setSelectedErp(null)}
                   />
                 </div>
@@ -282,7 +304,7 @@ export default function App() {
         )}
 
         {error && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-4 duration-300 w-[90%] md:w-[400px]">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-2 duration-[var(--duration-enter)] w-[90%] md:w-[400px]">
             <div className="bg-[var(--color-bg-card)] border-l-4 border-[var(--color-danger)] text-[var(--color-text-main)] px-4 py-3 rounded shadow-xl flex items-center gap-3">
               <div className="w-8 h-8 flex items-center justify-center shrink-0 text-[var(--color-danger)]">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -298,7 +320,7 @@ export default function App() {
         )}
 
         {warnings.length > 0 && !error && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-4 duration-300 w-[90%] md:w-[500px]">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-2 duration-[var(--duration-enter)] w-[90%] md:w-[500px]">
             <div className="bg-[var(--color-bg-card)] border-l-4 border-[var(--color-warning)] text-[var(--color-text-main)] px-4 py-3 rounded shadow-xl">
               <div className="flex items-start gap-2">
                 <AlertTriangle size={16} className="shrink-0 text-[var(--color-warning)] mt-0.5" />
@@ -323,6 +345,18 @@ export default function App() {
         )}
       </main>
 
+      {isDataOpen && uploadedData && (
+        <DataDialog
+          current={uploadedData}
+          monthLabel={monthLabel}
+          shiftDurationHours={policy.shiftDurationHours}
+          canUndo={undoData !== null}
+          onApply={handleAddRecords}
+          onUndo={handleUndoRecords}
+          onClose={() => setIsDataOpen(false)}
+        />
+      )}
+
       {isSettingsOpen && (
         <SettingsModal 
           policy={policy}
@@ -333,7 +367,6 @@ export default function App() {
           employees={uploadedData?.employees || []}
           dates={uploadedData?.dates || []}
           onSave={saveSettings}
-          onAddRecords={handleAddRecords}
           onClose={() => setIsSettingsOpen(false)}
         />
       )}
