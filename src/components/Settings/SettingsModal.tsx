@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Settings, CreditCard, Calendar, Users, FileText, Database } from 'lucide-react';
-import { OTSettings, Holiday, EmployeeRow, EmployeeCategory } from '../../types';
+import { OTSettings, Holiday, EmployeeRow, EmployeeCategory, AttendanceData } from '../../types';
 import { CalculationTab } from './CalculationTab';
 import { HolidaysTab } from './HolidaysTab';
 import { PDFTab } from './PDFTab';
@@ -23,11 +23,12 @@ interface SettingsModalProps {
   holidays: Holiday[];
   employees: EmployeeRow[];
   dates: string[];
+  onAddRecords: (incoming: AttendanceData) => { addedEmployees: number; updatedEmployees: number; days: number };
   onSave: (policy: OTSettings['policy'], appearance: OTSettings['appearance'], pdf: OTSettings['pdf'], basicPay: Record<string, number>, holidays: Holiday[]) => void;
   onClose: () => void;
 }
 
-export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, employees, dates, onSave, onClose }: SettingsModalProps) {
+export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, employees, dates, onSave, onAddRecords, onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<
     'calculation' | 'employees' | 'holidays' | 'pdf' | 'data'
   >('calculation');
@@ -158,6 +159,9 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
                 pdf={tempPdf}
                 basicPay={tempBasicPay}
                 holidays={tempHolidays}
+                employees={employees}
+                dates={dates}
+                onAddRecords={onAddRecords}
                 onImport={(data) => {
                   setTempPolicy(data.policy);
                   setTempAppearance(data.appearance);

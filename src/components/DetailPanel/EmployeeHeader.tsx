@@ -99,23 +99,30 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
         )}
         <h2 className="min-w-0 truncate text-[14px] font-bold text-foreground tracking-tight pl-1 md:pl-3">{name}</h2>
 
-        {/* Tags slide in next to the name once condensed (always shown on desktop, where the bar only appears when condensed) */}
+        {/* ERP · designation slides in next to the name once condensed (always visible on desktop, where the bar only appears when condensed) */}
         <div
           className={cn(
-            'flex items-center gap-1.5 overflow-hidden whitespace-nowrap transition-all duration-200 ease-out',
-            condensed ? 'max-w-[240px] opacity-100' : 'max-w-0 opacity-0 md:max-w-[240px] md:opacity-100',
+            'min-w-0 flex items-center gap-1.5 overflow-hidden whitespace-nowrap transition-all duration-200 ease-out',
+            condensed ? 'max-w-[320px] opacity-100' : 'max-w-0 opacity-0 md:max-w-[320px] md:opacity-100',
           )}
         >
-          {categoryBadge}
-          <span className="hidden sm:inline-flex">{rateBadge}</span>
-          <span className="font-mono text-[11px] font-semibold text-muted-foreground">{employee.erp}</span>
+          <span className="text-muted-foreground/40 select-none hidden md:inline">|</span>
+          <span className="font-mono text-[11px] font-semibold text-foreground shrink-0">{employee.erp}</span>
+          <span className="hidden sm:inline text-muted-foreground/40 select-none">•</span>
+          <span className="hidden sm:inline min-w-0 truncate text-[11px] font-medium text-muted-foreground">{employee.designation}</span>
         </div>
 
-        <div className="ml-auto pl-2 shrink-0">
+        {/* Right slot: month while expanded (phones), KPI chips once condensed. Chips drop out as the panel narrows. */}
+        <div className="ml-auto pl-2 shrink-0 flex items-center gap-1.5">
           {condensed ? (
-            <span className="animate-in fade-in duration-200 font-mono tabular-nums text-[12px] font-extrabold text-primary whitespace-nowrap">
-              {formatCurrency(employee.totalAmount)}
-            </span>
+            <div className="animate-in fade-in duration-200 flex items-center gap-1.5">
+              {isDynamic && !isExempt && (
+                <BarStat label="Basic Pay" value={employee.basicPay > 0 ? formatCurrency(employee.basicPay) : 'Required'} warn={employee.basicPay <= 0} className="hidden @3xl:flex" />
+              )}
+              <BarStat label="Rate / Day" value={formatCurrency(dayRate)} className="hidden @2xl:flex" />
+              <BarStat label="Rate / Hour" value={formatCurrency(hourlyRate)} className="hidden @xl:flex" />
+              <BarStat label="Total OT" value={formatCurrency(employee.totalAmount)} highlight />
+            </div>
           ) : (
             <span className="md:hidden">{monthChip}</span>
           )}
@@ -132,7 +139,6 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
               </h1>
               {categoryBadge}
               {rateBadge}
-              {monthChip && <span className="md:ml-auto">{monthChip}</span>}
             </div>
 
             {/* Row 2: ERP · designation (+ badges on mobile, where row 1 is the pinned bar) */}
@@ -144,6 +150,12 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
                 {categoryBadge}
                 {rateBadge}
               </span>
+              {monthChip && (
+                <>
+                  <span className="hidden md:inline text-muted-foreground/40 select-none shrink-0">•</span>
+                  <span className="hidden md:inline-flex">{monthChip}</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -227,6 +239,41 @@ function StatCard({
       <div className={`font-mono tabular-nums leading-tight whitespace-nowrap ${highlight ? 'text-[13px] sm:text-sm font-extrabold text-primary' : 'text-[12px] sm:text-[13px] font-bold text-foreground'}`}>
         {value}
       </div>
+    </div>
+  );
+}
+
+/** Compact label-over-value chip used in the condensed title bar. */
+function BarStat({
+  label,
+  value,
+  highlight,
+  warn,
+  className,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+  warn?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'h-8 px-2 rounded-md border flex-col justify-center gap-0.5 whitespace-nowrap flex',
+        highlight ? 'bg-primary/10 border-primary/20' : 'bg-muted/50 border-border',
+        className,
+      )}
+    >
+      <span className="text-[9px] font-semibold uppercase tracking-wide leading-none text-muted-foreground">{label}</span>
+      <span
+        className={cn(
+          'font-mono tabular-nums text-[11px] leading-none',
+          highlight ? 'font-extrabold text-primary' : warn ? 'font-bold text-[var(--color-warning)]' : 'font-bold text-foreground',
+        )}
+      >
+        {value}
+      </span>
     </div>
   );
 }

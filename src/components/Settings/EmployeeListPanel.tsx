@@ -262,9 +262,12 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                         onClick={() => onOpen(emp.erp)}
                         className="flex-1 min-w-0 text-left py-2.5 outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
                       >
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[12px] font-semibold text-foreground">{toTitleCase(emp.name)}</span>
-                          <InfoBadges info={info} />
+                        {/* Row 1: name + tags on ONE line (name truncates instead of the tags wrapping) */}
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="min-w-0 truncate text-[12px] font-semibold text-foreground">{toTitleCase(emp.name)}</span>
+                          <span className="flex items-center gap-1 shrink-0">
+                            <InfoBadges info={info} />
+                          </span>
                         </div>
                         <div className="text-[10px] font-mono text-muted-foreground truncate mt-0.5">
                           {emp.erp}
@@ -308,11 +311,8 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
 function PayCell({ info, usesPay }: { info: EmployeeInfo; usesPay: boolean }) {
   if (!usesPay) {
     return (
-      <div className="shrink-0 w-[72px] text-right" title="Basic pay isn't used for this designation">
-        <div className="text-[11px] text-muted-foreground/60 leading-none">—</div>
-        <div className="mt-1 text-[9px] uppercase tracking-wider text-muted-foreground/60 leading-none">
-          {info.category === 'exempt' ? 'Exempt' : 'Fixed rate'}
-        </div>
+      <div className="shrink-0 w-[72px] text-right text-[12px] text-muted-foreground/60" title="Basic pay isn't used for this designation">
+        —
       </div>
     );
   }

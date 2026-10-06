@@ -196,7 +196,7 @@ export function EmployeesTab({
   return (
     <div className="absolute inset-0 flex">
       <EmployeeListPanel
-        className={cn('w-full lg:w-[340px] lg:shrink-0 lg:border-r lg:border-border', mobileView === 'detail' ? 'hidden lg:flex' : 'flex')}
+        className={cn('w-full lg:w-[380px] lg:shrink-0 lg:border-r lg:border-border', mobileView === 'detail' ? 'hidden lg:flex' : 'flex')}
         totalCount={employees.length}
         visibleCount={visible.length}
         groups={groups}

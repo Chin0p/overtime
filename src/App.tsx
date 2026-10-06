@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { parseJSON } from './parser/jsonParser';
 import { processEmployees } from './engine/otCalculator';
 import { useSettings } from './store/useSettings';
+import { useRecordsView } from './store/useRecordsView';
+import { mergeRecords } from './parser/mergeRecords';
 import { AttendanceData } from './types';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar/Sidebar';
@@ -15,6 +17,7 @@ import { AlertTriangle, Users } from 'lucide-react';
 
 export default function App() {
   const { policy, appearance, pdf, basicPay, holidays, saveSettings, setAppearance } = useSettings();
+  const recordsView = useRecordsView();
   
   const [uploadedData, setUploadedData] = useState<AttendanceData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -106,6 +109,14 @@ export default function App() {
     
     return `${firstMonth} ${firstYear} - ${lastMonth} ${lastYear}`;
   }, [uploadedData]);
+
+  /** Add records for one or more employees to the data that is already loaded (Settings > Backup / Reset). */
+  const handleAddRecords = (incoming: AttendanceData) => {
+    if (!uploadedData) return { addedEmployees: 0, updatedEmployees: 0, days: 0 };
+    const { data, ...summary } = mergeRecords(uploadedData, incoming);
+    setUploadedData(data);
+    return summary;
+  };
 
   const handleUpload = (fileText: string, fileName?: string) => {
     try {
@@ -248,7 +259,8 @@ export default function App() {
               {selectedEmployee ? (
                 <div key={selectedEmployee.erp} className="flex flex-col h-full relative">
                   <DetailPanel 
-                    employee={selectedEmployee} 
+                    employee={selectedEmployee}
+                    view={recordsView} 
                     monthLabel={monthLabel}
                     onBack={() => setSelectedErp(null)}
                   />
@@ -320,6 +332,7 @@ export default function App() {
           employees={uploadedData?.employees || []}
           dates={uploadedData?.dates || []}
           onSave={saveSettings}
+          onAddRecords={handleAddRecords}
           onClose={() => setIsSettingsOpen(false)}
         />
       )}

@@ -276,6 +276,17 @@
   .data-table th, .data-table td {
     padding: var(--space-sm) var(--space-md);
   }
+
+  /* Narrow panels (phones, tablets, small windows): tighter cells so the default columns fit without sideways scrolling */
+  @container (max-width: 55.99rem) {
+    .data-table th, .data-table td {
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+    .data-table th {
+      letter-spacing: 0.02em;
+    }
+  }
 }
 
 input::-webkit-outer-spin-button,

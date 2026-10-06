@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
-import { ProcessedEmployee, ColumnId } from '../../types';
+import { useMemo } from 'react';
+import { ProcessedEmployee } from '../../types';
+import { ALL_COLUMNS, DEFAULT_COLUMNS, DEFAULT_FILTER, RecordsSortKey as SortKey, RecordsView } from '../../store/useRecordsView';
 import { RecordsTable } from './RecordsTable';
 import { EmployeeHeader } from './EmployeeHeader';
 import { Filter, Check, Columns, ArrowUpDown } from 'lucide-react';
@@ -19,9 +20,9 @@ interface DetailPanelProps {
   employee: ProcessedEmployee;
   monthLabel: string;
   onBack?: () => void;
+  /** Filter / sort / columns, owned by App so they persist across employees. */
+  view: RecordsView;
 }
-
-type SortKey = 'date' | 'ot' | 'amount';
 
 const SORT_OPTIONS: { key: SortKey; label: string; asc: string; desc: string }[] = [
   { key: 'date', label: 'Date', asc: 'Oldest first', desc: 'Newest first' },
@@ -29,23 +30,11 @@ const SORT_OPTIONS: { key: SortKey; label: string; asc: string; desc: string }[]
   { key: 'amount', label: 'Amount', asc: 'Lowest first', desc: 'Highest first' },
 ];
 
-const ALL_COLUMNS: ColumnId[] = ['Office Timing', 'Total Hours Worked', 'Worked (OT)', 'Adjustment'];
-const DEFAULT_COLUMNS: ColumnId[] = ['Adjustment'];
-
 const btn = cn(buttonVariants({ variant: 'outline' }), 'w-full md:w-auto h-9 md:h-8 justify-center gap-1.5 px-3 cursor-pointer');
 const active = 'text-primary border-primary';
 
-export function DetailPanel({ employee, monthLabel, onBack }: DetailPanelProps) {
-  const [filter, setFilter] = useState<'all' | 'ot_only' | 'holidays'>('ot_only');
-  const [sortKey, setSortKey] = useState<SortKey>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [visibleColumns, setVisibleColumns] = useState<ColumnId[]>(DEFAULT_COLUMNS);
-  
-  const toggleColumn = (id: ColumnId) => {
-    setVisibleColumns(prev => 
-      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
-    );
-  };
+export function DetailPanel({ employee, monthLabel, onBack, view }: DetailPanelProps) {
+  const { filter, setFilter, sortKey, sortOrder, setSort, visibleColumns, toggleColumn } = view;
 
   const processedRecords = useMemo(() => {
     let result = [...(employee?.records || [])];
@@ -82,12 +71,12 @@ export function DetailPanel({ employee, monthLabel, onBack }: DetailPanelProps) 
       <div className="w-max min-w-full">
         <EmployeeHeader employee={employee} monthLabel={monthLabel} onBack={onBack} />
 
-        <div className="max-w-6xl mx-auto px-3 md:px-6 pt-3 pb-6 md:pt-5 flex flex-col gap-2 md:gap-4">
+        <div className="max-w-6xl mx-auto px-3 @3xl:px-6 pt-3 pb-6 md:pt-5 flex flex-col gap-2 md:gap-4">
 
           {/* Full-width action row: labelled buttons (3 equal columns on phones) */}
-          <div className="sticky left-0 w-[calc(100cqw-1.5rem)] md:w-[calc(100cqw-3rem)] grid grid-cols-3 gap-2 md:flex md:justify-end">
+          <div className="sticky left-0 w-[min(100%,calc(100cqw-1.5rem))] @3xl:w-[min(100%,calc(100cqw-3rem))] grid grid-cols-3 gap-2 md:flex md:justify-end">
             <DropdownMenu>
-              <DropdownMenuTrigger className={cn(btn, filter !== 'all' && active)}>
+              <DropdownMenuTrigger className={cn(btn, filter !== DEFAULT_FILTER && active)}>
                 <Filter size={15} />
                 <span>Filter</span>
               </DropdownMenuTrigger>
@@ -122,7 +111,7 @@ export function DetailPanel({ employee, monthLabel, onBack }: DetailPanelProps) 
                     {(['asc', 'desc'] as const).map(order => (
                       <DropdownMenuItem
                         key={order}
-                        onClick={() => { setSortKey(opt.key); setSortOrder(order); }}
+                        onClick={() => setSort(opt.key, order)}
                       >
                         {opt[order]}
                         {sortKey === opt.key && sortOrder === order && <Check size={14} className="ml-auto text-primary" />}
@@ -161,8 +150,8 @@ export function DetailPanel({ employee, monthLabel, onBack }: DetailPanelProps) 
             sortKey={sortKey}
             onToggleSort={() => {
               // Clicking the Date column always sorts by date, flipping direction.
-              if (sortKey !== 'date') { setSortKey('date'); setSortOrder('asc'); }
-              else setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+              if (sortKey !== 'date') setSort('date', 'asc');
+              else setSort('date', sortOrder === 'asc' ? 'desc' : 'asc');
             }}
           />
         </div>
