@@ -11,8 +11,31 @@ import {
 import { getHolidayName } from './holidayChecker';
 import { parseHHMM, flexibleParseDate, toTitleCase, formatCanonicalDate } from '../lib/utils';
 import { round } from '../lib/math';
-import { SUPPORT_DESIGNATION_KEYWORDS, inferIsSupport, resolveRateType, resolveCapExempt } from '../parser/parserUtils';
+import { inferIsSupport, resolveRateType, resolveCapExempt } from '../parser/parserUtils';
 import { format } from 'date-fns';
+
+/** Hours between two decimal clock times, snapped to whole minutes so 17:20 - 16:20 is exactly 1. */
+function hoursBetween(from: number, to: number): number {
+  return Math.round((to - from) * 60) / 60;
+}
+
+/**
+ * The one place that turns a raw overtime duration into payable OT hours.
+ *  1. Anything under the minimum threshold is not overtime at all → 0.
+ *  2. Otherwise apply the rounding mode (round / floor).
+ *  3. If rounding still lands under the minimum, → 0 (so there is nothing to pay).
+ * e.g. min 1 + floor: 0h36m → 0, 1h36m → 1. min 1 + round: 0h36m → 0, 1h36m → 2.
+ */
+export function computeOTHours(
+  rawHours: number,
+  minThreshold: number,
+  mode: 'floor' | 'round' = 'round',
+): number {
+  const hours = Math.round(rawHours * 60) / 60;
+  if (!(hours > 0) || hours < minThreshold) return 0;
+  const rounded = round(hours, mode);
+  return rounded > 0 && rounded >= minThreshold ? rounded : 0;
+}
 
 export function processEmployees(
   data: AttendanceData,
@@ -35,19 +58,15 @@ export function processEmployees(
   const shiftDurationHours = policy.shiftDurationHours ?? 8;
   const globalOfficeDuration = Math.max(0, globalOfficeEnd - globalOfficeStart) || shiftDurationHours;
 
-  const eligibleEmployees = employees.filter(emp => {
-    const desLower = (emp.designation || '').toLowerCase();
-    const isSupportByKeyword = SUPPORT_DESIGNATION_KEYWORDS.some(kw => desLower.includes(kw));
-    const category = emp.category || (emp.isSupport !== undefined 
-      ? (emp.isSupport ? 'support' : 'official') 
-      : policy.designationCategories?.[emp.designation] || (isSupportByKeyword ? 'support' : undefined));
-    if (category === 'exempt') return false;
-    if (!category && !emp.precalculatedRecords && !emp.totalOTHours && desLower.includes('officer')) return false;
-    return true;
-  });
+  // Category precedence: what the user chose in Settings (per designation) wins over
+  // the category the parser inferred when the file was loaded.
+  const resolveCategory = (emp: EmployeeRow): EmployeeCategory | undefined =>
+    policy.designationCategories?.[emp.designation] ?? emp.category;
+
+  const eligibleEmployees = employees.filter(emp => resolveCategory(emp) !== 'exempt');
 
   const allProcessed = eligibleEmployees.map(emp => {
-    const declaredCategory = emp.category || policy.designationCategories?.[emp.designation];
+    const declaredCategory = resolveCategory(emp);
     const isExempt = declaredCategory === 'exempt';
     const isSupport = !isExempt && (
       declaredCategory === 'support'
@@ -137,26 +156,22 @@ export function processEmployees(
 
       const timeIn = hasAttendanceTime ? parseHHMM(timeInStr) : 0;
       const timeOut = hasAttendanceTime ? parseHHMM(timeOutStr) : 0;
-      const totalWorkedHours = precalc?.totalWorkedHours !== undefined && precalc.totalWorkedHours > 0
-        ? precalc.totalWorkedHours
-        : (hasAttendanceTime ? Math.max(0, timeOut - timeIn) : 0);
+      // Durations are always calculated here; nothing is taken from the source file.
+      const totalWorkedHours = hasAttendanceTime ? Math.max(0, hoursBetween(timeIn, timeOut)) : 0;
 
       const officeStart = precalc?.officeStart ? parseHHMM(precalc.officeStart) : globalOfficeStart;
       const officeEnd = precalc?.officeEnd ? parseHHMM(precalc.officeEnd) : globalOfficeEnd;
       const officeHours = Math.max(0, officeEnd - officeStart) || globalOfficeDuration;
-      const workedHours = precalc?.workedHours !== undefined && precalc.workedHours > 0
-        ? precalc.workedHours
-        : (hasAttendanceTime ? Math.max(0, timeOut - officeEnd) : 0);
+      const workedHours = hasAttendanceTime ? Math.max(0, hoursBetween(officeEnd, timeOut)) : 0;
 
       let otHours = 0;
       let amount = 0;
-      let adjustment = precalc?.adjustment || 0;
-      const isExplicitOT = Boolean(precalc && precalc.otHours !== undefined && precalc.otHours > 0);
+      let adjustment = 0;
 
       // Late arrival adjustment: skip on holidays — arrival time is irrelevant
       // on rest days, and holiday pay is flat (not time-based).
       if (policy.lateArrivalToggle && hasAttendanceTime && !isDayHoliday && timeIn > officeStart) {
-        adjustment = round(timeIn - officeStart, roundingMode);
+        adjustment = round(hoursBetween(officeStart, timeIn), roundingMode);
       }
 
       if (!isExempt) {
@@ -180,26 +195,18 @@ export function processEmployees(
             }
           }
         } else {
-          // Regular working day overtime
-          let rawOT = 0;
-          if (precalc && precalc.otHours !== undefined && precalc.otHours > 0) {
-            rawOT = precalc.otHours;
-          } else if (timeOut > officeEnd) {
-            rawOT = round(Math.max(0, timeOut - officeEnd), roundingMode);
-          }
+          // Regular working day overtime: OT starts at shift end. Late arrival is
+          // offset hour-for-hour, then the minimum threshold and rounding mode apply.
+          const grossOT = hasAttendanceTime ? Math.max(0, hoursBetween(officeEnd, timeOut)) : 0;
+          const netOT = policy.lateArrivalToggle ? Math.max(0, grossOT - adjustment) : grossOT;
+          const eligibleOT = computeOTHours(netOT, policy.minThreshold, roundingMode);
 
-          const effectiveOT = policy.lateArrivalToggle ? Math.max(0, round(rawOT - adjustment, roundingMode)) : rawOT;
-
-          if (isExplicitOT) {
-            otHours = effectiveOT;
-          }
-
-          if (effectiveOT >= policy.minThreshold) {
+          if (eligibleOT > 0) {
             // Caps are selected by rate type, not category:
             //   Fixed rate  → 6 hrs / 480 PKR
             //   Dynamic rate → 3 hrs / 550 PKR (regardless of support vs official)
             const dailyCap = isFixedRate ? policy.support.dailyOTCap : policy.official.dailyOTCap;
-            otHours = Math.min(effectiveOT, dailyCap);
+            otHours = Math.min(eligibleOT, dailyCap);
 
             const maxDaily = isFixedRate ? policy.support.maxDailyAmount : policy.official.maxDailyAmount;
 
@@ -208,7 +215,7 @@ export function processEmployees(
             } else if (hourlyRate > 0) {
               amount = round(Math.min(otHours * hourlyRate, maxDaily), roundingMode);
             } else {
-              // Dynamic rate with no basic pay → no amount, regardless of source data
+              // Dynamic rate with no basic pay → no amount
               amount = 0;
             }
           }
@@ -224,7 +231,7 @@ export function processEmployees(
         workedHours: isDayHoliday && !hasAttendanceTime ? 0 : round(workedHours || otHours, roundingMode),
         officeHours,
         officeTiming: precalc?.officeTiming || `${(policy.officeTiming?.start || '08:00').replace(':', '')}-${(policy.officeTiming?.end || '16:00').replace(':', '')}`,
-        otHours: isExplicitOT ? otHours : round(otHours, roundingMode),
+        otHours,
         adjustment,
         amount: round(amount, roundingMode),
         remarks: precalc?.remarks || holidayName || '',
@@ -262,12 +269,12 @@ export function processEmployees(
       }
     }
 
-    let totalOTHours = round(finalRecords.reduce((sum, r) => sum + r.otHours, 0), roundingMode);
-    let totalAmount = round(finalRecords.reduce((sum, r) => sum + r.amount, 0), roundingMode);
-
-    if (totalOTHours === 0 && emp.totalOTHours !== undefined && emp.totalOTHours > 0) {
-      totalOTHours = emp.totalOTHours;
-    }
+    // Days dropped by the monthly cap are not paid, so their hours are not counted either.
+    const totalOTHours = round(
+      finalRecords.reduce((sum, r) => sum + (r.exceededMonthlyCap ? 0 : r.otHours), 0),
+      roundingMode,
+    );
+    const totalAmount = round(finalRecords.reduce((sum, r) => sum + r.amount, 0), roundingMode);
 
     return {
       erp: emp.erp,

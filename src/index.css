@@ -25,7 +25,6 @@
   --color-warning: var(--color-warning);
   --color-warning-light: var(--color-warning-light);
   --color-holiday: var(--color-holiday);
-  --color-office-order: var(--color-office-order);
   --color-late-arrival: var(--color-late-arrival);
 
   --color-neutral-hover: var(--color-neutral-hover);
@@ -66,7 +65,6 @@
   --color-warning: #F59E0B;
   --color-warning-light: #FEF3C7;
   --color-holiday: #10B981;
-  --color-office-order: #8B5CF6;
   --color-late-arrival: #F97316;
 
   --color-neutral-hover: #F1F5F9;
@@ -152,7 +150,6 @@
   --color-warning: #f59e0b;
   --color-warning-light: rgba(245, 158, 11, 0.15);
   --color-holiday: #10b981;
-  --color-office-order: #8b5cf6;
   --color-late-arrival: #f97316;
 
   /* Interactive States - Dark Mode */

@@ -26,7 +26,7 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
         >
           <TableHeader>
             <TableRow className="border-b-0">
-              <TableHead className="hidden @4xl:table-cell sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
               <TableHead 
                 className="sticky top-11 left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold cursor-pointer hover:bg-accent transition-colors select-none group"
                 onClick={onToggleSort}
@@ -39,22 +39,22 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
                   </div>
                 </div>
               </TableHead>
-              <TableHead className="hidden @4xl:table-cell sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
               <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">In</TableHead>
               <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Out</TableHead>
               {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Office Timing</TableHead>}
               {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Total Worked</TableHead>}
               {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Worked (OT)</TableHead>}
-              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold"><span className="@4xl:hidden">Adj.</span><span className="hidden @4xl:inline">Adjustment</span></TableHead>}
-              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold"><span className="@4xl:hidden">OT</span><span className="hidden @4xl:inline">OT Hrs</span></TableHead>
+              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Adjustment</TableHead>}
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
               <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
-              <TableHead className="hidden @4xl:table-cell sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
+              <TableHead className="sticky top-11 z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-border [&_tr:last-child_td:first-child]:rounded-bl-lg [&_tr:last-child_td:last-child]:rounded-br-lg">
             {records.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8 + visibleColumns.length} className="text-center py-8 text-muted-foreground text-xs">
+                <TableCell colSpan={9 + visibleColumns.length} className="text-center py-8 text-muted-foreground text-xs">
                   No records to display for this employee under the selected filter.
                 </TableCell>
               </TableRow>
@@ -63,19 +63,9 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
               <TableRow 
                 key={record.date} 
               >
-                <TableCell className="hidden @4xl:table-cell text-muted-foreground font-mono text-center">{idx + 1}</TableCell>
-                <TableCell className="sticky left-0 z-10 bg-card">
-                  <span className="hidden @4xl:inline font-medium text-foreground whitespace-nowrap">{record.date}</span>
-                  {/* Phones: short date over weekday (+ remark), so Sr/Day/Remarks columns aren't needed */}
-                  <div className="@4xl:hidden leading-tight">
-                    <div className="font-medium text-foreground">{record.date.slice(0, 6)}</div>
-                    <div className="text-[10px] text-muted-foreground max-w-[92px] truncate">
-                      {record.dayName.slice(0, 3)}
-                      {record.remarks && <span className="font-semibold"> · {record.remarks}</span>}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="hidden @4xl:table-cell text-muted-foreground whitespace-nowrap">{record.dayName}</TableCell>
+                <TableCell className="text-muted-foreground font-mono text-center">{idx + 1}</TableCell>
+                <TableCell className="sticky left-0 z-10 bg-card font-medium text-foreground whitespace-nowrap">{record.date}</TableCell>
+                <TableCell className="text-muted-foreground whitespace-nowrap">{record.dayName}</TableCell>
                 <TableCell className="font-mono text-muted-foreground whitespace-nowrap">
                   {formatTimeDisplay(record.timeIn)}
                 </TableCell>
@@ -120,12 +110,11 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
                   {record.amount > 0 ? formatAmount(record.amount) : <span className="text-muted-foreground opacity-50">—</span>}
                 </TableCell>
                 
-                <TableCell className="hidden @4xl:table-cell whitespace-nowrap">
+                <TableCell className="whitespace-nowrap">
                   {record.remarks && (
                     <span className={cn(
                       "px-2 py-0.5 text-xs font-medium rounded-[var(--radius-interactive)] pointer-events-none",
                       record.remarks === 'Holiday' ? "bg-[var(--color-holiday)]/10 text-[var(--color-holiday)]" :
-                      record.remarks === 'Office Order' ? "bg-[var(--color-office-order)]/10 text-[var(--color-office-order)]" :
                       record.remarks === 'Late Arrival' ? "bg-[var(--color-late-arrival)]/10 text-[var(--color-late-arrival)]" :
                       "bg-muted text-muted-foreground"
                     )}>

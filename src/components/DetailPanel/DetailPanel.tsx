@@ -42,7 +42,7 @@ export function DetailPanel({ employee, monthLabel, onBack, view }: DetailPanelP
     // Filter
     if (filter === 'ot_only') {
       result = result.filter(r =>
-        r.otHours >= 1 ||
+        r.otHours > 0 ||
         (r.isHoliday && r.timeIn !== '' && r.timeOut !== '')
       );
     } else if (filter === 'holidays') {

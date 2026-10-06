@@ -1,36 +1,6 @@
 import { AttendanceData, AttendanceCell, EmployeeRow, Holiday, ProcessedRecord } from '../types';
 import { buildNormalizedEmployee } from './parserUtils';
-import { parseJSON } from './jsonParser';
 import { flexibleParseDate, formatCanonicalDate } from '../lib/utils';
-
-export interface ManualDay {
-  /** dd-MMM-yyyy */
-  date: string;
-  /** HH:MM (24h) */
-  timeIn: string;
-  timeOut: string;
-}
-
-export interface ManualEntry {
-  erp: string;
-  name: string;
-  designation: string;
-  basicPay?: number;
-  days: ManualDay[];
-}
-
-/** Turn a manual entry into the same daily-record rows the JSON parser reads. */
-export function manualEntryToRows(entry: ManualEntry): Record<string, unknown>[] {
-  return entry.days.map((d) => ({
-    erp: entry.erp,
-    fullName: entry.name,
-    designation: entry.designation,
-    basicPay: entry.basicPay ?? 0,
-    date: d.date,
-    checkIn: d.timeIn,
-    checkOut: d.timeOut,
-  }));
-}
 
 const canon = (d: string) => {
   const p = flexibleParseDate(d);
@@ -114,4 +84,3 @@ export function mergeRecords(
   return { data, addedEmployees: added, updatedEmployees: updated, days };
 }
 
-export { parseJSON };

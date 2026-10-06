@@ -1,11 +1,10 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
   const isSingleFile = mode === 'singlefile';
 
   return {
@@ -27,8 +26,6 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: 3000,
       allowedHosts: true,
-      hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
     build: {
       outDir: isSingleFile ? 'dist-singlefile' : 'dist',

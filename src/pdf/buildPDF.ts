@@ -141,7 +141,7 @@ export function buildPDF(
     // in the exported detail table at all.
     const validRecords = emp.records.filter(r =>
       !r.exceededMonthlyCap &&
-      (r.otHours >= 1 || (r.isHoliday && r.timeIn !== '' && r.timeOut !== ''))
+      (r.otHours > 0 && r.otHours >= settings.policy.minThreshold || (r.isHoliday && r.timeIn !== '' && r.timeOut !== ''))
     );
     // Only generate detail pages for employees with actual valid records
     if (validRecords.length === 0) return;

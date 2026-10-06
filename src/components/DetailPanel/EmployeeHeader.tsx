@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { formatCurrency, cn, toTitleCase } from '../../lib/utils';
 import { ProcessedEmployee } from '../../types';
-import { CreditCard, Clock, Calendar, Zap, AlertTriangle, ChevronLeft, Activity, Lock } from 'lucide-react';
+import { Banknote, Coins, Clock, Calendar, Zap, AlertTriangle, ChevronLeft, Activity, Lock } from 'lucide-react';
 
 interface EmployeeHeaderProps {
   employee: ProcessedEmployee;
@@ -99,7 +99,8 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
         )}
         <h2 className="min-w-0 truncate text-[14px] font-bold text-foreground tracking-tight pl-1 md:pl-3">{name}</h2>
 
-        {/* ERP · designation slides in next to the name once condensed (always visible on desktop, where the bar only appears when condensed) */}
+        {/* Phones: only "• designation" slides in next to the name once condensed.
+            Desktop (where the bar only appears when condensed): "| ERP • designation". */}
         <div
           className={cn(
             'min-w-0 flex items-center gap-1.5 overflow-hidden whitespace-nowrap transition-all duration-200 ease-out',
@@ -107,14 +108,15 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
           )}
         >
           <span className="text-muted-foreground/40 select-none hidden md:inline">|</span>
-          <span className="font-mono text-[11px] font-semibold text-foreground shrink-0">{employee.erp}</span>
-          <span className="hidden sm:inline text-muted-foreground/40 select-none">•</span>
-          <span className="hidden sm:inline min-w-0 truncate text-[11px] font-medium text-muted-foreground">{employee.designation}</span>
+          <span className="hidden md:inline font-mono text-[11px] font-semibold text-foreground shrink-0">{employee.erp}</span>
+          <span className="text-muted-foreground/40 select-none">•</span>
+          <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">{employee.designation}</span>
         </div>
 
-        {/* Right slot: month while expanded (phones), KPI chips once condensed. Chips drop out as the panel narrows. */}
-        <div className="ml-auto pl-2 shrink-0 flex items-center gap-1.5">
-          {condensed ? (
+        {/* Right slot (desktop only): KPI chips once condensed. Chips drop out as the panel narrows.
+            Phones show nothing here; the month lives in the navbar subtitle. */}
+        <div className="ml-auto pl-2 shrink-0 hidden md:flex items-center gap-1.5">
+          {condensed && (
             <div className="animate-in fade-in duration-200 flex items-center gap-1.5">
               {isDynamic && !isExempt && (
                 <BarStat label="Basic Pay" value={employee.basicPay > 0 ? formatCurrency(employee.basicPay) : 'Required'} warn={employee.basicPay <= 0} className="hidden @3xl:flex" />
@@ -123,8 +125,6 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
               <BarStat label="Rate / Hour" value={formatCurrency(hourlyRate)} className="hidden @xl:flex" />
               <BarStat label="Total OT" value={formatCurrency(employee.totalAmount)} highlight />
             </div>
-          ) : (
-            <span className="md:hidden">{monthChip}</span>
           )}
         </div>
       </div>
@@ -176,7 +176,7 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
             >
               {isDynamic && !isExempt && (
                 <StatCard
-                  icon={<CreditCard size={13} />}
+                  icon={<Banknote size={13} />}
                   label="Basic Pay"
                   value={employee.basicPay > 0 ? formatCurrency(employee.basicPay) : (
                     <div className="flex items-center gap-1 text-[var(--color-warning)]">
@@ -200,7 +200,7 @@ export function EmployeeHeader({ employee, monthLabel, onBack }: EmployeeHeaderP
                 color="bg-card text-foreground border-border"
               />
               <StatCard
-                icon={<CreditCard size={13} />}
+                icon={<Coins size={13} />}
                 label="Total Overtime"
                 value={formatCurrency(employee.totalAmount)}
                 color="bg-primary/10 text-primary border-primary/20"

@@ -6,6 +6,8 @@ interface NavbarProps {
   onSettingsClick: () => void;
   onExportClick: () => void;
   hasData: boolean;
+  /** Month/year of the loaded file, shown under the title (falls back to the office name). */
+  monthLabel?: string;
   theme: 'light' | 'dark' | 'system';
   onThemeChange: (theme: 'light' | 'dark' | 'system') => void;
 }
@@ -14,6 +16,7 @@ export function Navbar({
   onSettingsClick, 
   onExportClick, 
   hasData, 
+  monthLabel,
   theme, 
   onThemeChange 
 }: NavbarProps) {
@@ -27,7 +30,7 @@ export function Navbar({
         <div className="min-w-0 flex-1">
           <h1 className="text-[12px] font-bold text-foreground truncate leading-tight">Overtime Manager</h1>
           <p className="text-[10px] font-normal text-muted-foreground truncate leading-tight">
-            RHO Islamabad
+            {monthLabel || 'RHO Islamabad'}
           </p>
         </div>
       </div>

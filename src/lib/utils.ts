@@ -97,7 +97,7 @@ export function parseHHMM(time: string): number {
   return 0;
 }
 
-export function flexibleParseDate(dateStr: string, defaultYear: number = 2026): Date {
+export function flexibleParseDate(dateStr: string, defaultYear: number = new Date().getFullYear()): Date {
   if (!dateStr || typeof dateStr !== 'string') return new Date(NaN);
   let normalized = dateStr.trim().replace(/\//g, '-').replace(/\./g, '-');
 
@@ -168,11 +168,11 @@ export function flexibleParseDate(dateStr: string, defaultYear: number = 2026): 
   date = parse(normalized, 'dd-MM-yy', new Date());
   if (isValid(date) && date.getFullYear() >= 2000 && date.getFullYear() <= 2100) return date;
 
-  // Try MM-dd-yyyy
-  date = parse(normalized, 'MM-dd-yyyy', new Date());
-  if (isValid(date) && date.getFullYear() >= 2000 && date.getFullYear() <= 2100) return date;
+  // Numeric day/month strings that got this far are not valid day-first dates. Do not let the
+  // native parser reinterpret them as month-first.
+  if (/^\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}/.test(dateStr.trim())) return new Date(NaN);
 
-  // Fallback to Native Date constructor
+  // Fallback to Native Date constructor (e.g. "Aug 1, 2026")
   const nativeParsed = new Date(dateStr);
   if (isValid(nativeParsed) && !isNaN(nativeParsed.getTime()) && nativeParsed.getFullYear() >= 2000 && nativeParsed.getFullYear() <= 2100) {
     return nativeParsed;

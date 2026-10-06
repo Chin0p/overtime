@@ -224,6 +224,7 @@ export default function App() {
         onSettingsClick={() => setIsSettingsOpen(true)}
         onExportClick={handleExport}
         hasData={processedEmployees.length > 0}
+        monthLabel={monthLabel}
         theme={appearance.theme || 'system'}
         onThemeChange={(theme) => {
           setAppearance({ ...appearance, theme });

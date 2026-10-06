@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { CalendarDays, X } from 'lucide-react';
 import { Holiday } from '../../types';
 import { flexibleParseDate, cn, formatCanonicalDate } from '../../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from 'date-fns';
@@ -165,44 +164,22 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
             </div>
 
             <div className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-[11px] font-bold text-foreground">Selected holidays</h4>
-                {shownHolidays.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => onChange(holidays.filter((h) => !shownHolidays.some((x) => x.h.date === h.date)))}
-                    className="text-[10px] text-muted-foreground hover:text-foreground"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
+              <h4 className="text-[11px] font-bold text-foreground mb-2">Legend</h4>
+              <ul className="space-y-1.5">
+                <LegendItem swatch="bg-card border-border" label="Working day" />
+                <LegendItem swatch="bg-muted/40 border-transparent" label="Weekend (off-day)" />
+                <LegendItem swatch="bg-primary border-primary" label="Holiday" />
+                <LegendItem swatch="bg-card border-dashed border-border" label="No attendance in file" />
+              </ul>
 
-              {shownHolidays.length === 0 ? (
-                <div className="flex flex-col items-center text-center py-5 text-muted-foreground select-none">
-                  <CalendarDays size={20} className="opacity-40 mb-1.5" />
-                  <p className="text-[11px]">No holidays yet.</p>
-                  <p className="text-[10px] opacity-80">Tap a date on the calendar.</p>
-                </div>
-              ) : (
-                <ul className="space-y-1 max-h-[220px] overflow-y-auto">
-                  {shownHolidays.map(({ h, d }) => (
-                    <li
-                      key={h.date}
-                      className="flex items-center gap-2 pl-2.5 pr-1 py-1 rounded-md bg-card border border-border"
-                    >
-                      <span className="flex-1 text-[11px] font-medium text-foreground">{format(d, 'EEE, d MMM')}</span>
-                      <button
-                        type="button"
-                        onClick={() => toggleHoliday(h.date)}
-                        className="size-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted"
-                        aria-label={`Remove ${h.date}`}
-                      >
-                        <X size={12} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+              {shownHolidays.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onChange(holidays.filter((h) => !shownHolidays.some((x) => x.h.date === h.date)))}
+                  className="mt-3 text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+                >
+                  Clear holidays
+                </button>
               )}
 
               {otherCount > 0 && (
@@ -226,5 +203,14 @@ function Stat({ value, label, accent }: { value: number; label: string; accent?:
       </div>
       <div className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1">{label}</div>
     </div>
+  );
+}
+
+function LegendItem({ swatch, label }: { swatch: string; label: string }) {
+  return (
+    <li className="flex items-center gap-2 text-[11px] text-foreground">
+      <span className={cn('size-4 rounded border shrink-0', swatch)} />
+      {label}
+    </li>
   );
 }

@@ -1,6 +1,6 @@
 import { AttendanceData, EmployeeRow, AttendanceCell, ProcessedRecord, Holiday } from '../types';
 import { buildNormalizedEmployee, inferIsSupport } from './parserUtils';
-import { formatCanonicalDate, stripSentinel } from '../lib/utils';
+import { flexibleParseDate, formatCanonicalDate, stripSentinel } from '../lib/utils';
 import { format } from 'date-fns';
 
 // ------------------------------------------------------------------
@@ -35,29 +35,35 @@ const bool = (v: any) => {
 // Value parsers
 // ------------------------------------------------------------------
 
-// "08/01/2026 00:00:00" | "01-Aug-2026" | "01" -> Date
+const MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+
+// DAUMS gives "08/01/2026 00:00:00" (mm/dd/yyyy) | also "01-Aug-2026" | "01" -> Date
+// Everything is converted to dd-MMM-yyyy by the caller (formatCanonicalDate).
 export function toDate(v: any, ctx: string): Date | null {
   if (!v) return null;
   const s = String(v).trim();
 
+  // DAUMS source format is month-first. This is the ONLY month-first format accepted.
   const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (us) return new Date(+us[3], +us[1] - 1, +us[2]);
 
   const dmy = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})/);
   if (dmy) {
-    const mi = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(dmy[2].toLowerCase());
+    const mi = MONTHS.indexOf(dmy[2].toLowerCase());
     if (mi >= 0) return new Date(+dmy[3], mi, +dmy[1]);
   }
 
-  // Day-of-month, needs month/year from filename context
+  // Day-of-month only: month (and year) must come from the file name.
+  // No month in the name → null (row is skipped with a warning) rather than a silent guess.
   if (/^\d{1,2}$/.test(s)) {
-    const y = +(ctx.match(/\b(20\d\d)\b/)?.[1] ?? 2026);
-    const m = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
-      .indexOf((ctx.toLowerCase().match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/) ?? ['jan'])[1]);
-    return new Date(y, m < 0 ? 0 : m, +s);
+    const monthMatch = ctx.toLowerCase().match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/);
+    if (!monthMatch) return null;
+    const y = +(ctx.match(/\b(20\d\d)\b/)?.[1] ?? new Date().getFullYear());
+    return new Date(y, MONTHS.indexOf(monthMatch[1]), +s);
   }
 
-  const d = new Date(s);
+  // Anything else (ISO, dd-mm-yyyy, ...) goes through the shared day-first parser.
+  const d = flexibleParseDate(s);
   return isNaN(d.getTime()) ? null : d;
 }
 
@@ -87,17 +93,6 @@ export function toTime(v: any): string {
   return '';
 }
 
-// "5h 42m" | 5.7 | "5:42" -> 5.7
-export function toHours(v: any): number {
-  if (v === undefined || v === null || v === '') return 0;
-  if (typeof v === 'number') return isNaN(v) ? 0 : v;
-  const s = String(v).trim();
-  const hm = s.match(/(\d+)\s*h\s*(\d+)\s*m/i);
-  if (hm) return +hm[1] + +hm[2] / 60;
-  const n = parseFloat(s);
-  return isNaN(n) ? 0 : n;
-}
-
 function addHours(hhmm: string, h: number): string {
   const [H, M] = hhmm.split(':').map(Number);
   const total = ((H || 0) * 60 + (M || 0) + h * 60) % 1440;
@@ -110,7 +105,7 @@ function addHours(hhmm: string, h: number): string {
 
 export function parseJSON(
   input: string | unknown,
-  ctx = 'august-2026',
+  ctx = '',
   shiftDurationHours = 8,
 ): AttendanceData {
   const parsed = typeof input === 'string' ? JSON.parse(input) : input;
@@ -178,14 +173,8 @@ export function parseJSON(
     const timeIn = stripSentinel(toTime(pick(row, ['checkIn', 'timeIn', 'time_in', 'in', 'in_time'])));
     const timeOut = stripSentinel(toTime(pick(row, ['checkOut', 'timeOut', 'time_out', 'out', 'out_time'])));
 
-    // --- Hours ---
-    const explicitOT = toHours(pick(row, ['otHours', 'ot_hours', 'overtimeHours', 'overtime_hours', 'ot']));
-    const totalWorkedHours = toHours(pick(row, ['hours', 'totalWorkedHours', 'total_worked_hours']));
-
-    // OT is time-based: it starts at shift END, not at (totalWorked − shiftDuration).
-    // Only trust explicit OT from the source; otherwise the engine computes from
-    // (timeOut − officeEnd) using the canonical shift schedule.
-    const otHours = explicitOT > 0 ? explicitOT : 0;
+    // Hours and amounts in the source are never used: the engine calculates every
+    // duration, OT hour and amount from the In/Out times and the policy.
 
     // --- Status / holiday ---
     const status = String(pick(row, ['status']) ?? '').trim();
@@ -204,15 +193,15 @@ export function parseJSON(
       dayName,
       timeIn,
       timeOut,
-      totalWorkedHours: +totalWorkedHours.toFixed(2),
-      workedHours: otHours,
+      totalWorkedHours: 0,
+      workedHours: 0,
       officeHours: shiftDurationHours,
       officeTiming: officeStart ? `${officeStart.replace(':', '')}-${officeEnd.replace(':', '')}` : undefined,
       officeStart: officeStart || undefined,
       officeEnd: officeEnd || undefined,
-      otHours,
+      otHours: 0,
       adjustment: 0,
-      amount: num(pick(row, ['amount', 'otAmount', 'ot_amount'])),
+      amount: 0,
       remarks,
       isHoliday,
     });
@@ -241,11 +230,9 @@ export function parseJSON(
     throw new Error('JSON parser: no parseable dates found in the file.');
   }
 
-  const dateList = Array.from(dates).sort((a, b) => {
-    const ta = new Date(a).getTime();
-    const tb = new Date(b).getTime();
-    return ta - tb;
-  });
+  const dateList = Array.from(dates).sort(
+    (a, b) => flexibleParseDate(a).getTime() - flexibleParseDate(b).getTime(),
+  );
 
   const holidayList: Holiday[] = Array.from(holidays, ([date, name]) => ({ date, name }));
 

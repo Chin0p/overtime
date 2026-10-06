@@ -1,10 +1,9 @@
 import React, { useRef, useState, useMemo } from 'react';
-import { Download, Upload, AlertCircle, CheckCircle2, FileJson, UserPlus } from 'lucide-react';
+import { Download, Upload, AlertCircle, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import { OTSettings, Holiday, AttendanceData, EmployeeRow } from '../../types';
 import { DEFAULT_SETTINGS } from '../../constants';
-import { parseJSON } from '../../parser/jsonParser';
+import { buildRecordsTemplate, parseRecordsCSV } from '../../parser/csvParser';
 import { CustomConfirmDialog } from '../ui/CustomConfirmDialog';
-import { ManualEntryView } from './ManualEntryView';
 
 interface AddRecordsSummary {
   addedEmployees: number;
@@ -94,7 +93,6 @@ export function DataFlowTab({
 }: DataFlowTabProps) {
   const settingsInputRef = useRef<HTMLInputElement>(null);
   const recordsInputRef = useRef<HTMLInputElement>(null);
-  const [view, setView] = useState<'main' | 'manual'>('main');
   const [importData, setImportData] = useState<ReturnType<typeof normalizeBackup> & { version?: string; timestamp?: string } | null>(null);
   const [pendingRecords, setPendingRecords] = useState<{ data: AttendanceData; fileName: string } | null>(null);
   const [notice, setNotice] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
@@ -187,13 +185,13 @@ export function DataFlowTab({
     if (!file) return;
     readFile(file, (text) => {
       try {
-        const data = parseJSON(text, file.name, policy.shiftDurationHours);
+        const data = parseRecordsCSV(text, policy.shiftDurationHours);
         setPendingRecords({ data, fileName: file.name });
         setNotice(null);
       } catch (err) {
         setNotice({
           kind: 'error',
-          text: err instanceof SyntaxError ? 'That file is not valid JSON.' : err instanceof Error ? err.message : 'Failed to read records file.',
+          text: err instanceof Error ? err.message : 'Failed to read records file.',
         });
       }
     });
@@ -222,25 +220,17 @@ export function DataFlowTab({
     });
   };
 
-  if (view === 'manual') {
-    return (
-      <ManualEntryView
-        employees={employees}
-        dates={dates}
-        onBack={() => setView('main')}
-        onSubmit={(data) => {
-          const s = onAddRecords(data);
-          setView('main');
-          setNotice({
-            kind: 'success',
-            text: s.addedEmployees
-              ? `Added a new employee with ${s.days} day${s.days === 1 ? '' : 's'} of records.`
-              : `Added ${s.days} day${s.days === 1 ? '' : 's'} to the employee's records.`,
-          });
-        }}
-      />
-    );
-  }
+  const downloadTemplate = () => {
+    const blob = new Blob([buildRecordsTemplate(dates)], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'records-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   return (
     <div className="space-y-6">
@@ -282,21 +272,25 @@ export function DataFlowTab({
       <section>
         <h3 className="text-[12px] font-bold text-foreground mb-1">Add employee records</h3>
         <p className="text-[11px] text-muted-foreground mb-3">
-          Missing someone from the attendance file? Add their days here. They are added to the data that is loaded now,
-          straight away (no need to press Save &amp; Apply). Re-load the main file and they are gone, so keep a copy of the file.
+          Missing someone from the attendance file? Import a CSV with the header{' '}
+          <code className="font-mono">erp,name,designation,01-08-2026,02-08-2026,…</code> (dates are dd-mm-yyyy) and
+          one row per employee. Each day is <code className="font-mono">HHMM:HHMM</code> (In:Out), e.g.{' '}
+          <code className="font-mono">0800:1600</code>; leave a day empty for no attendance. Category and basic pay
+          are set in Settings. Records are added to the data that is loaded now, straight away. Re-load the main
+          file and they are gone, so keep a copy of the CSV.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button type="button" disabled={!hasData} onClick={() => setView('manual')} className={cardCls}>
-            <div className={iconCls}><UserPlus size={18} /></div>
-            <span className="text-[12px] font-bold text-foreground">Enter days manually</span>
-            <span className="text-[10px] text-muted-foreground mt-0.5 text-center">Pick or create an employee, then add In/Out times</span>
-          </button>
           <button type="button" disabled={!hasData} onClick={() => recordsInputRef.current?.click()} className={cardCls}>
-            <div className={iconCls}><FileJson size={18} /></div>
-            <span className="text-[12px] font-bold text-foreground">Import records file</span>
-            <span className="text-[10px] text-muted-foreground mt-0.5 text-center">A .json file in the same format as the attendance file</span>
+            <div className={iconCls}><FileSpreadsheet size={18} /></div>
+            <span className="text-[12px] font-bold text-foreground">Import records CSV</span>
+            <span className="text-[10px] text-muted-foreground mt-0.5 text-center">erp, name, designation + one column per date</span>
           </button>
-          <input type="file" ref={recordsInputRef} onChange={handleRecordsSelect} accept=".json,application/json" className="hidden" />
+          <button type="button" disabled={!hasData} onClick={downloadTemplate} className={cardCls}>
+            <div className={iconCls}><Download size={18} /></div>
+            <span className="text-[12px] font-bold text-foreground">Download template</span>
+            <span className="text-[10px] text-muted-foreground mt-0.5 text-center">Header for the loaded month, ready to fill</span>
+          </button>
+          <input type="file" ref={recordsInputRef} onChange={handleRecordsSelect} accept=".csv,text/csv" className="hidden" />
         </div>
         {!hasData && <p className="text-[10px] text-muted-foreground mt-2">Load an attendance file first.</p>}
       </section>

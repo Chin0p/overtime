@@ -246,7 +246,10 @@ function DesignationManager({
   return (
     <div className="-m-3 sm:-m-5 flex flex-col min-h-full">
       {/* Sticky header: back + title + search */}
-      <div className="sticky top-0 z-10 bg-card border-b border-border px-3 sm:px-5 pt-3 pb-3 space-y-3">
+      {/* The settings pane has p-3 / sm:p-5 padding and this view cancels it with negative margins.
+          A sticky `top-0` pins inside that padding, which leaves a strip above the header where
+          list rows show through; offsetting by the padding pins it flush to the pane's top edge. */}
+      <div className="sticky -top-3 sm:-top-5 z-20 bg-card border-b border-border px-3 sm:px-5 pt-3 pb-3 space-y-3">
         <div className="flex items-center gap-2">
           <button
             type="button"
