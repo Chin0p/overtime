@@ -64,6 +64,19 @@ export interface OTSettings {
     designationRateTypes?: Record<string, 'fixed' | 'dynamic'>;
     /** Per-designation monthly-cap exemption. Only meaningful for fixed-rate designations. */
     designationCapExempt?: Record<string, boolean>;
+    /**
+     * Per-person overtime eligibility, keyed by ERP. Wins over the designation's category:
+     *   'exempt'   → this person gets no overtime even if the designation is paid
+     *   'included' → this person is paid even if the designation is exempt
+     * A missing key means "follow the designation".
+     */
+    employeeEligibility?: Record<string, 'exempt' | 'included'>;
+    /**
+     * Holiday dates (dd-MMM-yyyy) already offered from an uploaded file. A file's own holiday
+     * flags are copied into Settings once; after that Settings is the only source of truth, so a
+     * holiday you remove stays removed when the same file is uploaded again.
+     */
+    fileHolidaysSeen?: string[];
     roundingMode?: "floor" | "round";
   };
   appearance: {

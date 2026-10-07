@@ -13,8 +13,9 @@ export function buildPDF(
 ): jsPDFType {
   const { pdf } = settings;
   const pdfExcluded: string[] = pdf.pdfExcludedDesignations || [];
+  // Exempt employees stay visible in the dashboard but never appear in the PDF.
   const exportableEmployees = employees.filter(e =>
-    e.totalAmount > 0 && !pdfExcluded.includes(e.designation)
+    e.category !== 'exempt' && e.totalAmount > 0 && !pdfExcluded.includes(e.designation)
   );
   const doc: jsPDFType = new jsPDFConstructor({
     orientation: 'portrait',

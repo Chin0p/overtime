@@ -8,10 +8,10 @@ import {
   EmployeeCategory,
   AttendanceCell
 } from '../types';
-import { getHolidayName } from './holidayChecker';
+import { buildHolidayIndex, getHolidayNameFromIndex } from './holidayChecker';
 import { parseHHMM, flexibleParseDate, toTitleCase, formatCanonicalDate } from '../lib/utils';
 import { round } from '../lib/math';
-import { inferIsSupport, resolveRateType, resolveCapExempt } from '../parser/parserUtils';
+import { resolveCategory, resolveRateType, resolveCapExempt } from '../parser/parserUtils';
 import { format } from 'date-fns';
 
 /** Hours between two decimal clock times, snapped to whole minutes so 17:20 - 16:20 is exactly 1. */
@@ -37,9 +37,25 @@ export function computeOTHours(
   return rounded > 0 && rounded >= minThreshold ? rounded : 0;
 }
 
+/** Late arrival is rounded with the same mode as everything else (so 30 min late is 1h under Round, 0h under Floor). */
+export function lateAdjustmentHours(lateHours: number, mode: 'floor' | 'round' = 'round'): number {
+  return round(lateHours, mode);
+}
+
+/** Overtime left after the late-arrival offset (hour-for-hour), before threshold and rounding. */
+export function netOvertimeHours(grossOT: number, adjustment: number, lateArrivalToggle: boolean): number {
+  return lateArrivalToggle ? Math.max(0, grossOT - adjustment) : grossOT;
+}
+
+/**
+ * Only the policy is read here. Theme, PDF layout and the like never change a calculation, so the
+ * caller does not need to (and must not) recalculate when they change.
+ * Exempt employees are kept in the result with zero hours and zero amount, so the dashboard can
+ * still show them; the PDF leaves them out.
+ */
 export function processEmployees(
   data: AttendanceData,
-  settings: OTSettings,
+  settings: Pick<OTSettings, 'policy'>,
   basicPayMap: Record<string, number>,
   gazettedHolidays: Holiday[]
 ): ProcessedEmployee[] {
@@ -58,21 +74,27 @@ export function processEmployees(
   const shiftDurationHours = policy.shiftDurationHours ?? 8;
   const globalOfficeDuration = Math.max(0, globalOfficeEnd - globalOfficeStart) || shiftDurationHours;
 
-  // Category precedence: what the user chose in Settings (per designation) wins over
-  // the category the parser inferred when the file was loaded.
-  const resolveCategory = (emp: EmployeeRow): EmployeeCategory | undefined =>
-    policy.designationCategories?.[emp.designation] ?? emp.category;
+  // Settings is the only source of truth for holidays (gazetted dates + Saturday/Sunday). Whatever
+  // a file says about holidays is copied into Settings once at upload, never read here.
+  const holidayIndex = buildHolidayIndex(gazettedHolidays);
 
-  const eligibleEmployees = employees.filter(emp => resolveCategory(emp) !== 'exempt');
+  // Everything about a calendar day that does not depend on the employee, worked out once.
+  const dateInfo = canonicalDates.map(dateStr => {
+    const dateObj = flexibleParseDate(dateStr);
+    const valid = !isNaN(dateObj.getTime());
+    return {
+      dateStr,
+      dateObj,
+      formattedDate: valid ? formatCanonicalDate(dateObj) : dateStr,
+      holidayName: getHolidayNameFromIndex(dateObj, holidayIndex),
+      dayName: valid ? format(dateObj, 'EEEE') : null,
+    };
+  });
 
-  const allProcessed = eligibleEmployees.map(emp => {
-    const declaredCategory = resolveCategory(emp);
-    const isExempt = declaredCategory === 'exempt';
-    const isSupport = !isExempt && (
-      declaredCategory === 'support'
-      || (declaredCategory === undefined && (emp.isSupport ?? inferIsSupport(undefined, undefined, emp.designation)))
-    );
-    const category: EmployeeCategory = isExempt ? 'exempt' : (isSupport ? 'support' : 'official');
+  const allProcessed = employees.map(emp => {
+    const category: EmployeeCategory = resolveCategory(emp, policy);
+    const isExempt = category === 'exempt';
+    const isSupport = category === 'support';
 
     // Prioritize basicPayMap from settings, then fallback to emp.basicPay from uploaded file
     const erpKey = emp.erp?.trim() || '';
@@ -123,28 +145,15 @@ export function processEmployees(
       empAttendance.set(k, v);
     }
 
-    // Dates come from L1 (already sorted + canonical).
-    const targetDates = canonicalDates;
-
     const records: ProcessedRecord[] = [];
 
-    targetDates.forEach(dateStr => {
-      const dateObj = flexibleParseDate(dateStr);
-      const formattedDate = !isNaN(dateObj.getTime()) ? formatCanonicalDate(dateObj) : dateStr;
-
+    dateInfo.forEach(({ dateStr, formattedDate, holidayName, dayName: calendarDayName }) => {
       const precalc = precalcMap.get(formattedDate) || precalcMap.get(dateStr);
       const attendance = empAttendance.get(formattedDate) || empAttendance.get(dateStr);
 
-      const isRecordHoliday = Array.isArray(emp.holidayDates)
-        ? emp.holidayDates.includes(formattedDate) || emp.holidayDates.includes(dateStr)
-        : Boolean(precalc?.isHoliday);
-
-      const holidayName = getHolidayName(formattedDate, gazettedHolidays) || 
-                          getHolidayName(dateStr, gazettedHolidays) || 
-                          (isRecordHoliday ? (precalc?.remarks || 'Holiday') : null);
-
-      const isDayHoliday = holidayName !== null || Boolean(precalc?.isHoliday);
-      const dayName = !isNaN(dateObj.getTime()) ? format(dateObj, 'EEEE') : (precalc?.dayName || 'Day');
+      // Holiday status comes from Settings only (gazetted dates + Saturday/Sunday).
+      const isDayHoliday = holidayName !== null;
+      const dayName = calendarDayName ?? (precalc?.dayName || 'Day');
 
       const rawIn = attendance?.timeIn || precalc?.timeIn || '';
       const rawOut = attendance?.timeOut || precalc?.timeOut || '';
@@ -171,7 +180,7 @@ export function processEmployees(
       // Late arrival adjustment: skip on holidays — arrival time is irrelevant
       // on rest days, and holiday pay is flat (not time-based).
       if (policy.lateArrivalToggle && hasAttendanceTime && !isDayHoliday && timeIn > officeStart) {
-        adjustment = round(hoursBetween(officeStart, timeIn), roundingMode);
+        adjustment = lateAdjustmentHours(hoursBetween(officeStart, timeIn), roundingMode);
       }
 
       if (!isExempt) {
@@ -198,7 +207,7 @@ export function processEmployees(
           // Regular working day overtime: OT starts at shift end. Late arrival is
           // offset hour-for-hour, then the minimum threshold and rounding mode apply.
           const grossOT = hasAttendanceTime ? Math.max(0, hoursBetween(officeEnd, timeOut)) : 0;
-          const netOT = policy.lateArrivalToggle ? Math.max(0, grossOT - adjustment) : grossOT;
+          const netOT = netOvertimeHours(grossOT, adjustment, policy.lateArrivalToggle);
           const eligibleOT = computeOTHours(netOT, policy.minThreshold, roundingMode);
 
           if (eligibleOT > 0) {
@@ -222,6 +231,9 @@ export function processEmployees(
         }
       }
 
+      const rawRemark = (precalc?.remarks || '').trim();
+      const fileRemark = /^holiday$/i.test(rawRemark) ? '' : rawRemark;
+
       records.push({
         date: formattedDate,
         dayName,
@@ -234,7 +246,8 @@ export function processEmployees(
         otHours,
         adjustment,
         amount: round(amount, roundingMode),
-        remarks: precalc?.remarks || holidayName || '',
+        // A remark that only says "Holiday" is stale file text; the real reason comes from Settings.
+        remarks: fileRemark || holidayName || '',
         isHoliday: isDayHoliday
       });
     });

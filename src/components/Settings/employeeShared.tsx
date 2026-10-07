@@ -3,13 +3,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
 import { cn } from '../../lib/utils';
 
 export type Rate = 'fixed' | 'dynamic';
+/** One person's overtime eligibility: follow the designation, or override it just for them. */
+export type Eligibility = 'default' | 'exempt' | 'included';
 export type GroupBy = 'none' | 'designation' | 'pay' | 'category';
 export type SortBy = 'name' | 'erp' | 'designation' | 'pay';
 
 /** An employee plus everything the Employees tab derives about them. */
 export interface EmployeeInfo {
   emp: EmployeeRow;
+  /** What actually applies to this person (personal override included). */
   category: EmployeeCategory;
+  /** What the designation says, ignoring any personal override. */
+  designationCategory: EmployeeCategory;
+  /** This person's own override, if any. */
+  eligibility?: 'exempt' | 'included';
   rate: Rate;
   capExempt: boolean;
   pay: number;
@@ -51,13 +58,14 @@ const BADGE_STYLES = {
   Fixed: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
   Dynamic: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
   Capped: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+  Personal: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
 } as const;
 
 export function Badge({ label }: { label: keyof typeof BADGE_STYLES }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-semibold leading-none whitespace-nowrap',
+        'inline-flex items-center px-1.5 py-0.5 rounded-md border text-micro font-semibold leading-none whitespace-nowrap',
         BADGE_STYLES[label],
       )}
     >
@@ -71,20 +79,24 @@ export function InfoBadges({ info }: { info: EmployeeInfo }) {
   return (
     <>
       <Badge label={cat} />
+      {info.eligibility && <Badge label="Personal" />}
       {info.category !== 'exempt' && <Badge label={info.rate === 'fixed' ? 'Fixed' : 'Dynamic'} />}
       {info.category !== 'exempt' && info.rate === 'fixed' && !info.capExempt && <Badge label="Capped" />}
     </>
   );
 }
 
-/** Fixed-width (w-28, h-8) select used for every rule field so they line up. */
+/** Fixed-width (w-28 by default, h-8) select used for every rule field so they line up. */
 export function RuleSelect<T extends string>({
   value,
   options,
   onChange,
   disabled,
   mixedLabel = 'Mixed',
+  widthClass = 'w-28',
 }: {
+  /** Wider selects for longer option labels. */
+  widthClass?: string;
   /** `null` = the selection disagrees (bulk edit). */
   value: T | null;
   options: { value: T; label: string }[];
@@ -94,7 +106,7 @@ export function RuleSelect<T extends string>({
 }) {
   const current = options.find((o) => o.value === value);
   return (
-    <div className="w-28">
+    <div className={widthClass}>
       <Select value={value} onValueChange={(v) => v && onChange(v as T)} disabled={disabled}>
         <SelectTrigger className="w-full">
           <span className={cn('truncate', !current && 'text-muted-foreground')}>

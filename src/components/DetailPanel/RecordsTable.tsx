@@ -54,7 +54,7 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
           <TableBody className="divide-y divide-border [&_tr:last-child_td:first-child]:rounded-bl-lg [&_tr:last-child_td:last-child]:rounded-br-lg">
             {records.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9 + visibleColumns.length} className="text-center py-8 text-muted-foreground text-xs">
+                <TableCell colSpan={9 + visibleColumns.length} className="text-center py-8 text-muted-foreground text-ui">
                   No records to display for this employee under the selected filter.
                 </TableCell>
               </TableRow>

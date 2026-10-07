@@ -39,6 +39,14 @@ function normalizeBackup(json: any, current: { appearance: OTSettings['appearanc
     designationCategories: isObj(json.policy.designationCategories) ? json.policy.designationCategories : {},
     designationRateTypes: isObj(json.policy.designationRateTypes) ? json.policy.designationRateTypes : {},
     designationCapExempt: isObj(json.policy.designationCapExempt) ? json.policy.designationCapExempt : {},
+    employeeEligibility: isObj(json.policy.employeeEligibility)
+      ? (Object.fromEntries(
+          Object.entries(json.policy.employeeEligibility).filter(([, v]) => v === 'exempt' || v === 'included'),
+        ) as Record<string, 'exempt' | 'included'>)
+      : {},
+    fileHolidaysSeen: Array.isArray(json.policy.fileHolidaysSeen)
+      ? json.policy.fileHolidaysSeen.filter((d: unknown) => typeof d === 'string')
+      : [],
   };
   const pdf: OTSettings['pdf'] = {
     ...d.pdf,
@@ -141,6 +149,7 @@ export function DataFlowTab({
     if (inPolicy.official.dailyOTCap !== policy.official.dailyOTCap) policyDiffs.push('Dynamic daily cap');
     if (inPolicy.support.hourlyRate !== policy.support.hourlyRate) policyDiffs.push('Fixed hourly rate');
     if (JSON.stringify(inPolicy.designationCategories) !== JSON.stringify(policy.designationCategories)) policyDiffs.push('Designation categories');
+    if (JSON.stringify(inPolicy.employeeEligibility || {}) !== JSON.stringify(policy.employeeEligibility || {})) policyDiffs.push('Per-employee exemptions');
     if (policyDiffs.length) lines.push(`Policy: ${policyDiffs.join(', ')}`);
 
     const keys = new Set([...Object.keys(importData.basicPay), ...Object.keys(basicPay)]);
@@ -166,8 +175,8 @@ export function DataFlowTab({
         <div
           className={
             notice.kind === 'error'
-              ? 'p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-[11px] flex items-start gap-2'
-              : 'p-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] flex items-start gap-2'
+              ? 'p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-caption flex items-start gap-2'
+              : 'p-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-caption flex items-start gap-2'
           }
         >
           {notice.kind === 'error' ? <AlertCircle size={14} className="shrink-0 mt-0.5" /> : <CheckCircle2 size={14} className="shrink-0 mt-0.5" />}
@@ -176,20 +185,20 @@ export function DataFlowTab({
       )}
 
       <section>
-        <h3 className="text-[12px] font-bold text-foreground mb-1">Backup &amp; Restore</h3>
-        <p className="text-[11px] text-muted-foreground mb-3">
+        <h3 className="text-body font-bold text-foreground mb-1">Backup &amp; Restore</h3>
+        <p className="text-caption text-muted-foreground mb-3">
           Save your policies, designation rules, basic pay, holidays and PDF options to a JSON file, or load them back.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button type="button" onClick={handleExport} className={cardCls}>
             <div className={iconCls}><Download size={18} /></div>
-            <span className="text-[12px] font-bold text-foreground">Export Settings</span>
-            <span className="text-[10px] text-muted-foreground mt-0.5 text-center">Save to .json file</span>
+            <span className="text-ui font-bold text-foreground">Export Settings</span>
+            <span className="text-micro text-muted-foreground mt-0.5 text-center">Save to .json file</span>
           </button>
           <button type="button" onClick={() => settingsInputRef.current?.click()} className={cardCls}>
             <div className={iconCls}><Upload size={18} /></div>
-            <span className="text-[12px] font-bold text-foreground">Import Settings</span>
-            <span className="text-[10px] text-muted-foreground mt-0.5 text-center">Load from .json file</span>
+            <span className="text-ui font-bold text-foreground">Import Settings</span>
+            <span className="text-micro text-muted-foreground mt-0.5 text-center">Load from .json file</span>
           </button>
           <input type="file" ref={settingsInputRef} onChange={handleImportSelect} accept=".json,application/json" className="hidden" />
         </div>

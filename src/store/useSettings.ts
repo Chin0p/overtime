@@ -32,7 +32,9 @@ export function useSettings() {
       },
       designationCategories: saved?.designationCategories || {},
       designationRateTypes: saved?.designationRateTypes || {},
-      designationCapExempt: saved?.designationCapExempt || {}
+      designationCapExempt: saved?.designationCapExempt || {},
+      employeeEligibility: saved?.employeeEligibility || {},
+      fileHolidaysSeen: Array.isArray(saved?.fileHolidaysSeen) ? saved.fileHolidaysSeen : []
     };
   });
 

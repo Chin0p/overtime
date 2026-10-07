@@ -41,7 +41,7 @@ export function Navbar({
   onThemeChange,
 }: NavbarProps) {
   return (
-    <nav className="h-14 shrink-0 bg-background border-b border-border px-3 md:px-4 flex items-center justify-between z-50 relative gap-2 safe-nav">
+    <nav className="h-14 shrink-0 bg-background border-b border-border flex items-center justify-between z-50 relative gap-2 safe-nav">
       <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 pr-1 select-none">
         <div className="w-7 h-7 rounded-md bg-primary shrink-0 flex items-center justify-center text-primary-foreground shadow-xs">
           <Clock size={15} strokeWidth={2.5} />

@@ -64,6 +64,29 @@ export function resolveCapExempt(
   return policy.designationCapExempt?.[designation] ?? isDriver(designation);
 }
 
+/**
+ * The ONE place that decides an employee's category. The engine and the Employees & Pay tab
+ * both call it, so what Settings shows is exactly what gets paid.
+ *
+ * Precedence: this person's own eligibility → the designation's category chosen in Settings →
+ * the category the file carried → inferred from the designation.
+ */
+export function resolveCategory(
+  emp: { erp?: string; designation?: string; category?: EmployeeCategory; isSupport?: boolean },
+  policy: Pick<OTSettings['policy'], 'designationCategories' | 'employeeEligibility'>,
+): EmployeeCategory {
+  const designation = emp.designation || '';
+  const personal = emp.erp ? policy.employeeEligibility?.[emp.erp] : undefined;
+  if (personal === 'exempt') return 'exempt';
+
+  let category: EmployeeCategory | undefined = policy.designationCategories?.[designation] ?? emp.category;
+  // 'included' = paid even though the designation (or the file) says exempt.
+  if (personal === 'included' && category === 'exempt') category = undefined;
+  if (category) return category;
+
+  return (emp.isSupport ?? inferIsSupport(undefined, undefined, designation)) ? 'support' : 'official';
+}
+
 export function inferIsSupport(
   isSupportVal: boolean | undefined,
   categoryVal: string | undefined,

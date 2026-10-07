@@ -69,7 +69,7 @@ export function NumberInput({
         className={cn('w-full text-right h-8', suffix ? 'pr-12' : '')}
       />
       {suffix && (
-        <span className="absolute right-3 text-xs font-semibold text-muted-foreground pointer-events-none uppercase select-none">
+        <span className="absolute right-3 text-ui font-semibold text-muted-foreground pointer-events-none uppercase select-none">
           {suffix}
         </span>
       )}

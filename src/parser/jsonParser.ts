@@ -179,7 +179,8 @@ export function parseJSON(
     // --- Status / holiday ---
     const status = String(pick(row, ['status']) ?? '').trim();
     const isHoliday = bool(pick(row, ['isHoliday', 'is_holiday'])) === true || status === 'H';
-    const remarks = isHoliday ? 'Holiday' : String(pick(row, ['remarks', 'remark']) ?? '');
+    // Holiday wording is added by the engine from Settings; the file only supplies its own remarks.
+    const remarks = String(pick(row, ['remarks', 'remark']) ?? '');
 
     if (isHoliday) holidays.set(date, 'Holiday');
     dates.add(date);

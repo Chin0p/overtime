@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { EmployeeRow, EmployeeCategory } from '../../types';
-import { resolveRateType, resolveCapExempt } from '../../parser/parserUtils';
+import { resolveRateType, resolveCapExempt, resolveCategory } from '../../parser/parserUtils';
 import { EmployeeListPanel } from './EmployeeListPanel';
 import { EmployeeDetailPanel } from './EmployeeDetailPanel';
 import {
   CATEGORY_LABEL,
   EMPTY_FILTERS,
   EmployeeInfo,
+  Eligibility,
   Filters,
   GroupBy,
   InfoGroup,
@@ -22,18 +23,17 @@ interface EmployeesTabProps {
   designationCategories: Record<string, EmployeeCategory>;
   designationRateTypes: Record<string, 'fixed' | 'dynamic'>;
   designationCapExempt: Record<string, boolean>;
+  employeeEligibility: Record<string, 'exempt' | 'included'>;
   onBasicPayChange: (basicPay: Record<string, number>) => void;
   onDesignationChange: (
     categories: Record<string, EmployeeCategory>,
     rateTypes: Record<string, 'fixed' | 'dynamic'>,
     capExempt: Record<string, boolean>,
   ) => void;
+  onEligibilityChange: (next: Record<string, 'exempt' | 'included'>) => void;
 }
 
 const CATEGORY_ORDER: EmployeeCategory[] = ['support', 'official', 'exempt'];
-
-const defaultCategory = (designation: string): EmployeeCategory =>
-  designation.toLowerCase().includes('officer') ? 'exempt' : 'official';
 
 export function EmployeesTab({
   basicPay,
@@ -41,8 +41,10 @@ export function EmployeesTab({
   designationCategories,
   designationRateTypes,
   designationCapExempt,
+  employeeEligibility,
   onBasicPayChange,
   onDesignationChange,
+  onEligibilityChange,
 }: EmployeesTabProps) {
   const [search, setSearch] = useState('');
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
@@ -59,17 +61,21 @@ export function EmployeesTab({
     () =>
       employees.map((emp) => {
         const designation = emp.designation || '';
-        const category = designationCategories[designation] ?? defaultCategory(designation);
+        // Same function the engine uses, so this tab always shows what is actually paid.
+        const category = resolveCategory(emp, { designationCategories, employeeEligibility });
+        const designationCategory = resolveCategory(emp, { designationCategories, employeeEligibility: {} });
         const rate = resolveRateType(designation, { designationRateTypes });
         return {
           emp,
           category,
+          designationCategory,
+          eligibility: employeeEligibility[emp.erp],
           rate,
           capExempt: resolveCapExempt(designation, rate, { designationCapExempt }),
           pay: basicPay[emp.erp] !== undefined ? basicPay[emp.erp] : emp.basicPay || 0,
         };
       }),
-    [employees, basicPay, designationCategories, designationRateTypes, designationCapExempt],
+    [employees, basicPay, designationCategories, designationRateTypes, designationCapExempt, employeeEligibility],
   );
 
   const designationCounts = useMemo(() => {
@@ -169,7 +175,7 @@ export function EmployeesTab({
           delete nextCap[d];
         }
       }
-      const exempt = (nextCat[d] ?? defaultCategory(d)) === 'exempt';
+      const exempt = (nextCat[d] ?? infos.find((i) => (i.emp.designation || '') === d)?.designationCategory) === 'exempt';
       if (change.rate && !exempt) {
         nextRate[d] = change.rate;
         if (change.rate !== 'fixed') delete nextCap[d];
@@ -182,11 +188,21 @@ export function EmployeesTab({
     onDesignationChange(nextCat, nextRate, nextCap);
   };
 
+  // Personal eligibility: only the people given, never the rest of their designation.
+  const handleEligibility = (erps: string[], value: Eligibility) => {
+    const next = { ...employeeEligibility };
+    erps.forEach((erp) => {
+      if (value === 'default') delete next[erp];
+      else next[erp] = value;
+    });
+    onEligibilityChange(next);
+  };
+
   if (employees.length === 0) {
     return (
       <div className="absolute inset-0 p-5">
-        <h3 className="text-[12px] font-bold text-foreground">Employees &amp; Pay</h3>
-        <div className="mt-3 text-center py-10 text-muted-foreground text-[11px] border-2 border-dashed border-border rounded-lg select-none">
+        <h3 className="text-body font-bold text-foreground">Employees &amp; Pay</h3>
+        <div className="mt-3 text-center py-10 text-muted-foreground text-caption border-2 border-dashed border-border rounded-lg select-none">
           Upload a file to see the employee list
         </div>
       </div>
@@ -227,6 +243,7 @@ export function EmployeesTab({
         onBack={() => setMobileView('list')}
         onPayChange={handlePay}
         onRulesChange={handleRules}
+        onEligibilityChange={handleEligibility}
         onClearSelection={clearSelection}
       />
     </div>

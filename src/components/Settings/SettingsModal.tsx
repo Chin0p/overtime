@@ -16,6 +16,8 @@ import {
 } from '../ui/dialog';
 
 interface SettingsModalProps {
+  /** Driven by the parent so the dialog can play its closing animation before unmounting. */
+  open: boolean;
   policy: OTSettings['policy'];
   appearance: OTSettings['appearance'];
   pdf: OTSettings['pdf'];
@@ -27,7 +29,7 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, employees, dates, onSave, onClose }: SettingsModalProps) {
+export function SettingsModal({ open, policy, appearance, pdf, basicPay, holidays, employees, dates, onSave, onClose }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<
     'calculation' | 'employees' | 'holidays' | 'pdf' | 'data'
   >('calculation');
@@ -75,17 +77,21 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
     updatePolicy(newPolicy);
   };
 
+  const updateEmployeeEligibility = (employeeEligibility: Record<string, 'exempt' | 'included'>) => {
+    updatePolicy({ ...tempPolicy, employeeEligibility });
+  };
+
   const handleSaveAndClose = () => {
     onSave(tempPolicy, tempAppearance, tempPdf, tempBasicPay, tempHolidays);
     onClose();
   };
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100svh] max-h-[100svh] rounded-none border-border bg-card gap-0 tall:h-[min(85svh,780px)] tall:max-h-[calc(100svh-2rem)] tall:rounded-xl">
 
         <DialogHeader className="px-4 py-2 border-b border-border shrink-0 m-0">
-          <DialogTitle className="text-[12px] font-bold">Settings</DialogTitle>
+          <DialogTitle className="text-ui font-bold">Settings</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
@@ -128,7 +134,7 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
             key={activeTab}
             className={cn(
               'flex-1 min-w-0 bg-card',
-              activeTab === 'employees' ? 'relative overflow-hidden' : 'overflow-y-auto p-3 sm:p-5',
+              activeTab === 'employees' || activeTab === 'pdf' ? 'relative overflow-hidden' : 'overflow-y-auto p-3 sm:p-5',
             )}
           >
             {activeTab === 'calculation' && (
@@ -144,8 +150,10 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
                 designationCategories={tempPolicy.designationCategories}
                 designationRateTypes={tempPolicy.designationRateTypes || {}}
                 designationCapExempt={tempPolicy.designationCapExempt || {}}
+                employeeEligibility={tempPolicy.employeeEligibility || {}}
                 onBasicPayChange={updateBasicPay}
                 onDesignationChange={updateDesignationConfig}
+                onEligibilityChange={updateEmployeeEligibility}
               />
             )}
             {activeTab === 'pdf' && (
@@ -172,7 +180,7 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
 
         {/* Footer Actions */}
         <div className="px-4 py-2.5 border-t border-border bg-muted/10 shrink-0 flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground hidden sm:inline">
+          <span className="text-caption text-muted-foreground hidden sm:inline">
             Changes automatically recalculate dashboard reports
           </span>
           <div className="flex items-center gap-2 ml-auto">
@@ -180,14 +188,14 @@ export function SettingsModal({ policy, appearance, pdf, basicPay, holidays, emp
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="text-[12px] h-7 px-3"
+              className="text-ui h-7 px-3"
             >
               Cancel
             </Button>
             <Button
               size="sm"
               onClick={handleSaveAndClose}
-              className="text-[12px] h-7 px-3 font-semibold"
+              className="text-ui h-7 px-3 font-semibold"
             >
               Save & Apply
             </Button>
@@ -203,7 +211,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean, onClick:
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center w-auto md:w-full justify-start gap-2 rounded-[var(--radius-interactive)] transition-all shrink-0 px-2.5 py-1.5 text-[12px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring",
+        "flex items-center w-auto md:w-full justify-start gap-2 rounded-[var(--radius-interactive)] transition-all shrink-0 px-2.5 py-1.5 text-ui font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring",
         active
           ? "bg-[var(--color-neutral-active)] text-[var(--color-accent)] hover:bg-[var(--color-neutral-active)] hover:text-[var(--color-accent)]"
           : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-neutral-hover)]"

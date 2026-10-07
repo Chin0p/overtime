@@ -23,6 +23,8 @@ export const DEFAULT_POLICY: OTSettings['policy'] = {
   designationCategories: {},
   designationRateTypes: {},
   designationCapExempt: {},
+  employeeEligibility: {},
+  fileHolidaysSeen: [],
 };
 
 export const DEFAULT_SETTINGS: OTSettings = {

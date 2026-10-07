@@ -61,9 +61,10 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
   const allExcluded = uniqueDesignations.length > 0 && excludedCount === uniqueDesignations.length;
 
   return (
+    <div className="absolute inset-0 overflow-y-auto p-3 sm:p-5">
     <div className="space-y-6">
       <section>
-        <h3 className="text-[12px] font-bold text-foreground mb-4">Summary Options</h3>
+        <h3 className="text-body font-bold text-foreground mb-4">Summary Options</h3>
         <div className="space-y-4">
           <SettingRow
             title="Summary Sort Order"
@@ -80,8 +81,8 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
       <div className="h-px bg-border" />
 
       <section>
-        <h3 className="text-[12px] font-bold text-foreground mb-1">Designations in PDF</h3>
-        <p className="text-[11px] text-muted-foreground mb-3">
+        <h3 className="text-body font-bold text-foreground mb-1">Designations in PDF</h3>
+        <p className="text-caption text-muted-foreground mb-3">
           Choose which designations appear in the exported report.
         </p>
 
@@ -100,15 +101,15 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
           </div>
           <div className="flex-1 min-w-0">
             {uniqueDesignations.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground">Upload a file to see its designations.</p>
+              <p className="text-ui text-muted-foreground">Upload a file to see its designations.</p>
             ) : (
               <>
-                <p className="text-[12px] font-semibold text-foreground">
+                <p className="text-ui font-semibold text-foreground">
                   {excludedCount === 0
                     ? 'All designations included'
                     : `${uniqueDesignations.length - excludedCount} of ${uniqueDesignations.length} designations included`}
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                <p className="text-caption text-muted-foreground mt-0.5 truncate">
                   {excludedCount === 0
                     ? `${employees.length} employees will be in the report`
                     : `Hiding ${excludedCount} (${excludedPeople} employee${excludedPeople === 1 ? '' : 's'}): ${excluded
@@ -119,7 +120,7 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
             )}
           </div>
           {uniqueDesignations.length > 0 && (
-            <span className="shrink-0 flex items-center gap-0.5 text-[11px] font-medium text-primary">
+            <span className="shrink-0 flex items-center gap-0.5 text-caption font-medium text-primary">
               Manage
               <ChevronRight size={14} />
             </span>
@@ -127,7 +128,7 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
         </button>
 
         {allExcluded && (
-          <div className="mt-2 p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[11px] flex items-start gap-2">
+          <div className="mt-2 p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-caption flex items-start gap-2">
             <AlertTriangle size={14} className="shrink-0 text-[var(--color-warning)] mt-0.5" />
             <span className="text-[var(--color-warning)]">
               <strong>All designations are excluded.</strong> The PDF will have no pages.
@@ -139,7 +140,7 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
       <div className="h-px bg-border" />
 
       <section>
-        <h3 className="text-[12px] font-bold text-foreground mb-4">Page Layout</h3>
+        <h3 className="text-body font-bold text-foreground mb-4">Page Layout</h3>
 
         <div className="space-y-4">
           <SettingRow
@@ -151,14 +152,14 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
                 value={pdf.pageSize}
                 onValueChange={(val) => onChange({ ...pdf, pageSize: val })}
               >
-                <SelectTrigger className="w-full text-[12px]">
+                <SelectTrigger className="w-full text-ui">
                   <span className="truncate">
                     {pageSizes.find(s => s.id === pdf.pageSize)?.label || 'A4'}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
                   {pageSizes.map(size => (
-                    <SelectItem key={size.id} value={size.id} className="text-[12px]">
+                    <SelectItem key={size.id} value={size.id} className="text-ui">
                       {size.label}
                     </SelectItem>
                   ))}
@@ -185,7 +186,7 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
       <div className="h-px bg-border" />
 
       <section>
-        <h3 className="text-[12px] font-bold text-foreground mb-4">Typography & Spacing</h3>
+        <h3 className="text-body font-bold text-foreground mb-4">Typography & Spacing</h3>
         <div className="space-y-4">
           <SettingRow
             title="Table Font Size"
@@ -213,7 +214,47 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
             />
           </SettingRow>
         </div>
+
+        <PdfTablePreview fontSize={pdf.tableFontSize} padding={pdf.cellPadding} />
       </section>
+    </div>
+    </div>
+  );
+}
+
+/**
+ * A real-size sample of the report table. pt and mm are converted to CSS px (1pt = 1.333px,
+ * 1mm = 3.78px) so what you see here is the size the PDF will print at.
+ */
+function PdfTablePreview({ fontSize, padding }: { fontSize: number; padding: number }) {
+  const cell = { fontSize: `${fontSize}pt`, padding: `${padding}mm` };
+  const rows = [
+    ['1', '04-Aug-2026', 'Tue', '08:02', '19:10', '3', '550'],
+    ['2', '05-Aug-2026', 'Wed', '08:00', '18:20', '2', '366'],
+  ];
+  return (
+    <div className="mt-3">
+      <div className="overflow-x-auto rounded-md border border-border bg-white text-black">
+        <table className="w-full border-collapse tabular-nums" style={{ minWidth: 420 }}>
+          <thead>
+            <tr className="bg-neutral-200">
+              {['Sr', 'Date', 'Day', 'In', 'Out', 'OT Hrs', 'Amount'].map((h) => (
+                <th key={h} className="font-bold text-left border border-neutral-400" style={cell}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r[0]}>
+                {r.map((c, i) => (
+                  <td key={i} className="border border-neutral-400" style={cell}>{c}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-micro text-muted-foreground mt-1">Sample rows at the size they will print: {fontSize}pt text, {padding}mm padding.</p>
     </div>
   );
 }
@@ -244,12 +285,10 @@ function DesignationManager({
   const excludeShown = () => onChange(Array.from(new Set([...excluded, ...shown])));
 
   return (
-    <div className="-m-3 sm:-m-5 flex flex-col min-h-full">
-      {/* Sticky header: back + title + search */}
-      {/* The settings pane has p-3 / sm:p-5 padding and this view cancels it with negative margins.
-          A sticky `top-0` pins inside that padding, which leaves a strip above the header where
-          list rows show through; offsetting by the padding pins it flush to the pane's top edge. */}
-      <div className="sticky -top-3 sm:-top-5 z-20 bg-card border-b border-border px-3 sm:px-5 pt-3 pb-3 space-y-3">
+    <div className="absolute inset-0 flex flex-col bg-card">
+      {/* The pane gives this view all of its space (no padding). The header is a fixed block and only
+          the list below it scrolls, so nothing can ever show through above or around the header. */}
+      <div className="shrink-0 z-20 bg-card border-b border-border px-3 sm:px-5 pt-3 pb-3 space-y-3">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -260,14 +299,14 @@ function DesignationManager({
             <ChevronLeft size={18} />
           </button>
           <div className="min-w-0 flex-1">
-            <h3 className="text-[13px] font-bold text-foreground leading-tight">Designations in PDF</h3>
-            <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+            <h3 className="text-body font-bold text-foreground leading-tight">Designations in PDF</h3>
+            <p className="text-caption text-muted-foreground leading-tight mt-0.5">
               Switch off a designation to leave it out of the report.
             </p>
           </div>
           <span
             className={cn(
-              'shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold border',
+              'shrink-0 px-2 py-1 rounded-full text-micro font-semibold border',
               allExcluded
                 ? 'bg-[var(--color-warning-light)] text-[var(--color-warning)] border-[var(--color-warning)]/30'
                 : 'bg-primary/10 text-primary border-primary/20',
@@ -285,20 +324,21 @@ function DesignationManager({
               placeholder="Search designations..."
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="pl-8 text-[12px] h-8 w-full"
+              className="pl-8 text-ui h-8 w-full"
             />
           </div>
-          <button type="button" onClick={includeShown} className="shrink-0 h-8 px-2.5 rounded-lg border border-border text-[11px] font-medium hover:bg-muted">
+          <button type="button" onClick={includeShown} className="shrink-0 h-8 px-2.5 rounded-lg border border-border text-caption font-medium hover:bg-muted">
             Include all
           </button>
-          <button type="button" onClick={excludeShown} className="shrink-0 h-8 px-2.5 rounded-lg border border-border text-[11px] font-medium hover:bg-muted">
+          <button type="button" onClick={excludeShown} className="shrink-0 h-8 px-2.5 rounded-lg border border-border text-caption font-medium hover:bg-muted">
             Exclude all
           </button>
         </div>
       </div>
 
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
       {allExcluded && (
-        <div className="mx-3 sm:mx-5 mt-3 p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[11px] flex items-start gap-2">
+        <div className="mx-3 sm:mx-5 mt-3 p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-caption flex items-start gap-2">
           <AlertTriangle size={14} className="shrink-0 text-[var(--color-warning)] mt-0.5" />
           <span className="text-[var(--color-warning)]">
             <strong>Everything is excluded.</strong> The PDF will have no pages.
@@ -308,7 +348,7 @@ function DesignationManager({
 
       <ul className="px-3 sm:px-5 py-3 space-y-1.5">
         {shown.length === 0 && (
-          <li className="text-center py-10 text-muted-foreground text-[11px] border-2 border-dashed border-border rounded-lg select-none">
+          <li className="text-center py-10 text-muted-foreground text-caption border-2 border-dashed border-border rounded-lg select-none">
             No designations match “{query}”
           </li>
         )}
@@ -324,10 +364,10 @@ function DesignationManager({
                 )}
               >
                 <div className="flex-1 min-w-0">
-                  <p className={cn('text-[12px] font-medium truncate', included ? 'text-foreground' : 'text-muted-foreground line-through decoration-muted-foreground/40')}>
+                  <p className={cn('text-ui font-medium truncate', included ? 'text-foreground' : 'text-muted-foreground line-through decoration-muted-foreground/40')}>
                     {d}
                   </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                  <p className="text-micro text-muted-foreground mt-0.5">
                     {n} employee{n === 1 ? '' : 's'}
                     {!included && ' · hidden from PDF'}
                   </p>
@@ -338,6 +378,7 @@ function DesignationManager({
           );
         })}
       </ul>
+      </div>
     </div>
   );
 }

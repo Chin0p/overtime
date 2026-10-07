@@ -1,11 +1,12 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { Fragment, useState, useMemo, useEffect, useRef, useDeferredValue, startTransition } from 'react';
 import { parseJSON } from './parser/jsonParser';
 import { parseRecordsCSV } from './parser/csvParser';
 import { processEmployees } from './engine/otCalculator';
 import { useSettings } from './store/useSettings';
 import { useRecordsView } from './store/useRecordsView';
+import { useSidebarView, applySidebarView } from './store/useSidebarView';
 import { mergeRecords } from './parser/mergeRecords';
-import { AttendanceData } from './types';
+import { AttendanceData, Holiday } from './types';
 import { DataDialog } from './components/DataDialog';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar/Sidebar';
@@ -15,17 +16,22 @@ import { SettingsModal } from './components/Settings/SettingsModal';
 import { buildPDF } from './pdf/buildPDF';
 import { format } from 'date-fns';
 import { flexibleParseDate, cn } from './lib/utils';
+import { seedFileHolidays } from './lib/seedHolidays';
 import { AlertTriangle, Users } from 'lucide-react';
 
 export default function App() {
   const { policy, appearance, pdf, basicPay, holidays, saveSettings, setAppearance } = useSettings();
   const recordsView = useRecordsView();
+  const sidebarView = useSidebarView();
   
   const [uploadedData, setUploadedData] = useState<AttendanceData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedErp, setSelectedErp] = useState<string | null>(null);
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // Bumped on every open so Settings always starts from the saved values, while the same
+  // component stays mounted long enough to play its closing animation.
+  const [settingsSession, setSettingsSession] = useState(0);
   const [isDataOpen, setIsDataOpen] = useState(false);
   // "Load a different file" shows the upload screen over the loaded data (Back returns to it).
   const [loadingNewFile, setLoadingNewFile] = useState(false);
@@ -66,18 +72,25 @@ export default function App() {
 
   const processedEmployees = useMemo(() => {
     if (!uploadedData) return [];
-    return processEmployees(uploadedData, { policy, appearance, pdf }, basicPay, holidays);
-  }, [uploadedData, policy, appearance, pdf, basicPay, holidays]);
+    // Only the policy, basic pay and holidays can change a result. Theme and PDF layout changes
+    // must not trigger a recalculation.
+    return processEmployees(uploadedData, { policy }, basicPay, holidays);
+  }, [uploadedData, policy, basicPay, holidays]);
 
+  // The input stays instant; the list catches up a moment later instead of blocking each keystroke.
+  const deferredQuery = useDeferredValue(searchQuery);
+  const { filterBy, sortKey, sortOrder } = sidebarView;
   const filteredEmployees = useMemo(() => {
     // Every word must match somewhere in name, ERP or designation.
-    const terms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
-    if (terms.length === 0) return processedEmployees;
-    return processedEmployees.filter(emp => {
-      const haystack = `${emp.name} ${emp.erp} ${emp.designation}`.toLowerCase();
-      return terms.every(t => haystack.includes(t));
-    });
-  }, [processedEmployees, searchQuery]);
+    const terms = deferredQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    const matching = terms.length === 0
+      ? processedEmployees
+      : processedEmployees.filter(emp => {
+          const haystack = `${emp.name} ${emp.erp} ${emp.designation}`.toLowerCase();
+          return terms.every(t => haystack.includes(t));
+        });
+    return applySidebarView(matching, { filterBy, sortKey, sortOrder });
+  }, [processedEmployees, deferredQuery, filterBy, sortKey, sortOrder]);
 
   const selectedEmployee = useMemo(() => {
     if (!selectedErp) return null;
@@ -117,12 +130,19 @@ export default function App() {
     return `${firstMonth} ${firstYear} - ${lastMonth} ${lastYear}`;
   }, [uploadedData]);
 
+  const seedHolidays = (fileHolidays: Holiday[] | undefined) =>
+    seedFileHolidays(fileHolidays, policy.fileHolidaysSeen, holidays);
+
   /** Add records for one or more employees to the data that is already loaded (menu > Add records). */
   const handleAddRecords = (incoming: AttendanceData) => {
     if (!uploadedData) return { addedEmployees: 0, updatedEmployees: 0, days: 0 };
     const { data, ...summary } = mergeRecords(uploadedData, incoming);
     setUndoData(uploadedData);
     setUploadedData(data);
+    const seeded = seedHolidays(incoming.holidays);
+    if (seeded.changed) {
+      saveSettings({ ...policy, fileHolidaysSeen: seeded.seen }, appearance, pdf, basicPay, seeded.holidays);
+    }
     return summary;
   };
 
@@ -169,29 +189,19 @@ export default function App() {
         }
       });
 
-      let updatedHolidays = [...holidays];
-      let hasNewHolidays = false;
-      if (data.holidays && data.holidays.length > 0) {
-        const existingDates = new Set(holidays.map(h => h.date));
-        data.holidays.forEach(h => {
-          if (!existingDates.has(h.date)) {
-            updatedHolidays.push(h);
-            existingDates.add(h.date);
-            hasNewHolidays = true;
-          }
-        });
-      }
+      const seeded = seedHolidays(data.holidays);
 
-      if (hasNewBasicPay || hasNewCategories || hasNewHolidays) {
+      if (hasNewBasicPay || hasNewCategories || seeded.changed) {
         saveSettings(
           {
             ...policy,
             designationCategories: updatedCategories,
+            fileHolidaysSeen: seeded.seen,
           },
           appearance,
           pdf,
           updatedBasicPay,
-          updatedHolidays
+          seeded.holidays
         );
       }
 
@@ -219,13 +229,15 @@ export default function App() {
     }
   };
 
+  // Desktop opens on the first employee the list actually shows (so a filter never leaves the
+  // detail panel on someone who isn't in the list).
   useEffect(() => {
-    if (processedEmployees.length > 0 && !selectedErp) {
+    if (filteredEmployees.length > 0 && !selectedErp) {
       if (window.innerWidth >= 768) {
-        setSelectedErp(processedEmployees[0].erp);
+        setSelectedErp(filteredEmployees[0].erp);
       }
     }
-  }, [processedEmployees, selectedErp]);
+  }, [filteredEmployees, selectedErp]);
 
   const handleExport = () => {
     if (processedEmployees.length === 0) return;
@@ -237,10 +249,21 @@ export default function App() {
 
   const showLandingView = !uploadedData || loadingNewFile;
 
+  const openSettings = () => {
+    setSettingsSession(n => n + 1);
+    setIsSettingsOpen(true);
+  };
+
+  // Close first, recalculate after: the dialog's closing animation is painted before the (heavier)
+  // recalculation starts, so Save & Apply never feels frozen.
+  const handleSettingsSave: typeof saveSettings = (...args) => {
+    startTransition(() => saveSettings(...args));
+  };
+
   return (
-    <div className="h-[100dvh] w-screen bg-background text-foreground font-sans overflow-hidden flex flex-col relative safe-x">
+    <div className="h-[100dvh] w-screen bg-background text-foreground font-sans overflow-hidden flex flex-col relative">
       <Navbar 
-        onSettingsClick={() => setIsSettingsOpen(true)}
+        onSettingsClick={openSettings}
         onExportClick={handleExport}
         onAddRecordsClick={() => setIsDataOpen(true)}
         onLoadFileClick={() => setLoadingNewFile(true)}
@@ -253,7 +276,7 @@ export default function App() {
         }}
       />
       
-      <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden relative app-shell">
         {showLandingView ? (
           <LandingPage 
             onUpload={handleUpload} 
@@ -262,13 +285,14 @@ export default function App() {
             onReturnToDashboard={() => setLoadingNewFile(false)}
           />
         ) : (
-          <>
+          <div className="flex-1 min-h-0 min-w-0 flex flex-col md:flex-row overflow-hidden md:rounded-xl md:border md:border-border">
             <div className={cn(
               "shrink-0 w-full md:w-[320px] h-full border-r border-[var(--color-border)]",
               selectedEmployee ? "hidden md:flex md:flex-col" : "flex flex-col"
             )}>
-              <Sidebar 
+              <Sidebar
                 employees={filteredEmployees}
+                view={sidebarView}
                 selectedErp={selectedErp}
                 onSelect={setSelectedErp}
                 searchQuery={searchQuery}
@@ -291,16 +315,16 @@ export default function App() {
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] p-8 text-center">
                   <Users className="w-16 h-16 mb-4 opacity-10" strokeWidth={1.5} />
-                  <h3 className="text-[12px] font-medium text-[var(--color-text-muted)]">
+                  <h3 className="text-ui font-medium text-[var(--color-text-muted)]">
                     No Employee Selected
                   </h3>
-                  <p className="max-w-xs mt-1 text-[11px]">
+                  <p className="max-w-xs mt-1 text-caption">
                     Select an employee from the sidebar to view details.
                   </p>
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
 
         {error && (
@@ -312,8 +336,8 @@ export default function App() {
                 </svg>
               </div>
               <div>
-                <h4 className="font-bold text-[12px] text-[var(--color-danger)]">Upload Error</h4>
-                <p className="text-[11px] opacity-90">{error}</p>
+                <h4 className="font-bold text-ui text-[var(--color-danger)]">Upload Error</h4>
+                <p className="text-caption opacity-90">{error}</p>
               </div>
             </div>
           </div>
@@ -325,17 +349,17 @@ export default function App() {
               <div className="flex items-start gap-2">
                 <AlertTriangle size={16} className="shrink-0 text-[var(--color-warning)] mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-[12px] text-[var(--color-warning)]">
+                  <h4 className="font-bold text-ui text-[var(--color-warning)]">
                     {warnings.length} row{warnings.length === 1 ? '' : 's'} skipped
                   </h4>
-                  <ul className="text-[11px] opacity-90 mt-0.5 space-y-0.5 max-h-32 overflow-y-auto">
+                  <ul className="text-caption opacity-90 mt-0.5 space-y-0.5 max-h-32 overflow-y-auto">
                     {warnings.slice(0, 8).map((w, i) => <li key={i}>{w}</li>)}
                     {warnings.length > 8 && <li className="italic">…and {warnings.length - 8} more.</li>}
                   </ul>
                 </div>
                 <button
                   onClick={() => setWarnings([])}
-                  className="shrink-0 text-muted-foreground hover:text-foreground text-[11px]"
+                  className="shrink-0 text-muted-foreground hover:text-foreground text-caption"
                 >
                   Dismiss
                 </button>
@@ -357,8 +381,10 @@ export default function App() {
         />
       )}
 
-      {isSettingsOpen && (
-        <SettingsModal 
+      {(isSettingsOpen || settingsSession > 0) && (
+        <Fragment key={settingsSession}>
+        <SettingsModal
+          open={isSettingsOpen}
           policy={policy}
           appearance={appearance}
           pdf={pdf}
@@ -366,9 +392,10 @@ export default function App() {
           holidays={holidays}
           employees={uploadedData?.employees || []}
           dates={uploadedData?.dates || []}
-          onSave={saveSettings}
+          onSave={handleSettingsSave}
           onClose={() => setIsSettingsOpen(false)}
         />
+        </Fragment>
       )}
     </div>
   );

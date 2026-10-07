@@ -97,7 +97,28 @@ export function parseHHMM(time: string): number {
   return 0;
 }
 
+const MONTH_NAMES: Record<string, string> = {
+  january: 'Jan', february: 'Feb', march: 'Mar', april: 'Apr', may: 'May', june: 'Jun',
+  july: 'Jul', august: 'Aug', september: 'Sep', october: 'Oct', november: 'Nov', december: 'Dec'
+};
+
+// Parsing the same few dozen date strings thousands of times (per employee × per day × per
+// holiday) used to dominate every recalculation. Results are cached as timestamps; each caller
+// still gets its own fresh Date so nothing can mutate a shared one.
+const parseCache = new Map<string, number>();
+
 export function flexibleParseDate(dateStr: string, defaultYear: number = new Date().getFullYear()): Date {
+  if (!dateStr || typeof dateStr !== 'string') return new Date(NaN);
+  const key = `${defaultYear}|${dateStr}`;
+  const hit = parseCache.get(key);
+  if (hit !== undefined) return new Date(hit);
+  const parsed = parseDateUncached(dateStr, defaultYear);
+  if (parseCache.size > 5000) parseCache.clear();
+  parseCache.set(key, parsed.getTime());
+  return parsed;
+}
+
+function parseDateUncached(dateStr: string, defaultYear: number): Date {
   if (!dateStr || typeof dateStr !== 'string') return new Date(NaN);
   let normalized = dateStr.trim().replace(/\//g, '-').replace(/\./g, '-');
 
@@ -109,11 +130,7 @@ export function flexibleParseDate(dateStr: string, defaultYear: number = new Dat
     }
   }
   
-  // Normalize month names
-  const monthMap: Record<string, string> = {
-    january: 'Jan', february: 'Feb', march: 'Mar', april: 'Apr', may: 'May', june: 'Jun',
-    july: 'Jul', august: 'Aug', september: 'Sep', october: 'Oct', november: 'Nov', december: 'Dec'
-  };
+  const monthMap = MONTH_NAMES;
 
   const parts = normalized.split('-');
   

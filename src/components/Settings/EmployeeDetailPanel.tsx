@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { SettingRow } from './SettingRow';
 import { cn, toTitleCase } from '../../lib/utils';
 import { EmployeeCategory } from '../../types';
-import { EmployeeInfo, InfoBadges, Rate, RuleChange, RuleSelect } from './employeeShared';
+import { Eligibility, EmployeeInfo, InfoBadges, Rate, RuleChange, RuleSelect } from './employeeShared';
 
 const CATEGORY_OPTIONS: { value: EmployeeCategory; label: string }[] = [
   { value: 'support', label: 'Support' },
@@ -16,6 +16,11 @@ const CATEGORY_OPTIONS: { value: EmployeeCategory; label: string }[] = [
 const RATE_OPTIONS: { value: Rate; label: string }[] = [
   { value: 'fixed', label: 'Fixed' },
   { value: 'dynamic', label: 'Dynamic' },
+];
+const ELIGIBILITY_OPTIONS: { value: Eligibility; label: string }[] = [
+  { value: 'default', label: 'Follow designation' },
+  { value: 'exempt', label: 'Exempt' },
+  { value: 'included', label: 'Not exempt' },
 ];
 const CAP_OPTIONS = [
   { value: 'capped', label: 'Capped' },
@@ -33,6 +38,7 @@ interface Props {
   onBack: () => void;
   onPayChange: (erps: string[], value: number) => void;
   onRulesChange: (designations: string[], change: RuleChange) => void;
+  onEligibilityChange: (erps: string[], value: Eligibility) => void;
   onClearSelection: () => void;
 }
 
@@ -46,7 +52,7 @@ export function EmployeeDetailPanel(props: Props) {
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1 h-8 pl-1 pr-2 rounded-[var(--radius-interactive)] text-[12px] font-medium hover:bg-muted"
+          className="flex items-center gap-1 h-8 pl-1 pr-2 rounded-[var(--radius-interactive)] text-ui font-medium hover:bg-muted"
           aria-label="Back to employee list"
         >
           <ChevronLeft size={18} />
@@ -60,7 +66,7 @@ export function EmployeeDetailPanel(props: Props) {
         ) : active ? (
           <SingleForm info={active} {...props} />
         ) : (
-          <div className="h-full min-h-48 flex items-center justify-center text-center text-[11px] text-muted-foreground select-none">
+          <div className="h-full min-h-48 flex items-center justify-center text-center text-caption text-muted-foreground select-none">
             Pick an employee to edit their pay,
             <br />
             or tick several to edit them together.
@@ -71,12 +77,29 @@ export function EmployeeDetailPanel(props: Props) {
   );
 }
 
+/** One line explaining what the selected eligibility means for this person. */
+function eligibilityNote(eligibility: 'exempt' | 'included' | undefined, designationExempt: boolean): string {
+  if (eligibility === 'exempt') {
+    return designationExempt
+      ? 'Exempt — same as the designation.'
+      : 'Gets no overtime, even though the designation is paid.';
+  }
+  if (eligibility === 'included') {
+    return designationExempt
+      ? 'Paid overtime, even though the designation is exempt.'
+      : 'Paid overtime — same as the designation.';
+  }
+  return designationExempt
+    ? 'Follows the designation: exempt from overtime.'
+    : 'Follows the designation: paid overtime.';
+}
+
 function Card({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
     <section className="rounded-lg border border-border bg-muted/10 p-3 space-y-3">
       <div>
-        <h4 className="text-[12px] font-bold text-foreground">{title}</h4>
-        {note && <p className="text-[11px] text-muted-foreground mt-0.5">{note}</p>}
+        <h4 className="text-ui font-bold text-foreground">{title}</h4>
+        {note && <p className="text-caption text-muted-foreground mt-0.5">{note}</p>}
       </div>
       {children}
     </section>
@@ -88,15 +111,19 @@ function SingleForm({
   designationCounts,
   onPayChange,
   onRulesChange,
+  onEligibilityChange,
 }: { info: EmployeeInfo } & Props) {
-  const { emp, category, rate, capExempt, pay } = info;
+  const { emp, category, designationCategory, eligibility, rate, capExempt, pay } = info;
   const designation = emp.designation || '';
+  // This person is not paid overtime (their own setting or their designation's).
   const isExempt = category === 'exempt';
+  // The designation itself is exempt: only then do its rate / cap rules not apply.
+  const designationExempt = designationCategory === 'exempt';
   const isFixed = rate === 'fixed';
   const n = designationCounts[designation] || 1;
 
   const payNote = isExempt
-    ? 'Not used — this designation is exempt from overtime.'
+    ? 'Not used — this employee is exempt from overtime.'
     : isFixed
       ? 'Not used — this designation is paid a fixed rate.'
       : 'Used to derive the hourly and daily overtime rate.';
@@ -104,8 +131,8 @@ function SingleForm({
   return (
     <div className="space-y-4 max-w-xl">
       <div>
-        <h3 className="text-[15px] font-bold text-foreground break-words">{toTitleCase(emp.name)}</h3>
-        <p className="text-[11px] text-muted-foreground mt-0.5 break-words">
+        <h3 className="text-title font-bold text-foreground break-words">{toTitleCase(emp.name)}</h3>
+        <p className="text-caption text-muted-foreground mt-0.5 break-words">
           <span className="font-mono">{emp.erp}</span> · {designation}
         </p>
         <div className="flex flex-wrap gap-1.5 mt-2">
@@ -126,15 +153,26 @@ function SingleForm({
         </SettingRow>
       </Card>
 
+      <Card title="Overtime eligibility" note="Applies to this employee only.">
+        <SettingRow title="This employee" description={eligibilityNote(eligibility, designationExempt)}>
+          <RuleSelect
+            widthClass="w-40"
+            value={eligibility ?? 'default'}
+            options={ELIGIBILITY_OPTIONS}
+            onChange={(v) => onEligibilityChange([emp.erp], v)}
+          />
+        </SettingRow>
+      </Card>
+
       <Card
         title="Designation rules"
         note={`Applies to all ${n} employee${n === 1 ? '' : 's'} with the designation “${designation}”.`}
       >
         <RulesRows
-          category={category}
-          rate={isExempt ? null : rate}
-          cap={isExempt || !isFixed ? null : capExempt ? 'exempt' : 'capped'}
-          exempt={isExempt}
+          category={designationCategory}
+          rate={designationExempt ? null : rate}
+          cap={designationExempt || !isFixed ? null : capExempt ? 'exempt' : 'capped'}
+          exempt={designationExempt}
           fixed={isFixed}
           onChange={(c) => onRulesChange([designation], c)}
         />
@@ -148,6 +186,7 @@ function BulkForm({
   designationCounts,
   onPayChange,
   onRulesChange,
+  onEligibilityChange,
   onClearSelection,
 }: Props) {
   const [bulkPay, setBulkPay] = useState(0);
@@ -156,8 +195,9 @@ function BulkForm({
   const erps = selectedInfos.map((i) => i.emp.erp);
 
   const same = <T,>(vals: T[]): T | null => (vals.length > 0 && vals.every((v) => v === vals[0]) ? vals[0] : null);
-  const category = same(selectedInfos.map((i) => i.category));
-  const ruled = selectedInfos.filter((i) => i.category !== 'exempt');
+  const category = same(selectedInfos.map((i) => i.designationCategory));
+  const eligibility = same(selectedInfos.map((i) => i.eligibility ?? 'default'));
+  const ruled = selectedInfos.filter((i) => i.designationCategory !== 'exempt');
   const rate = same(ruled.map((i) => i.rate));
   const fixedOnes = ruled.filter((i) => i.rate === 'fixed');
   const cap = same(fixedOnes.map((i) => (i.capExempt ? 'exempt' : 'capped')));
@@ -166,12 +206,12 @@ function BulkForm({
     <div className="space-y-4 max-w-xl">
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-bold text-foreground">{selectedInfos.length} selected</h3>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
+          <h3 className="text-title font-bold text-foreground">{selectedInfos.length} selected</h3>
+          <p className="text-caption text-muted-foreground mt-0.5">
             Edit them all at once. Changes are kept when you press Save &amp; Apply.
           </p>
         </div>
-        <Button variant="outline" size="sm" className="h-7 px-2 text-[11px] gap-1" onClick={onClearSelection}>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-caption gap-1" onClick={onClearSelection}>
           <X size={12} /> Clear
         </Button>
       </div>
@@ -179,10 +219,24 @@ function BulkForm({
       <Card title="Basic pay" note="People on the same pay? Set it once for everyone selected.">
         <div className="flex flex-wrap items-center gap-2">
           <NumberInput value={bulkPay} onChange={setBulkPay} suffix="PKR" maxDigits={5} className="w-32" />
-          <Button size="sm" className="h-8 px-3 text-[11px]" disabled={bulkPay <= 0} onClick={() => onPayChange(erps, bulkPay)}>
+          <Button size="sm" className="h-8 px-3 text-caption" disabled={bulkPay <= 0} onClick={() => onPayChange(erps, bulkPay)}>
             Apply to {selectedInfos.length}
           </Button>
         </div>
+      </Card>
+
+      <Card
+        title="Overtime eligibility"
+        note={`Applies only to the ${selectedInfos.length} ticked — not to everyone with the same designation.`}
+      >
+        <SettingRow title="Selected employees" description="Follow their designation, or exempt / include just these people.">
+          <RuleSelect
+            widthClass="w-40"
+            value={eligibility}
+            options={ELIGIBILITY_OPTIONS}
+            onChange={(v) => onEligibilityChange(erps, v)}
+          />
+        </SettingRow>
       </Card>
 
       <Card

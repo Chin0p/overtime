@@ -55,7 +55,7 @@ export function LandingPage({ onUpload, error, hasExistingData, onReturnToDashbo
   }, [error]);
 
   return (
-    <div className="flex-1 w-full h-full bg-background flex flex-col items-center justify-center p-4 safe-x safe-bottom">
+    <div className="flex-1 w-full h-full bg-background flex flex-col items-center justify-center safe-pad">
       <input
         type="file"
         ref={fileInputRef}

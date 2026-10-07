@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { cn, toTitleCase, formatAmount } from '../../lib/utils';
 import { ProcessedEmployee } from '../../types';
 import { AlertTriangle, Info } from 'lucide-react';
@@ -6,21 +6,24 @@ import { AlertTriangle, Info } from 'lucide-react';
 interface EmployeeCardProps {
   employee: ProcessedEmployee;
   isSelected: boolean;
-  onClick: () => void;
+  /** Stable callback taking the ERP, so a memoized card is not re-rendered by unrelated list updates. */
+  onSelect: (erp: string) => void;
 }
 
-export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, isSelected, onClick }) => {
+export const EmployeeCard = memo(function EmployeeCard({ employee, isSelected, onSelect }: EmployeeCardProps) {
+  const isExempt = employee.category === 'exempt';
   const hasBasicPay = employee.basicPay > 0;
-  const missingPay = !hasBasicPay && employee.rateType === 'dynamic';
+  const missingPay = !isExempt && !hasBasicPay && employee.rateType === 'dynamic';
 
   return (
     <button
-      onClick={onClick}
+      onClick={() => onSelect(employee.erp)}
       className={cn(
         'w-full text-left p-3 rounded-[var(--radius-interactive)] transition-[background-color,box-shadow,color] duration-[var(--duration-fast)] flex flex-col group relative shrink-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-focus-ring)]',
         isSelected
           ? 'bg-[var(--color-selection)] text-[var(--color-selection-fg)] shadow-[inset_3px_0_0_0_var(--color-accent)]'
           : 'hover:bg-[var(--color-neutral-hover)] active:bg-[var(--color-neutral-pressed)] text-foreground',
+        isExempt && !isSelected && 'opacity-70',
       )}
     >
       <div className="flex justify-between items-center mb-0.5 w-full min-w-0">
@@ -51,7 +54,7 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, isSelected
                 : 'bg-card border-border text-muted-foreground',
             )}
           >
-            {employee.totalOTHours}h
+            {isExempt ? 'Exempt' : `${employee.totalOTHours}h`}
           </span>
         </div>
       </div>
@@ -78,4 +81,4 @@ export const EmployeeCard: React.FC<EmployeeCardProps> = ({ employee, isSelected
       </div>
     </button>
   );
-};
+});

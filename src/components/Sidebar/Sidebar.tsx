@@ -1,31 +1,44 @@
-import { useState } from 'react';
 import { Search, Filter, Check, ArrowUpDown } from 'lucide-react';
 import { ProcessedEmployee } from '../../types';
 import { EmployeeCard } from './EmployeeCard';
 import { Input } from '../ui/input';
 import { buttonVariants } from '../ui/button';
 import { cn } from '../../lib/utils';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import { SidebarFilter, SidebarSortKey, SidebarView, DEFAULT_SIDEBAR_FILTER } from '../../store/useSidebarView';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator
 } from '../ui/dropdown-menu';
 
 interface SidebarProps {
+  /** Already searched, filtered and sorted by App. */
   employees: ProcessedEmployee[];
+  view: SidebarView;
   selectedErp: string | null;
   onSelect: (erp: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
 
-type SortKey = 'file' | 'name' | 'designation' | 'ot' | 'amount';
-type SortOrder = 'asc' | 'desc';
+const FILTER_OPTIONS: { value: SidebarFilter; label: string }[] = [
+  { value: 'has_ot', label: 'Has OT Hours' },
+  { value: 'all', label: 'All Employees' },
+  { value: 'missing_pay', label: 'Missing Basic Pay' },
+  { value: 'exempt', label: 'Exempt' },
+];
 
-const SORT_OPTIONS: { key: SortKey; label: string; asc?: string; desc?: string }[] = [
+const EMPTY_TEXT: Record<SidebarFilter, string> = {
+  has_ot: 'No employees with OT hours',
+  all: 'No employees found',
+  missing_pay: 'Nobody is missing basic pay',
+  exempt: 'No exempt employees',
+};
+
+const SORT_OPTIONS: { key: SidebarSortKey; label: string; asc?: string; desc?: string }[] = [
   { key: 'file', label: 'File order' },
   { key: 'name', label: 'Name', asc: 'A to Z', desc: 'Z to A' },
   { key: 'designation', label: 'Designation', asc: 'A to Z', desc: 'Z to A' },
@@ -39,28 +52,9 @@ const iconBtn = cn(
 );
 const activeCls = 'text-primary border-primary';
 
-export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearchChange }: SidebarProps) {
-  const [filterBy, setFilterBy] = useState<'all' | 'missing_pay' | 'has_ot'>('all');
-  const [sortKey, setSortKey] = useState<SortKey>('file');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-
-  const filteredEmployees = employees.filter(emp => {
-    if (filterBy === 'missing_pay') return emp.rateType === 'dynamic' && emp.basicPay === 0;
-    if (filterBy === 'has_ot') return emp.totalOTHours > 0;
-    return true;
-  });
-
-  if (sortKey !== 'file') {
-    const dir = sortOrder === 'asc' ? 1 : -1;
-    filteredEmployees.sort((a, b) => {
-      switch (sortKey) {
-        case 'name': return a.name.localeCompare(b.name) * dir;
-        case 'designation': return (a.designation.localeCompare(b.designation) || a.name.localeCompare(b.name)) * dir;
-        case 'ot': return (a.totalOTHours - b.totalOTHours) * dir;
-        default: return (a.totalAmount - b.totalAmount) * dir;
-      }
-    });
-  }
+export function Sidebar({ employees, view, selectedErp, onSelect, searchQuery, onSearchChange }: SidebarProps) {
+  const { filterBy, setFilterBy, sortKey, sortOrder, setSort } = view;
+  const filteredEmployees = employees;
 
   return (
     <aside className="w-full h-full bg-card flex flex-col shrink-0">
@@ -74,29 +68,23 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
               placeholder="Search name, ERP or designation..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-8 text-[13px] h-8"
+              className="pl-8 text-body h-8"
             />
           </div>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className={cn(iconBtn, filterBy !== 'all' && activeCls)} title="Filter employees" aria-label="Filter employees">
+            <DropdownMenuTrigger className={cn(iconBtn, filterBy !== DEFAULT_SIDEBAR_FILTER && activeCls)} title="Filter employees" aria-label="Filter employees">
               <Filter size={14} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="text-[13px]">
+            <DropdownMenuContent align="end" className="text-body">
               <DropdownMenuLabel className="text-caption">Filter Employees</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setFilterBy('all')} className="text-[13px]">
-                All Employees
-                {filterBy === 'all' && <Check size={13} className="ml-auto text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterBy('missing_pay')} className="text-[13px]">
-                Missing Basic Pay
-                {filterBy === 'missing_pay' && <Check size={13} className="ml-auto text-primary" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterBy('has_ot')} className="text-[13px]">
-                Has OT Hours
-                {filterBy === 'has_ot' && <Check size={13} className="ml-auto text-primary" />}
-              </DropdownMenuItem>
+              {FILTER_OPTIONS.map((opt) => (
+                <DropdownMenuItem key={opt.value} onClick={() => setFilterBy(opt.value)} className="text-body">
+                  {opt.label}
+                  {filterBy === opt.value && <Check size={13} className="ml-auto text-primary" />}
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -104,7 +92,7 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
             <DropdownMenuTrigger className={cn(iconBtn, sortKey !== 'file' && activeCls)} title="Sort employees" aria-label="Sort employees">
               <ArrowUpDown size={14} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="text-[12px] w-52">
+            <DropdownMenuContent align="end" className="text-ui w-52">
               {SORT_OPTIONS.map((opt, i) => (
                 <div key={opt.key}>
                   {i > 0 && <DropdownMenuSeparator />}
@@ -114,8 +102,8 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
                       {(['asc', 'desc'] as const).map((order) => (
                         <DropdownMenuItem
                           key={order}
-                          onClick={() => { setSortKey(opt.key); setSortOrder(order); }}
-                          className="text-[13px]"
+                          onClick={() => setSort(opt.key, order)}
+                          className="text-body"
                         >
                           {opt[order]}
                           {sortKey === opt.key && sortOrder === order && <Check size={13} className="ml-auto text-primary" />}
@@ -123,7 +111,7 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
                       ))}
                     </>
                   ) : (
-                    <DropdownMenuItem onClick={() => setSortKey('file')} className="text-[13px]">
+                    <DropdownMenuItem onClick={() => setSort('file', 'asc')} className="text-body">
                       {opt.label}
                       {sortKey === 'file' && <Check size={13} className="ml-auto text-primary" />}
                     </DropdownMenuItem>
@@ -142,12 +130,21 @@ export function Sidebar({ employees, selectedErp, onSelect, searchQuery, onSearc
               key={emp.erp}
               employee={emp}
               isSelected={selectedErp === emp.erp}
-              onClick={() => onSelect(emp.erp)}
+              onSelect={onSelect}
             />
           ))
         ) : (
           <div className="p-6 w-full text-center text-caption text-muted-foreground select-none">
-            No employees found
+            {searchQuery.trim() ? 'No employees match your search' : EMPTY_TEXT[filterBy]}
+            {filterBy !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setFilterBy('all')}
+                className="block mx-auto mt-2 text-primary font-medium hover:underline cursor-pointer"
+              >
+                Show all employees
+              </button>
+            )}
           </div>
         )}
       </div>

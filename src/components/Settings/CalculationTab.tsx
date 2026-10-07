@@ -3,6 +3,16 @@ import { OTSettings } from '../../types';
 import { NumberInput } from '../ui/NumberInput';
 import { Switch } from '../ui/switch';
 import { SettingRow } from './SettingRow';
+import {
+  RoundingPreview,
+  ThresholdPreview,
+  LateArrivalPreview,
+  DailyCapPreview,
+  MaxAmountPreview,
+  MonthlyCapPreview,
+  FixedRatePreview,
+  HolidayRatePreview,
+} from './CalculationPreviews';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
 
 interface CalculationTabProps {
@@ -36,7 +46,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
   return (
     <div className="space-y-6">
       {issues.length > 0 && (
-        <div className="p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[11px] space-y-1">
+        <div className="p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-caption space-y-1">
           <div className="flex items-center gap-1.5 font-semibold text-[var(--color-warning)]">
             <AlertTriangle size={13} />
             <span>Policy issues</span>
@@ -48,11 +58,11 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
       )}
 
       <section>
-        <h3 className="text-[12px] font-bold text-foreground mb-4">Global Rules</h3>
+        <h3 className="text-body font-bold text-foreground mb-4">Global Rules</h3>
         <div className="space-y-4">
           <SettingRow
             title="Shift duration"
-            description="Standard daily working hours used to compute overtime from raw hours."
+            description="Length of a standard working day. Only used when a day has no office end time of its own."
           >
             <NumberInput
               value={policy.shiftDurationHours ?? 8}
@@ -66,6 +76,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           <SettingRow
             title="Min overtime threshold"
             description="Minimum overtime hours required to be eligible for payment."
+            preview={<ThresholdPreview policy={policy} />}
           >
             <NumberInput
               value={policy.minThreshold}
@@ -77,6 +88,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           <SettingRow
             title="Late arrival adjustment"
             description="Deduct late arrival time from the total overtime hours."
+            preview={<LateArrivalPreview policy={policy} />}
           >
             <Switch
               checked={policy.lateArrivalToggle}
@@ -87,6 +99,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           <SettingRow
             title="Rounding mode"
             description="How calculated hours and money values are rounded."
+            preview={<RoundingPreview policy={policy} />}
           >
             <div className="w-28">
               <Select
@@ -109,11 +122,12 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
       <div className="h-px bg-border" />
 
       <section>
-        <h3 className="text-[12px] font-bold text-foreground mb-4">Dynamic rate</h3>
+        <h3 className="text-body font-bold text-foreground mb-4">Dynamic rate</h3>
         <div className="space-y-4">
           <SettingRow
             title="Daily overtime cap"
             description="Maximum overtime hours allowed per day for official staff."
+            preview={<DailyCapPreview policy={policy} />}
           >
             <NumberInput
               value={policy.official.dailyOTCap}
@@ -125,6 +139,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           <SettingRow
             title="Max daily amount"
             description="Maximum amount payable per day for official staff."
+            preview={<MaxAmountPreview policy={policy} />}
           >
             <NumberInput
               value={policy.official.maxDailyAmount}
@@ -136,6 +151,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           <SettingRow
             title="Monthly day cap"
             description="Maximum number of working days for which Overtime is payable in a month."
+            preview={<MonthlyCapPreview policy={policy} />}
           >
             <NumberInput
               value={policy.official.monthlyDayCap}
@@ -149,11 +165,12 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
       <div className="h-px bg-border" />
 
       <section>
-        <h3 className="text-[12px] font-bold text-foreground mb-4">Fixed rate</h3>
+        <h3 className="text-body font-bold text-foreground mb-4">Fixed rate</h3>
         <div className="space-y-4">
           <SettingRow
             title="Daily overtime cap"
             description="Maximum overtime hours allowed per day for support staff."
+            preview={<DailyCapPreview policy={policy} fixed />}
           >
             <NumberInput
               value={policy.support.dailyOTCap}
@@ -165,6 +182,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           <SettingRow
             title="Hourly rate"
             description="Fixed hourly rate for support staff overtime."
+            preview={<FixedRatePreview policy={policy} />}
           >
             <NumberInput
               value={policy.support.hourlyRate}
@@ -176,6 +194,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           <SettingRow
             title="Holiday rate"
             description="Fixed daily rate for support staff working on holidays."
+            preview={<HolidayRatePreview policy={policy} />}
           >
             <NumberInput
               value={policy.support.holidayRate}

@@ -23,7 +23,7 @@ export function CustomConfirmDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="whitespace-pre-line text-left text-[12px]">{message}</DialogDescription>
+          <DialogDescription className="whitespace-pre-line text-left text-ui">{message}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="mt-4 gap-2 sm:gap-0">
           <Button variant="outline" onClick={onCancel}>
