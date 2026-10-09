@@ -15,6 +15,8 @@ export interface EmployeeInfo {
   category: EmployeeCategory;
   /** What the designation says, ignoring any personal override. */
   designationCategory: EmployeeCategory;
+  /** Days excluded from this person's pay (Settings). */
+  excludedCount: number;
   /** This person's own override, if any. */
   eligibility?: 'exempt' | 'included';
   rate: Rate;

@@ -6,6 +6,7 @@ import { Button } from '../ui/button';
 import { SettingRow } from './SettingRow';
 import { cn, toTitleCase } from '../../lib/utils';
 import { EmployeeCategory } from '../../types';
+import { ExcludedDaysPicker } from './ExcludedDaysPicker';
 import { Eligibility, EmployeeInfo, InfoBadges, Rate, RuleChange, RuleSelect } from './employeeShared';
 
 const CATEGORY_OPTIONS: { value: EmployeeCategory; label: string }[] = [
@@ -39,6 +40,12 @@ interface Props {
   onPayChange: (erps: string[], value: number) => void;
   onRulesChange: (designations: string[], change: RuleChange) => void;
   onEligibilityChange: (erps: string[], value: Eligibility) => void;
+  /** Days excluded per ERP, and the dates of the loaded file to pick from. */
+  excludedDays: Record<string, string[]>;
+  dates: string[];
+  /** Exclude (on) or include again (off) one day for the given people. */
+  onExcludeDay: (erps: string[], date: string, on: boolean) => void;
+  onClearExcluded: (erps: string[]) => void;
   onClearSelection: () => void;
 }
 
@@ -77,6 +84,48 @@ export function EmployeeDetailPanel(props: Props) {
   );
 }
 
+/** Pick days to leave out of pay: they stay on the dashboard (greyed, "Excluded") but not in totals or the PDF. */
+function ExcludedDaysCard({
+  erps,
+  excludedDays,
+  dates,
+  onExcludeDay,
+  onClearExcluded,
+}: Pick<Props, 'excludedDays' | 'dates' | 'onExcludeDay' | 'onClearExcluded'> & { erps: string[] }) {
+  const sets = erps.map((erp) => new Set(excludedDays[erp] || []));
+  const stateOf = (date: string) => {
+    const n = sets.filter((s) => s.has(date)).length;
+    return n === 0 ? 'none' : n === sets.length ? 'all' : 'some';
+  };
+  const total = new Set(sets.flatMap((s) => Array.from(s))).size;
+  const many = erps.length > 1;
+  return (
+    <Card
+      title="Excluded days"
+      note={
+        many
+          ? `Applies only to the ${erps.length} ticked. Left out of pay and the PDF; still shown on the dashboard.`
+          : 'Left out of this employee’s pay and the PDF; still shown on the dashboard, greyed.'
+      }
+    >
+      <ExcludedDaysPicker
+        dates={dates}
+        stateOf={stateOf}
+        onToggle={(date) => onExcludeDay(erps, date, stateOf(date) !== 'all')}
+      />
+      {total > 0 && (
+        <button
+          type="button"
+          onClick={() => onClearExcluded(erps)}
+          className="mt-3 text-caption font-medium text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer"
+        >
+          Clear excluded days
+        </button>
+      )}
+    </Card>
+  );
+}
+
 /** One line explaining what the selected eligibility means for this person. */
 function eligibilityNote(eligibility: 'exempt' | 'included' | undefined, designationExempt: boolean): string {
   if (eligibility === 'exempt') {
@@ -112,7 +161,12 @@ function SingleForm({
   onPayChange,
   onRulesChange,
   onEligibilityChange,
+  excludedDays,
+  dates,
+  onExcludeDay,
+  onClearExcluded,
 }: { info: EmployeeInfo } & Props) {
+  const excludedProps = { excludedDays, dates, onExcludeDay, onClearExcluded };
   const { emp, category, designationCategory, eligibility, rate, capExempt, pay } = info;
   const designation = emp.designation || '';
   // This person is not paid overtime (their own setting or their designation's).
@@ -164,6 +218,8 @@ function SingleForm({
         </SettingRow>
       </Card>
 
+      <ExcludedDaysCard erps={[emp.erp]} {...excludedProps} />
+
       <Card
         title="Designation rules"
         note={`Applies to all ${n} employee${n === 1 ? '' : 's'} with the designation “${designation}”.`}
@@ -187,8 +243,13 @@ function BulkForm({
   onPayChange,
   onRulesChange,
   onEligibilityChange,
+  excludedDays,
+  dates,
+  onExcludeDay,
+  onClearExcluded,
   onClearSelection,
 }: Props) {
+  const excludedProps = { excludedDays, dates, onExcludeDay, onClearExcluded };
   const [bulkPay, setBulkPay] = useState(0);
   const designations = Array.from(new Set(selectedInfos.map((i) => i.emp.designation || '')));
   const affected = designations.reduce((sum, d) => sum + (designationCounts[d] || 0), 0);
@@ -238,6 +299,8 @@ function BulkForm({
           />
         </SettingRow>
       </Card>
+
+      <ExcludedDaysCard erps={erps} {...excludedProps} />
 
       <Card
         title="Designation rules"

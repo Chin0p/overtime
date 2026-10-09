@@ -1,3 +1,4 @@
+import { SettingsSection } from './SettingsSection';
 import React, { useRef, useState, useMemo } from 'react';
 import { Download, Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { OTSettings, Holiday } from '../../types';
@@ -43,6 +44,13 @@ function normalizeBackup(json: any, current: { appearance: OTSettings['appearanc
       ? (Object.fromEntries(
           Object.entries(json.policy.employeeEligibility).filter(([, v]) => v === 'exempt' || v === 'included'),
         ) as Record<string, 'exempt' | 'included'>)
+      : {},
+    employeeExcludedDays: isObj(json.policy.employeeExcludedDays)
+      ? Object.fromEntries(
+          Object.entries(json.policy.employeeExcludedDays)
+            .filter(([, v]) => Array.isArray(v))
+            .map(([k, v]) => [k, (v as unknown[]).filter((d) => typeof d === 'string')]),
+        ) as Record<string, string[]>
       : {},
     fileHolidaysSeen: Array.isArray(json.policy.fileHolidaysSeen)
       ? json.policy.fileHolidaysSeen.filter((d: unknown) => typeof d === 'string')
@@ -150,6 +158,7 @@ export function DataFlowTab({
     if (inPolicy.support.hourlyRate !== policy.support.hourlyRate) policyDiffs.push('Fixed hourly rate');
     if (JSON.stringify(inPolicy.designationCategories) !== JSON.stringify(policy.designationCategories)) policyDiffs.push('Designation categories');
     if (JSON.stringify(inPolicy.employeeEligibility || {}) !== JSON.stringify(policy.employeeEligibility || {})) policyDiffs.push('Per-employee exemptions');
+    if (JSON.stringify(inPolicy.employeeExcludedDays || {}) !== JSON.stringify(policy.employeeExcludedDays || {})) policyDiffs.push('Excluded days');
     if (policyDiffs.length) lines.push(`Policy: ${policyDiffs.join(', ')}`);
 
     const keys = new Set([...Object.keys(importData.basicPay), ...Object.keys(basicPay)]);
@@ -170,7 +179,7 @@ export function DataFlowTab({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-3xl mx-auto">
       {notice && (
         <div
           className={
@@ -184,11 +193,10 @@ export function DataFlowTab({
         </div>
       )}
 
-      <section>
-        <h3 className="text-body font-bold text-foreground mb-1">Backup &amp; Restore</h3>
-        <p className="text-caption text-muted-foreground mb-3">
-          Save your policies, designation rules, basic pay, holidays and PDF options to a JSON file, or load them back.
-        </p>
+      <SettingsSection
+        title="Backup & Restore"
+        description="Save your policies, designation rules, basic pay, holidays and PDF options to a JSON file, or load them back."
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button type="button" onClick={handleExport} className={cardCls}>
             <div className={iconCls}><Download size={18} /></div>
@@ -202,7 +210,7 @@ export function DataFlowTab({
           </button>
           <input type="file" ref={settingsInputRef} onChange={handleImportSelect} accept=".json,application/json" className="hidden" />
         </div>
-      </section>
+      </SettingsSection>
 
       {importData && (
         <CustomConfirmDialog

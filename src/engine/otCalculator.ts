@@ -146,6 +146,7 @@ export function processEmployees(
     }
 
     const records: ProcessedRecord[] = [];
+    const excludedDays = new Set(policy.employeeExcludedDays?.[emp.erp] ?? []);
 
     dateInfo.forEach(({ dateStr, formattedDate, holidayName, dayName: calendarDayName }) => {
       const precalc = precalcMap.get(formattedDate) || precalcMap.get(dateStr);
@@ -247,8 +248,10 @@ export function processEmployees(
         adjustment,
         amount: round(amount, roundingMode),
         // A remark that only says "Holiday" is stale file text; the real reason comes from Settings.
-        remarks: fileRemark || holidayName || '',
-        isHoliday: isDayHoliday
+        // An excluded day says so instead: it is left out of this person's pay on purpose.
+        remarks: excludedDays.has(formattedDate) ? 'Excluded' : (fileRemark || holidayName || ''),
+        isHoliday: isDayHoliday,
+        ...(excludedDays.has(formattedDate) ? { excluded: true } : {}),
       });
     });
 
@@ -260,7 +263,8 @@ export function processEmployees(
     //   • Selection is by OT hours descending — the highest-OT days win.
     const capExempt = resolveCapExempt(emp.designation, rateType, policy);
     if (!isExempt && !capExempt) {
-      const workingDaysWithOT = records.filter(r => !r.isHoliday && r.otHours > 0);
+      // Excluded days are not paid, so they never compete for one of the monthly slots.
+      const workingDaysWithOT = records.filter(r => !r.excluded && !r.isHoliday && r.otHours > 0);
       if (workingDaysWithOT.length > policy.official.monthlyDayCap) {
         const topWorkingDays = [...workingDaysWithOT]
           .sort((a, b) => b.otHours - a.otHours)
@@ -269,7 +273,7 @@ export function processEmployees(
         const topDayDates = new Set(topWorkingDays.map(r => r.date));
 
         finalRecords = records.map(r => {
-          if (!r.isHoliday && r.otHours > 0 && !topDayDates.has(r.date)) {
+          if (!r.excluded && !r.isHoliday && r.otHours > 0 && !topDayDates.has(r.date)) {
             return {
               ...r,
               amount: 0,
@@ -284,10 +288,10 @@ export function processEmployees(
 
     // Days dropped by the monthly cap are not paid, so their hours are not counted either.
     const totalOTHours = round(
-      finalRecords.reduce((sum, r) => sum + (r.exceededMonthlyCap ? 0 : r.otHours), 0),
+      finalRecords.reduce((sum, r) => sum + (r.exceededMonthlyCap || r.excluded ? 0 : r.otHours), 0),
       roundingMode,
     );
-    const totalAmount = round(finalRecords.reduce((sum, r) => sum + r.amount, 0), roundingMode);
+    const totalAmount = round(finalRecords.reduce((sum, r) => sum + (r.excluded ? 0 : r.amount), 0), roundingMode);
 
     return {
       erp: emp.erp,

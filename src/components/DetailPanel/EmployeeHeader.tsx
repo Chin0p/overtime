@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { formatCurrency, cn, toTitleCase } from '../../lib/utils';
 import { ProcessedEmployee } from '../../types';
-import { Banknote, Coins, Clock, Zap, AlertTriangle, ChevronLeft, Activity, Lock } from 'lucide-react';
+import { Banknote, Coins, Clock, Zap, AlertTriangle, ChevronLeft, Activity, Lock, Info } from 'lucide-react';
 
 interface EmployeeHeaderProps {
   employee: ProcessedEmployee;
@@ -17,7 +17,7 @@ const CATEGORY_LABEL = { support: 'Support', official: 'Official', exempt: 'Exem
  *    On desktop the bar stays invisible until then, so the page starts with just the full header.
  *  - the full header: name/badges, ERP · designation, then stat cards.
  * The month/year lives in the navbar subtitle, not here.
- * Pinned elements use `sticky left-0 w-[100cqw]` so they stay put while the table scrolls sideways,
+ * Pinned elements use `sticky left-0 w-[var(--pw)]` (the panel's visible width, set by DetailPanel) so they stay put while the table scrolls sideways,
  * and share the table's centred max width + side padding so everything lines up.
  */
 export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
@@ -84,7 +84,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
       <div
         ref={barRef}
         className={cn(
-          'sticky top-0 left-0 z-30 w-[100cqw] h-[var(--header-sticky)] md:-mb-[var(--header-sticky)] border-b',
+          'sticky top-0 left-0 z-30 w-[var(--pw,100cqw)] h-[var(--header-sticky)] md:-mb-[var(--header-sticky)] border-b',
           condensed
             ? 'bg-card border-border shadow-sm'
             : 'bg-card border-border md:bg-transparent md:border-transparent md:pointer-events-none',
@@ -123,7 +123,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
         </div>
       </div>
 
-      <header ref={headerRef} className="sticky left-0 w-[100cqw] bg-card border-b border-border py-3 lg:py-5 shadow-xs">
+      <header ref={headerRef} className="sticky left-0 w-[var(--pw,100cqw)] bg-card border-b border-border py-3 lg:py-5 shadow-xs">
         <div className="max-w-6xl mx-auto px-3 @3xl:px-6 flex flex-col lg:flex-row lg:items-center justify-between gap-3 lg:gap-6">
           <div className="flex flex-col min-w-0 flex-1 gap-1.5">
             {/* Row 1 (md+): name · category · rate */}
@@ -145,6 +145,16 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
                 {rateBadge}
               </span>
             </div>
+
+            {isExempt && (
+              <div role="note" className="mt-1 flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2 text-ui text-foreground max-w-xl">
+                <Info size={14} className="mt-0.5 shrink-0 text-primary" />
+                <span>
+                  <span className="font-semibold">Exempt from overtime.</span>{' '}
+                  <span className="text-muted-foreground">No overtime is paid and this employee is left out of the PDF.</span>
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="w-full lg:w-auto flex flex-col lg:flex-row gap-2.5">
@@ -175,18 +185,23 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
                   color="bg-muted/50 text-foreground border-border"
                 />
               )}
-              <StatCard
-                icon={<Zap size={13} />}
-                label="Rate / Day"
-                value={formatCurrency(dayRate)}
-                color="bg-card text-foreground border-border"
-              />
-              <StatCard
-                icon={<Clock size={13} />}
-                label="Rate / Hour"
-                value={formatCurrency(hourlyRate)}
-                color="bg-card text-foreground border-border"
-              />
+              {/* Rates are meaningless for someone who is not paid overtime. */}
+              {!isExempt && (
+                <>
+                  <StatCard
+                    icon={<Zap size={13} />}
+                    label="Rate / Day"
+                    value={formatCurrency(dayRate)}
+                    color="bg-card text-foreground border-border"
+                  />
+                  <StatCard
+                    icon={<Clock size={13} />}
+                    label="Rate / Hour"
+                    value={formatCurrency(hourlyRate)}
+                    color="bg-card text-foreground border-border"
+                  />
+                </>
+              )}
               <StatCard
                 icon={<Coins size={13} />}
                 label="Total Overtime"

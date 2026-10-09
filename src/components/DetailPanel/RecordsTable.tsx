@@ -60,12 +60,18 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
               </TableRow>
             ) : (
               records.map((record, idx) => (
-              <TableRow 
-                key={record.date} 
+              <TableRow
+                key={record.date}
+                // An excluded day is shown for reference only: greyed, never counted or exported.
+                className={cn(record.excluded && 'text-muted-foreground')}
               >
                 <TableCell className="text-muted-foreground font-mono text-center">{idx + 1}</TableCell>
                 <TableCell className="sticky left-0 z-10 bg-card font-medium text-foreground whitespace-nowrap">{record.date}</TableCell>
-                <TableCell className="text-muted-foreground whitespace-nowrap">{record.dayName}</TableCell>
+                <TableCell className="text-muted-foreground whitespace-nowrap">
+                  {/* Short day names when the panel is narrow, so the table fits without side-scrolling. */}
+                  <span className="@3xl:hidden">{record.dayName.slice(0, 3)}</span>
+                  <span className="hidden @3xl:inline">{record.dayName}</span>
+                </TableCell>
                 <TableCell className="font-mono text-muted-foreground whitespace-nowrap">
                   {formatTimeDisplay(record.timeIn)}
                 </TableCell>
@@ -105,15 +111,17 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
                   </TableCell>
                 )}
                 
-                <TableCell className="font-bold text-foreground whitespace-nowrap">{record.otHours || '—'}</TableCell>
-                <TableCell className="text-foreground whitespace-nowrap">
+                <TableCell className={cn('font-bold whitespace-nowrap', record.excluded ? 'text-muted-foreground/70 line-through font-medium' : 'text-foreground')}>{record.otHours || '—'}</TableCell>
+                <TableCell className={cn('whitespace-nowrap', record.excluded ? 'text-muted-foreground/70 line-through' : 'text-foreground')}>
                   {record.amount > 0 ? formatAmount(record.amount) : <span className="text-muted-foreground opacity-50">—</span>}
                 </TableCell>
                 
-                <TableCell className="whitespace-nowrap">
+                {/* May wrap, so a long remark never forces the whole table wider than the panel. */}
+                <TableCell className="whitespace-normal min-w-[6rem]">
                   {record.remarks && (
                     <span className={cn(
-                      "px-2 py-0.5 text-caption font-medium rounded-[var(--radius-interactive)] pointer-events-none",
+                      "inline-block px-2 py-0.5 text-caption font-medium rounded-[var(--radius-interactive)] pointer-events-none",
+                      record.excluded && "border border-dashed border-border",
                       record.remarks === 'Holiday' ? "bg-[var(--color-holiday)]/10 text-[var(--color-holiday)]" :
                       record.remarks === 'Late Arrival' ? "bg-[var(--color-late-arrival)]/10 text-[var(--color-late-arrival)]" :
                       "bg-muted text-muted-foreground"

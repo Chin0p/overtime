@@ -43,9 +43,12 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  closeClassName,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  /** Extra classes for the built-in close button (e.g. to align it with a taller header). */
+  closeClassName?: string
 }) {
   return (
     <DialogPortal>
@@ -65,7 +68,7 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                className={cn("absolute top-2 right-2", closeClassName)}
                 size="icon-sm"
               />
             }

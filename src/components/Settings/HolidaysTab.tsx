@@ -53,6 +53,8 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
 
   const holidaySet = useMemo(() => new Set(holidays.map((h) => h.date)), [holidays]);
 
+  const [confirmClear, setConfirmClear] = useState(false);
+
   // Tapping a legend entry flashes the matching days (and dims the rest) for a moment.
   const [flash, setFlash] = useState<DayKind | null>(null);
   const flashTimer = useRef<number | undefined>(undefined);
@@ -208,20 +210,45 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
                 ))}
               </ul>
 
-              {shownHolidays.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => onChange(holidays.filter((h) => !shownHolidays.some((x) => x.h.date === h.date)))}
-                  className="mt-3 text-micro text-muted-foreground hover:text-foreground underline underline-offset-2"
-                >
-                  Clear holidays
-                </button>
-              )}
-
-              {otherCount > 0 && (
-                <p className="text-micro text-muted-foreground mt-2">
-                  +{otherCount} more saved for other months.
-                </p>
+              {holidays.length > 0 && (
+                <div className="mt-3 border-t border-border pt-3">
+                  {!confirmClear ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClear(true)}
+                      className="text-caption font-medium text-destructive hover:underline underline-offset-2 cursor-pointer"
+                    >
+                      Clear all holidays ({holidays.length})
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-caption text-foreground">
+                        Remove all {holidays.length} saved holiday{holidays.length === 1 ? '' : 's'}, including other months?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { onChange([]); setConfirmClear(false); }}
+                          className="px-2.5 py-1 rounded-md bg-destructive text-white text-caption font-semibold cursor-pointer"
+                        >
+                          Remove all
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmClear(false)}
+                          className="px-2.5 py-1 rounded-md border border-border text-caption font-medium cursor-pointer"
+                        >
+                          Keep
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {otherCount > 0 && !confirmClear && (
+                    <p className="text-micro text-muted-foreground mt-1.5">
+                      {otherCount} of them {otherCount === 1 ? 'is' : 'are'} in months not shown here.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </aside>

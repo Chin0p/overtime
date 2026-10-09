@@ -257,6 +257,11 @@
 }
 
 /* Type scale — @utility (not plain classes) so variants such as sm:text-body work */
+@utility text-header {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+}
 @utility text-micro {
   font-size: 10px;
   line-height: 1.3;

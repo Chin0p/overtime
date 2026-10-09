@@ -1,5 +1,5 @@
 import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
 import { format, parse, isValid } from 'date-fns';
 
 /**
@@ -26,6 +26,19 @@ export function stripSentinel(v: unknown): string {
   if (lower === 'null' || lower === 'nil' || lower === 'n/a' || lower === 'na' || lower === 'undefined') return '';
   return s;
 }
+
+/**
+ * tailwind-merge has to be told about the app's type scale. Without it, `text-ui` / `text-caption`
+ * look like text COLOURS, so merging them with a real colour class (e.g. a button's
+ * `text-primary-foreground`) silently deleted one of the two.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [{ text: ['header', 'display', 'title', 'body', 'label', 'ui', 'caption', 'micro'] }],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

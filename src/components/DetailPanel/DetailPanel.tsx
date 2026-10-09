@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { ProcessedEmployee } from '../../types';
 import { ALL_COLUMNS, DEFAULT_COLUMNS, DEFAULT_FILTER, RecordsSortKey as SortKey, RecordsView } from '../../store/useRecordsView';
 import { RecordsTable } from './RecordsTable';
@@ -60,20 +60,34 @@ export function DetailPanel({ employee, onBack, view }: DetailPanelProps) {
     return result;
   }, [employee?.records, filter, sortKey, sortOrder]);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const sync = () => el.style.setProperty('--pw', `${el.clientWidth}px`);
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const sortActive = sortKey !== 'date' || sortOrder !== 'asc';
 
   return (
-    // The panel is the ONE scroll container (both axes). `@container` lets the
-    // pinned bars size themselves to the visible width (100cqw) while the table
-    // scrolls sideways underneath them.
-    <div data-scroll-root className="@container h-full min-h-0 bg-background overflow-auto overscroll-contain">
+    // The panel is the ONE scroll container (both axes). The pinned bars size themselves to the
+    // visible width (--pw, set below) while the table scrolls sideways underneath them.
+    // --pw is the panel's clientWidth, i.e. WITHOUT its vertical scrollbar. 100cqw is not: it
+    // includes the scrollbar, which made every pinned bar 15px too wide on Windows and produced a
+    // horizontal scrollbar even when the table fit.
+    <div ref={scrollRef} data-scroll-root className="@container h-full min-h-0 bg-background overflow-auto overscroll-contain">
       <div className="w-max min-w-full">
         <EmployeeHeader employee={employee} onBack={onBack} />
 
         <div className="max-w-6xl mx-auto px-3 @3xl:px-6 pt-3 pb-6 md:pt-5 flex flex-col gap-2 md:gap-4">
 
           {/* Full-width action row: labelled buttons (3 equal columns on phones) */}
-          <div className="sticky left-0 w-[min(100%,calc(100cqw-1.5rem))] @3xl:w-[min(100%,calc(100cqw-3rem))] grid grid-cols-3 gap-2 md:flex md:justify-end">
+          {/* Pinned at the same offset as its natural position (the side padding), so it does not slide when the table is scrolled sideways. */}
+          <div className="sticky left-3 @3xl:left-6 w-[min(100%,calc(var(--pw,100cqw)-1.5rem))] @3xl:w-[min(100%,calc(var(--pw,100cqw)-3rem))] grid grid-cols-3 gap-2 md:flex md:justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger className={cn(btn, filter !== DEFAULT_FILTER && active)}>
                 <Filter size={15} />

@@ -3,6 +3,7 @@ import { OTSettings, EmployeeRow } from '../../types';
 import { NumberInput } from '../ui/NumberInput';
 import { Switch } from '../ui/switch';
 import { SettingRow } from './SettingRow';
+import { SettingsSection } from './SettingsSection';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
 import { AlertTriangle, ChevronLeft, ChevronRight, Search, FileText } from 'lucide-react';
 import { Input } from '../ui/input';
@@ -61,11 +62,9 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
   const allExcluded = uniqueDesignations.length > 0 && excludedCount === uniqueDesignations.length;
 
   return (
-    <div className="absolute inset-0 overflow-y-auto p-3 sm:p-5">
-    <div className="space-y-6">
-      <section>
-        <h3 className="text-body font-bold text-foreground mb-4">Summary Options</h3>
-        <div className="space-y-4">
+    <div className="absolute inset-0 overflow-y-auto bg-muted/25 p-4 sm:p-6">
+    <div className="space-y-6 max-w-3xl mx-auto">
+      <SettingsSection title="Summary Options">
           <SettingRow
             title="Summary Sort Order"
             description="Sort the summary page by employee designation instead of amount."
@@ -75,17 +74,10 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
               onCheckedChange={(checked) => onChange({ ...pdf, sortByDesignation: checked })}
             />
           </SettingRow>
-        </div>
-      </section>
+      </SettingsSection>
 
-      <div className="h-px bg-border" />
-
-      <section>
-        <h3 className="text-body font-bold text-foreground mb-1">Designations in PDF</h3>
-        <p className="text-caption text-muted-foreground mb-3">
-          Choose which designations appear in the exported report.
-        </p>
-
+      <SettingsSection title="Designations in PDF" description="Choose which designations appear in the exported report.">
+        <div>
         <button
           type="button"
           disabled={uniqueDesignations.length === 0}
@@ -135,14 +127,10 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
             </span>
           </div>
         )}
-      </section>
+        </div>
+      </SettingsSection>
 
-      <div className="h-px bg-border" />
-
-      <section>
-        <h3 className="text-body font-bold text-foreground mb-4">Page Layout</h3>
-
-        <div className="space-y-4">
+      <SettingsSection title="Page Layout">
           <SettingRow
             title="Page Size"
             description={currentSize.description}
@@ -180,14 +168,9 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
               suffix="mm"
             />
           </SettingRow>
-        </div>
-      </section>
+      </SettingsSection>
 
-      <div className="h-px bg-border" />
-
-      <section>
-        <h3 className="text-body font-bold text-foreground mb-4">Typography & Spacing</h3>
-        <div className="space-y-4">
+      <SettingsSection title="Typography & Spacing">
           <SettingRow
             title="Table Font Size"
             description="Size of text inside PDF tables"
@@ -213,48 +196,8 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
               suffix="mm"
             />
           </SettingRow>
-        </div>
-
-        <PdfTablePreview fontSize={pdf.tableFontSize} padding={pdf.cellPadding} />
-      </section>
+      </SettingsSection>
     </div>
-    </div>
-  );
-}
-
-/**
- * A real-size sample of the report table. pt and mm are converted to CSS px (1pt = 1.333px,
- * 1mm = 3.78px) so what you see here is the size the PDF will print at.
- */
-function PdfTablePreview({ fontSize, padding }: { fontSize: number; padding: number }) {
-  const cell = { fontSize: `${fontSize}pt`, padding: `${padding}mm` };
-  const rows = [
-    ['1', '04-Aug-2026', 'Tue', '08:02', '19:10', '3', '550'],
-    ['2', '05-Aug-2026', 'Wed', '08:00', '18:20', '2', '366'],
-  ];
-  return (
-    <div className="mt-3">
-      <div className="overflow-x-auto rounded-md border border-border bg-white text-black">
-        <table className="w-full border-collapse tabular-nums" style={{ minWidth: 420 }}>
-          <thead>
-            <tr className="bg-neutral-200">
-              {['Sr', 'Date', 'Day', 'In', 'Out', 'OT Hrs', 'Amount'].map((h) => (
-                <th key={h} className="font-bold text-left border border-neutral-400" style={cell}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r[0]}>
-                {r.map((c, i) => (
-                  <td key={i} className="border border-neutral-400" style={cell}>{c}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-micro text-muted-foreground mt-1">Sample rows at the size they will print: {fontSize}pt text, {padding}mm padding.</p>
     </div>
   );
 }

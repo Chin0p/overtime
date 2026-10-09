@@ -23,7 +23,6 @@ export const EmployeeCard = memo(function EmployeeCard({ employee, isSelected, o
         isSelected
           ? 'bg-[var(--color-selection)] text-[var(--color-selection-fg)] shadow-[inset_3px_0_0_0_var(--color-accent)]'
           : 'hover:bg-[var(--color-neutral-hover)] active:bg-[var(--color-neutral-pressed)] text-foreground',
-        isExempt && !isSelected && 'opacity-70',
       )}
     >
       <div className="flex justify-between items-center mb-0.5 w-full min-w-0">

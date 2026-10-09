@@ -246,36 +246,48 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                   const { emp } = info;
                   const isSelected = selected.has(emp.erp);
                   const isActive = activeErp === emp.erp && selected.size === 0;
-                  const usesPay = info.category !== 'exempt' && info.rate === 'dynamic';
+                  const missingPay = info.category !== 'exempt' && info.rate === 'dynamic' && info.pay <= 0;
                   return (
                     <div
                       key={emp.erp}
                       className={cn(
-                        'flex items-center gap-2.5 pl-3 pr-2 border-b border-border/60 transition-colors',
+                        'flex items-start gap-2.5 pl-3 pr-3 border-b border-border/60 transition-colors',
                         isSelected ? 'bg-primary/5' : isActive ? 'bg-[var(--color-neutral-active)]' : 'hover:bg-muted/30',
-                        info.category === 'exempt' && 'opacity-70',
                       )}
                     >
-                      <Checkbox size="sm" checked={isSelected} onChange={() => onToggleOne(emp.erp)} />
+                      <Checkbox size="sm" checked={isSelected} onChange={() => onToggleOne(emp.erp)} className="mt-3.5" />
                       <button
                         type="button"
                         onClick={() => onOpen(emp.erp)}
                         className="flex-1 min-w-0 text-left py-2.5 outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
                       >
-                        {/* Row 1: name + tags on ONE line (name truncates instead of the tags wrapping) */}
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="min-w-0 truncate text-ui font-semibold text-foreground">{toTitleCase(emp.name)}</span>
-                          <span className="flex items-center gap-1 shrink-0">
-                            <InfoBadges info={info} />
-                          </span>
-                        </div>
-                        <div className="text-micro font-mono text-muted-foreground truncate mt-0.5">
-                          {emp.erp}
+                        {/* The name always comes first and wraps instead of being cut off. */}
+                        <div className="text-ui font-semibold text-foreground break-words">{toTitleCase(emp.name)}</div>
+                        <div className="text-micro text-muted-foreground mt-0.5 break-words">
+                          <span className="font-mono">{emp.erp}</span>
                           <span className="mx-1 opacity-50">·</span>
-                          <span className="font-sans">{emp.designation}</span>
+                          {emp.designation}
+                          {info.excludedCount > 0 && (
+                            <>
+                              <span className="mx-1 opacity-50">·</span>
+                              {info.excludedCount} day{info.excludedCount === 1 ? '' : 's'} excluded
+                            </>
+                          )}
                         </div>
                       </button>
-                      <PayCell info={info} usesPay={usesPay} />
+                      {/* Tags sit on the right and wrap among themselves. */}
+                      <div className="shrink-0 max-w-[9rem] flex flex-wrap justify-end items-center gap-1 py-2.5">
+                        <InfoBadges info={info} />
+                        {missingPay && (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning)] text-micro font-semibold leading-none whitespace-nowrap"
+                            title="Basic pay is needed to calculate this employee's overtime"
+                          >
+                            <AlertCircle size={11} className="shrink-0" />
+                            Set pay
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -303,35 +315,6 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
           </Button>
         </div>
       )}
-    </div>
-  );
-}
-
-/** Right-aligned pay column: amount over a unit caption; clear state for missing / not-applicable pay. */
-function PayCell({ info, usesPay }: { info: EmployeeInfo; usesPay: boolean }) {
-  if (!usesPay) {
-    return (
-      <div className="shrink-0 w-[72px] text-right text-ui text-muted-foreground/60" title="Basic pay isn't used for this designation">
-        —
-      </div>
-    );
-  }
-  if (info.pay <= 0) {
-    return (
-      <div className="shrink-0 w-[72px] flex justify-end">
-        <span className="inline-flex items-center gap-1 px-1.5 py-1 rounded-md border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning)] text-micro font-semibold leading-none whitespace-nowrap">
-          <AlertCircle size={11} className="shrink-0" />
-          Set pay
-        </span>
-      </div>
-    );
-  }
-  return (
-    <div className="shrink-0 w-[72px] text-right">
-      <div className="text-ui font-semibold font-mono tabular-nums text-foreground leading-none">
-        {formatAmount(info.pay)}
-      </div>
-      <div className="mt-1 text-micro uppercase tracking-wider text-muted-foreground leading-none">PKR / month</div>
     </div>
   );
 }

@@ -34,7 +34,8 @@ export function useSettings() {
       designationRateTypes: saved?.designationRateTypes || {},
       designationCapExempt: saved?.designationCapExempt || {},
       employeeEligibility: saved?.employeeEligibility || {},
-      fileHolidaysSeen: Array.isArray(saved?.fileHolidaysSeen) ? saved.fileHolidaysSeen : []
+      fileHolidaysSeen: Array.isArray(saved?.fileHolidaysSeen) ? saved.fileHolidaysSeen : [],
+      employeeExcludedDays: saved?.employeeExcludedDays || {}
     };
   });
 
