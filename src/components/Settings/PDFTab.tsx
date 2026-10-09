@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { OTSettings, EmployeeRow } from '../../types';
 import { NumberInput } from '../ui/NumberInput';
 import { Switch } from '../ui/switch';
+import { SUMMARY_SORT_OPTIONS, SummarySort, defaultSortDir } from '../../pdf/summarySort';
 import { SettingRow } from './SettingRow';
 import { SettingsSection } from './SettingsSection';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
@@ -67,12 +68,45 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
       <SettingsSection title="Summary Options">
           <SettingRow
             title="Summary Sort Order"
-            description="Sort the summary page by employee designation instead of amount."
+            description="What the summary page is ordered by."
           >
-            <Switch
-              checked={pdf.sortByDesignation ?? true}
-              onCheckedChange={(checked) => onChange({ ...pdf, sortByDesignation: checked })}
-            />
+            <div className="w-36">
+              <Select
+                value={pdf.summarySort ?? 'designation'}
+                onValueChange={(val) => {
+                  const sort = val as SummarySort;
+                  // Switching the field picks that field's natural direction; it can still be flipped below.
+                  onChange({ ...pdf, summarySort: sort, summarySortDir: defaultSortDir(sort) });
+                }}
+              >
+                <SelectTrigger className="w-full text-ui">
+                  <span className="truncate">
+                    {SUMMARY_SORT_OPTIONS.find((o) => o.value === (pdf.summarySort ?? 'designation'))?.label}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {SUMMARY_SORT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value} className="text-ui">{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </SettingRow>
+          <SettingRow title="Order" description="Smallest to largest, or largest to smallest.">
+            <div className="w-36">
+              <Select
+                value={pdf.summarySortDir ?? 'asc'}
+                onValueChange={(val) => onChange({ ...pdf, summarySortDir: val as 'asc' | 'desc' })}
+              >
+                <SelectTrigger className="w-full text-ui">
+                  <span className="truncate">{(pdf.summarySortDir ?? 'asc') === 'asc' ? 'Ascending' : 'Descending'}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asc" className="text-ui">Ascending</SelectItem>
+                  <SelectItem value="desc" className="text-ui">Descending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </SettingRow>
       </SettingsSection>
 

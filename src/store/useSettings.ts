@@ -45,9 +45,16 @@ export function useSettings() {
 
   const [pdf, setPdf] = useState<OTSettings['pdf']>(() => {
     const saved = getSafeStorage(STORAGE_KEYS.PDF, DEFAULT_SETTINGS.pdf);
+    // Older saves only had an on/off toggle: on = by designation, off = by amount (highest first).
+    const migrated = saved?.summarySort
+      ? {}
+      : saved?.sortByDesignation === false
+        ? { summarySort: 'amount' as const, summarySortDir: 'desc' as const }
+        : { summarySort: 'designation' as const, summarySortDir: 'asc' as const };
     return {
       ...DEFAULT_SETTINGS.pdf,
       ...saved,
+      ...migrated,
       signatureLeft: 'employee signature',
       signatureRight: 'officer signature',
       summarySubject: 'overtime of admin branch for the month'

@@ -37,9 +37,10 @@ export function computeOTHours(
   return rounded > 0 && rounded >= minThreshold ? rounded : 0;
 }
 
-/** Late arrival is rounded with the same mode as everything else (so 30 min late is 1h under Round, 0h under Floor). */
-export function lateAdjustmentHours(lateHours: number, mode: 'floor' | 'round' = 'round'): number {
-  return round(lateHours, mode);
+/** Late arrival is deducted in exact minutes; the minimum threshold and rounding apply to the overtime that is left. */
+export function lateAdjustmentHours(lateHours: number): number {
+  // Exact minutes: 50 minutes late takes off 50 minutes of overtime, not a whole hour.
+  return Math.round(lateHours * 60) / 60;
 }
 
 /** Overtime left after the late-arrival offset (hour-for-hour), before threshold and rounding. */
@@ -73,6 +74,15 @@ export function processEmployees(
   const globalOfficeEnd = parseHHMM(policy.officeTiming?.end || '17:00');
   const shiftDurationHours = policy.shiftDurationHours ?? 8;
   const globalOfficeDuration = Math.max(0, globalOfficeEnd - globalOfficeStart) || shiftDurationHours;
+
+  // Late limit = office start plus the grace the file allows (its shift start, e.g. 08:10 → 10 minutes).
+  // Only a shift start within an hour after the office start counts as grace; anything else (an
+  // evening shift, a missing value) falls back to the office start, so 08:00–16:00 applies to everyone.
+  const lateLimitFor = (fileShiftStart?: string): number => {
+    if (!fileShiftStart) return globalOfficeStart;
+    const s = parseHHMM(fileShiftStart);
+    return s >= globalOfficeStart && s <= globalOfficeStart + 1 ? s : globalOfficeStart;
+  };
 
   // Settings is the only source of truth for holidays (gazetted dates + Saturday/Sunday). Whatever
   // a file says about holidays is copied into Settings once at upload, never read here.
@@ -169,9 +179,12 @@ export function processEmployees(
       // Durations are always calculated here; nothing is taken from the source file.
       const totalWorkedHours = hasAttendanceTime ? Math.max(0, hoursBetween(timeIn, timeOut)) : 0;
 
-      const officeStart = precalc?.officeStart ? parseHHMM(precalc.officeStart) : globalOfficeStart;
-      const officeEnd = precalc?.officeEnd ? parseHHMM(precalc.officeEnd) : globalOfficeEnd;
-      const officeHours = Math.max(0, officeEnd - officeStart) || globalOfficeDuration;
+      // Office timing is ALWAYS the one in Settings (e.g. 08:00 to 16:00): overtime starts at its end.
+      // The shift start in the file (e.g. 08:10) is only the late limit — it is NOT added to the end
+      // of the day, so someone leaving at 18:04 has 2h 04m of overtime, not 1h 54m.
+      const officeEnd = globalOfficeEnd;
+      const officeHours = globalOfficeDuration;
+      const lateLimit = lateLimitFor(precalc?.officeStart);
       const workedHours = hasAttendanceTime ? Math.max(0, hoursBetween(officeEnd, timeOut)) : 0;
 
       let otHours = 0;
@@ -180,8 +193,8 @@ export function processEmployees(
 
       // Late arrival adjustment: skip on holidays — arrival time is irrelevant
       // on rest days, and holiday pay is flat (not time-based).
-      if (policy.lateArrivalToggle && hasAttendanceTime && !isDayHoliday && timeIn > officeStart) {
-        adjustment = lateAdjustmentHours(hoursBetween(officeStart, timeIn), roundingMode);
+      if (policy.lateArrivalToggle && hasAttendanceTime && !isDayHoliday && timeIn > lateLimit) {
+        adjustment = lateAdjustmentHours(hoursBetween(lateLimit, timeIn));
       }
 
       if (!isExempt) {
@@ -243,7 +256,7 @@ export function processEmployees(
         totalWorkedHours: isDayHoliday && !hasAttendanceTime ? 0 : round(totalWorkedHours, roundingMode),
         workedHours: isDayHoliday && !hasAttendanceTime ? 0 : round(workedHours || otHours, roundingMode),
         officeHours,
-        officeTiming: precalc?.officeTiming || `${(policy.officeTiming?.start || '08:00').replace(':', '')}-${(policy.officeTiming?.end || '16:00').replace(':', '')}`,
+        officeTiming: `${(policy.officeTiming?.start || '08:00').replace(':', '')}-${(policy.officeTiming?.end || '16:00').replace(':', '')}`,
         otHours,
         adjustment,
         amount: round(amount, roundingMode),

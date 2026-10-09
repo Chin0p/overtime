@@ -60,7 +60,6 @@ const BADGE_STYLES = {
   Fixed: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
   Dynamic: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
   Capped: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-  Personal: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
 } as const;
 
 export function Badge({ label }: { label: keyof typeof BADGE_STYLES }) {
@@ -81,7 +80,6 @@ export function InfoBadges({ info }: { info: EmployeeInfo }) {
   return (
     <>
       <Badge label={cat} />
-      {info.eligibility && <Badge label="Personal" />}
       {info.category !== 'exempt' && <Badge label={info.rate === 'fixed' ? 'Fixed' : 'Dynamic'} />}
       {info.category !== 'exempt' && info.rate === 'fixed' && !info.capExempt && <Badge label="Capped" />}
     </>

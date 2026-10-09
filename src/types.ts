@@ -96,7 +96,11 @@ export interface OTSettings {
     summarySubject?: string;
     signatureLeft?: string;
     signatureRight?: string;
+    /** Old on/off toggle; only read to migrate saved settings to `summarySort`. */
     sortByDesignation?: boolean;
+    /** What the summary page is ordered by. */
+    summarySort?: 'designation' | 'name' | 'erp' | 'category' | 'rateType' | 'basicPay' | 'amount';
+    summarySortDir?: 'asc' | 'desc';
     pdfExcludedDesignations?: string[];
   };
 }

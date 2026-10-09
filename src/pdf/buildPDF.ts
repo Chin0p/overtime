@@ -1,3 +1,4 @@
+import { sortSummary } from './summarySort';
 import jsPDFImport, { jsPDF as jsPDFType } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ProcessedEmployee, OTSettings } from '../types';
@@ -76,12 +77,7 @@ export function buildPDF(
   const { tableStartY: summaryTableStartY } = drawHeader(baseMargin + 4, baseMargin, summarySubject);
 
   // Sort for summary page
-  let summaryEmployees = [...exportableEmployees];
-  if (pdf.sortByDesignation) {
-    summaryEmployees.sort((a, b) => a.designation.localeCompare(b.designation));
-  } else {
-    summaryEmployees.sort((a, b) => b.totalAmount - a.totalAmount);
-  }
+  const summaryEmployees = sortSummary(exportableEmployees, pdf.summarySort, pdf.summarySortDir);
 
   if (summaryEmployees.length === 0) {
     // No overtime this month — produce an empty PDF rather than a misleading one
@@ -283,7 +279,7 @@ export function buildPDF(
     const footerSigY = pageHeight - baseMargin - 7;
 
     // Normal position has comfortable gap below table; clamped to footer area to never create page 2
-    let sigY = Math.min(finalY + 16, footerSigY);
+    let sigY = Math.min(finalY + 24, footerSigY);
     if (sigY < finalY + 6) {
       sigY = finalY + 6;
     }

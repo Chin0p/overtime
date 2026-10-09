@@ -42,7 +42,8 @@ export const DEFAULT_SETTINGS: OTSettings = {
     summarySubject: 'overtime of admin branch for the month',
     signatureLeft: 'employee signature',
     signatureRight: 'officer signature',
-    sortByDesignation: true,
+    summarySort: 'designation',
+    summarySortDir: 'asc',
     pdfExcludedDesignations: [],
   },
 };
