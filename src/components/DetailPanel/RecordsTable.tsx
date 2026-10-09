@@ -1,7 +1,7 @@
 import { formatAmount, formatDuration, formatTimeDisplay } from '../../lib/utils';
 import { ProcessedRecord, ColumnId } from '../../types';
 import { cn } from '../../lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { ArrowDownAZ, ArrowUpZA, ArrowUpDown } from 'lucide-react';
 
 interface RecordsTableProps {
@@ -24,20 +24,26 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
           containerClassName="overflow-visible"
           className="w-full text-left border-collapse data-table table-auto"
         >
+          <TableCaption className="sr-only">Attendance and overtime records for the selected employee.</TableCaption>
           <TableHeader>
             <TableRow className="border-b-0">
               <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
-              <TableHead 
-                className="sticky top-[var(--header-sticky)] left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold cursor-pointer hover:bg-accent transition-colors select-none group"
-                onClick={onToggleSort}
-                title="Toggle Sort Order"
+              <TableHead
+                scope="col"
+                aria-sort={sortKey === 'date' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}
+                className="sticky top-[var(--header-sticky)] left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold"
               >
-                <div className="flex items-center gap-1.5">
-                  Date
-                  <div className="text-muted-foreground group-hover:text-foreground">
-                    {sortKey !== 'date' ? <ArrowUpDown size={14} /> : sortOrder === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpZA size={14} />}
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={onToggleSort}
+                  aria-label={`Sort by date; ${sortKey !== 'date' ? 'currently using another sort order' : sortOrder === 'asc' ? 'currently oldest first' : 'currently newest first'}. Activate to ${sortKey !== 'date' || sortOrder === 'desc' ? 'sort oldest first' : 'sort newest first'}.`}
+                  className="inline-flex items-center gap-1.5 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <span>Date</span>
+                  <span className="text-muted-foreground">
+                    {sortKey !== 'date' ? <ArrowUpDown size={14} aria-hidden="true" /> : sortOrder === 'asc' ? <ArrowDownAZ size={14} aria-hidden="true" /> : <ArrowUpZA size={14} aria-hidden="true" />}
+                  </span>
+                </button>
               </TableHead>
               <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
               <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">In</TableHead>
@@ -46,15 +52,15 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
               {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Total Worked</TableHead>}
               {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Worked (OT)</TableHead>}
               {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Adjustment</TableHead>}
-              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
-              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
+              <TableHead scope="col" aria-sort={sortKey === 'ot' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined} className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
+              <TableHead scope="col" aria-sort={sortKey === 'amount' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined} className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
               <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-border [&_tr:last-child_td:first-child]:rounded-bl-lg [&_tr:last-child_td:last-child]:rounded-br-lg">
             {records.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9 + visibleColumns.length} className="text-center py-8 text-muted-foreground text-ui">
+                <TableCell colSpan={8 + visibleColumns.length} className="text-center py-8 text-muted-foreground text-ui">
                   No records to display for this employee under the selected filter.
                 </TableCell>
               </TableRow>

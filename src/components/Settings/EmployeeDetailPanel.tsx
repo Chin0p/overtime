@@ -279,7 +279,7 @@ function BulkForm({
 
       <Card title="Basic pay" note="People on the same pay? Set it once for everyone selected.">
         <div className="flex flex-wrap items-center gap-2">
-          <NumberInput value={bulkPay} onChange={setBulkPay} suffix="PKR" maxDigits={5} className="w-32" />
+          <NumberInput aria-label="Basic pay to apply to selected employees" value={bulkPay} onChange={setBulkPay} suffix="PKR" maxDigits={5} className="w-32" />
           <Button size="sm" className="h-8 px-3 text-caption" disabled={bulkPay <= 0} onClick={() => onPayChange(erps, bulkPay)}>
             Apply to {selectedInfos.length}
           </Button>

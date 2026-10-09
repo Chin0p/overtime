@@ -65,6 +65,7 @@ export function Sidebar({ employees, view, selectedErp, onSelect, searchQuery, o
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
             <Input
               type="text"
+              aria-label="Search employees by name, ERP, or designation"
               placeholder="Search name, ERP or designation..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -124,6 +125,10 @@ export function Sidebar({ employees, view, selectedErp, onSelect, searchQuery, o
       </div>
       
       <div className="flex-1 overflow-y-auto p-1.5 gap-1 flex flex-col" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {filteredEmployees.length} {filteredEmployees.length === 1 ? 'employee' : 'employees'} shown
+          {searchQuery.trim() ? ` for ${searchQuery.trim()}` : ''}.
+        </p>
         {filteredEmployees.length > 0 ? (
           filteredEmployees.map(emp => (
             <EmployeeCard

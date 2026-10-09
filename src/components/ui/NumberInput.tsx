@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import { Input } from './input';
+import { useSettingFieldA11y } from '../Settings/SettingRow';
 
 interface NumberInputProps {
   value: number;
@@ -11,6 +12,7 @@ interface NumberInputProps {
   max?: number;
   maxDigits?: number;
   disabled?: boolean;
+  'aria-label'?: string;
 }
 
 export function NumberInput({
@@ -22,7 +24,9 @@ export function NumberInput({
   max,
   maxDigits,
   disabled,
+  'aria-label': ariaLabel,
 }: NumberInputProps) {
+  const fieldA11y = useSettingFieldA11y();
   const [localValue, setLocalValue] = useState<string>(value === 0 ? '' : String(value));
 
   // Sync external value changes (e.g. bulk apply) into local display
@@ -62,6 +66,9 @@ export function NumberInput({
         type="text"
         inputMode="numeric"
         disabled={disabled}
+        aria-label={ariaLabel}
+        aria-labelledby={fieldA11y?.labelledBy}
+        aria-describedby={fieldA11y?.describedBy}
         value={localValue}
         onChange={handleChange}
         onBlur={handleBlur}
