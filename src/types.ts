@@ -123,6 +123,8 @@ export interface ProcessedRecord {
   isHoliday: boolean;
   /** Set true when this row was zeroed out by the monthly day cap. Used to filter from PDF. */
   exceededMonthlyCap?: boolean;
+  /** Name of the holiday or off-day this date falls on (e.g. "Saturday", "Eid"), if any. */
+  holidayName?: string | null;
   /** This day was excluded for this employee in Settings: shown greyed, never counted or exported. */
   excluded?: boolean;
 }

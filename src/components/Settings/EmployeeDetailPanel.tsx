@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { SettingRow } from './SettingRow';
 import { cn, toTitleCase } from '../../lib/utils';
 import { EmployeeCategory } from '../../types';
-import { ExcludedDaysPicker } from './ExcludedDaysPicker';
+import { ExcludedDaysChips } from './ExcludedDaysChips';
 import { Eligibility, EmployeeInfo, InfoBadges, Rate, RuleChange, RuleSelect } from './employeeShared';
 
 const CATEGORY_OPTIONS: { value: EmployeeCategory; label: string }[] = [
@@ -54,8 +54,8 @@ export function EmployeeDetailPanel(props: Props) {
   const bulk = selectedInfos.length > 0;
 
   return (
-    <div className={cn('flex flex-col min-h-0 min-w-0 bg-card', className)}>
-      <div className="lg:hidden shrink-0 h-10 flex items-center px-1.5 border-b border-border">
+    <div className={cn('flex flex-col min-h-0 min-w-0', className)}>
+      <div className="lg:hidden shrink-0 h-9 flex items-center -ml-1 mb-1">
         <button
           type="button"
           onClick={onBack}
@@ -67,13 +67,13 @@ export function EmployeeDetailPanel(props: Props) {
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {bulk ? (
           <BulkForm {...props} />
         ) : active ? (
           <SingleForm info={active} {...props} />
         ) : (
-          <div className="h-full min-h-48 flex items-center justify-center text-center text-caption text-muted-foreground select-none">
+          <div className="h-full min-h-48 flex items-center justify-center text-center text-caption text-muted-foreground select-none rounded-xl border border-dashed border-border bg-card/60 p-4">
             Pick an employee to edit their pay,
             <br />
             or tick several to edit them together.
@@ -97,7 +97,6 @@ function ExcludedDaysCard({
     const n = sets.filter((s) => s.has(date)).length;
     return n === 0 ? 'none' : n === sets.length ? 'all' : 'some';
   };
-  const total = new Set(sets.flatMap((s) => Array.from(s))).size;
   const many = erps.length > 1;
   return (
     <Card
@@ -108,20 +107,12 @@ function ExcludedDaysCard({
           : 'Left out of this employee’s pay and the PDF; still shown on the dashboard, greyed.'
       }
     >
-      <ExcludedDaysPicker
+      <ExcludedDaysChips
         dates={dates}
         stateOf={stateOf}
-        onToggle={(date) => onExcludeDay(erps, date, stateOf(date) !== 'all')}
+        onSet={(date, on) => onExcludeDay(erps, date, on)}
+        onClear={() => onClearExcluded(erps)}
       />
-      {total > 0 && (
-        <button
-          type="button"
-          onClick={() => onClearExcluded(erps)}
-          className="mt-3 text-caption font-medium text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer"
-        >
-          Clear excluded days
-        </button>
-      )}
     </Card>
   );
 }
@@ -145,10 +136,10 @@ function eligibilityNote(eligibility: 'exempt' | 'included' | undefined, designa
 
 function Card({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-muted/10 p-3 space-y-3">
+    <section className="rounded-xl border border-border bg-card shadow-xs p-4 space-y-3">
       <div>
-        <h4 className="text-ui font-bold text-foreground">{title}</h4>
-        {note && <p className="text-caption text-muted-foreground mt-0.5">{note}</p>}
+        <h4 className="text-body font-semibold text-foreground">{title}</h4>
+        {note && <p className="text-ui text-muted-foreground mt-0.5">{note}</p>}
       </div>
       {children}
     </section>

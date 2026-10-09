@@ -1,10 +1,11 @@
-import { Search, Filter, Check, ArrowUpDown } from 'lucide-react';
+import { Search, Check, ArrowUpDown } from 'lucide-react';
 import { ProcessedEmployee } from '../../types';
 import { EmployeeCard } from './EmployeeCard';
+import { FilterBar } from './FilterBar';
 import { Input } from '../ui/input';
 import { buttonVariants } from '../ui/button';
 import { cn } from '../../lib/utils';
-import { SidebarFilter, SidebarSortKey, SidebarView, DEFAULT_SIDEBAR_FILTER } from '../../store/useSidebarView';
+import { HolidayOption, NO_FILTERS, SidebarSortKey, SidebarView } from '../../store/useSidebarView';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,26 +18,15 @@ import {
 interface SidebarProps {
   /** Already searched, filtered and sorted by App. */
   employees: ProcessedEmployee[];
+  /** How many employees the file has, before any filter. */
+  totalCount: number;
+  holidayOptions: HolidayOption[];
   view: SidebarView;
   selectedErp: string | null;
   onSelect: (erp: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
-
-const FILTER_OPTIONS: { value: SidebarFilter; label: string }[] = [
-  { value: 'has_ot', label: 'Has OT Hours' },
-  { value: 'all', label: 'All Employees' },
-  { value: 'missing_pay', label: 'Missing Basic Pay' },
-  { value: 'exempt', label: 'Exempt' },
-];
-
-const EMPTY_TEXT: Record<SidebarFilter, string> = {
-  has_ot: 'No employees with OT hours',
-  all: 'No employees found',
-  missing_pay: 'Nobody is missing basic pay',
-  exempt: 'No exempt employees',
-};
 
 const SORT_OPTIONS: { key: SidebarSortKey; label: string; asc?: string; desc?: string }[] = [
   { key: 'file', label: 'File order' },
@@ -52,15 +42,20 @@ const iconBtn = cn(
 );
 const activeCls = 'text-primary border-primary';
 
-export function Sidebar({ employees, view, selectedErp, onSelect, searchQuery, onSearchChange }: SidebarProps) {
-  const { filterBy, setFilterBy, sortKey, sortOrder, setSort } = view;
+export function Sidebar({ employees, totalCount, holidayOptions, view, selectedErp, onSelect, searchQuery, onSearchChange }: SidebarProps) {
+  const { filters, setFilters, sortKey, sortOrder, setSort } = view;
   const filteredEmployees = employees;
 
   return (
     <aside className="w-full h-full bg-card flex flex-col shrink-0">
       <div className="p-2 md:p-3 border-b border-border">
-        <h2 className="hidden md:block text-label text-foreground tracking-wide mb-2 uppercase">Employees</h2>
-        <div className="flex items-center gap-1.5 mb-1">
+        <div className="hidden md:flex items-baseline justify-between mb-2">
+          <h2 className="text-label text-foreground tracking-wide uppercase">Employees</h2>
+          <span className="text-caption text-muted-foreground tabular-nums" aria-live="polite">
+            {filteredEmployees.length === totalCount ? totalCount : `${filteredEmployees.length} of ${totalCount}`}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 mb-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
             <Input
@@ -71,22 +66,6 @@ export function Sidebar({ employees, view, selectedErp, onSelect, searchQuery, o
               className="pl-8 text-body h-8"
             />
           </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger className={cn(iconBtn, filterBy !== DEFAULT_SIDEBAR_FILTER && activeCls)} title="Filter employees" aria-label="Filter employees">
-              <Filter size={14} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="text-body">
-              <DropdownMenuLabel className="text-caption">Filter Employees</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {FILTER_OPTIONS.map((opt) => (
-                <DropdownMenuItem key={opt.value} onClick={() => setFilterBy(opt.value)} className="text-body">
-                  {opt.label}
-                  {filterBy === opt.value && <Check size={13} className="ml-auto text-primary" />}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger className={cn(iconBtn, sortKey !== 'file' && activeCls)} title="Sort employees" aria-label="Sort employees">
@@ -121,6 +100,11 @@ export function Sidebar({ employees, view, selectedErp, onSelect, searchQuery, o
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        <FilterBar filters={filters} onChange={setFilters} holidayOptions={holidayOptions} />
+        {/* On phones the heading (and its count) is hidden, so the count sits under the chips. */}
+        <p className="md:hidden mt-1.5 text-caption text-muted-foreground tabular-nums">
+          {filteredEmployees.length === totalCount ? `${totalCount} employees` : `${filteredEmployees.length} of ${totalCount} employees`}
+        </p>
       </div>
       
       <div className="flex-1 overflow-y-auto p-1.5 gap-1 flex flex-col" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -135,14 +119,14 @@ export function Sidebar({ employees, view, selectedErp, onSelect, searchQuery, o
           ))
         ) : (
           <div className="p-6 w-full text-center text-caption text-muted-foreground select-none">
-            {searchQuery.trim() ? 'No employees match your search' : EMPTY_TEXT[filterBy]}
-            {filterBy !== 'all' && (
+            {searchQuery.trim() ? 'No employees match your search' : 'No employees match these filters'}
+            {JSON.stringify(filters) !== JSON.stringify(NO_FILTERS) && (
               <button
                 type="button"
-                onClick={() => setFilterBy('all')}
+                onClick={() => setFilters(NO_FILTERS)}
                 className="block mx-auto mt-2 text-primary font-medium hover:underline cursor-pointer"
               >
-                Show all employees
+                Clear filters
               </button>
             )}
           </div>

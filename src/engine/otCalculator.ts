@@ -264,6 +264,7 @@ export function processEmployees(
         // An excluded day says so instead: it is left out of this person's pay on purpose.
         remarks: excludedDays.has(formattedDate) ? 'Excluded' : (fileRemark || holidayName || ''),
         isHoliday: isDayHoliday,
+        holidayName,
         ...(excludedDays.has(formattedDate) ? { excluded: true } : {}),
       });
     });
