@@ -10,7 +10,7 @@
 
 /* ============================================================================
    Design system — single source of truth
-   Type scale: caption 12 · body 14 · label 13 · title 16 · display 22/28
+   Type scale: caption 11 · body 13 · label 12 · title 16 · display 22/28
    Spacing: 4 · 8 · 12 · 16 · 24 · 32 (8pt grid)
    Sticky offsets share one token so header + table stay aligned
    ============================================================================ */
@@ -267,21 +267,21 @@
   line-height: 1.3;
 }
 @utility text-caption {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.35;
 }
 @utility text-label {
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.35;
   font-weight: 600;
 }
 @utility text-ui {
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.4;
 }
 @utility text-body {
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.45;
 }
 @utility text-title {
   font-size: 16px;

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { Fragment, useRef, useState } from 'react';
 import { Settings, Calendar, Users, FileText, Database, ChevronRight } from 'lucide-react';
 import { OTSettings, Holiday, EmployeeRow, EmployeeCategory } from '../../types';
 import { CalculationTab } from './CalculationTab';
@@ -88,28 +88,6 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
   const popupRef = useRef<HTMLDivElement>(null);
   const current = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
-  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const currentButton = (event.target as HTMLElement).closest<HTMLButtonElement>('[role="tab"]');
-    if (!currentButton) return;
-
-    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
-    const currentIndex = buttons.indexOf(currentButton);
-    if (currentIndex < 0 || buttons.length === 0) return;
-
-    let nextIndex: number | null = null;
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % buttons.length;
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
-    if (event.key === 'Home') nextIndex = 0;
-    if (event.key === 'End') nextIndex = buttons.length - 1;
-    if (nextIndex === null) return;
-
-    event.preventDefault();
-    const nextButton = buttons[nextIndex];
-    const nextTab = TABS.find((tab) => tab.id === nextButton.dataset.tabId);
-    if (nextTab) setActiveTab(nextTab.id);
-    nextButton.focus();
-  };
-
   const handleSaveAndClose = () => {
     onSave(tempPolicy, tempAppearance, tempPdf, tempBasicPay, tempHolidays);
     onClose();
@@ -138,33 +116,16 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
 
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           <aside className="w-full md:w-[200px] border-b md:border-b-0 md:border-r border-border bg-muted/20 p-2 md:p-3 shrink-0 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div
-              role="tablist"
-              aria-label="Settings sections"
-              onKeyDown={handleTabKeyDown}
-              className="flex md:flex-col flex-row gap-1.5 md:gap-1 w-max md:w-auto"
-            >
+            <nav className="flex md:flex-col flex-row gap-1.5 md:gap-1 w-max md:w-auto">
               {TABS.map((t) => (
-                <TabButton
-                  key={t.id}
-                  id={`settings-tab-${t.id}`}
-                  tabId={t.id}
-                  controls="settings-panel"
-                  tabIndex={activeTab === t.id ? 0 : -1}
-                  active={activeTab === t.id}
-                  onClick={() => setActiveTab(t.id)}
-                  icon={t.icon}
-                  label={t.label}
-                />
+                <Fragment key={t.id}>
+                  <TabButton active={activeTab === t.id} onClick={() => setActiveTab(t.id)} icon={t.icon} label={t.label} />
+                </Fragment>
               ))}
-            </div>
+            </nav>
           </aside>
 
           <main
-            id="settings-panel"
-            role="tabpanel"
-            aria-labelledby={`settings-tab-${activeTab}`}
-            tabIndex={0}
             key={activeTab}
             className={cn(
               'flex-1 min-w-0 bg-card',
@@ -251,34 +212,9 @@ const TABS = [
   { id: 'data', label: 'Backup / Reset', icon: <Database size={16} /> },
 ] as const;
 
-function TabButton({
-  id,
-  tabId,
-  controls,
-  tabIndex,
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  id: string;
-  tabId: string;
-  controls: string;
-  tabIndex: number;
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
+function TabButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
   return (
     <button
-      id={id}
-      data-tab-id={tabId}
-      type="button"
-      role="tab"
-      aria-selected={active}
-      aria-controls={controls}
-      tabIndex={tabIndex}
       onClick={onClick}
       className={cn(
         "flex items-center w-auto md:w-full justify-start gap-2 rounded-[var(--radius-interactive)] transition-all shrink-0 px-3 py-2 text-body font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -287,7 +223,7 @@ function TabButton({
           : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-neutral-hover)]"
       )}
     >
-      <span aria-hidden="true" className="shrink-0">{icon}</span>
+      {icon}
       <span>{label}</span>
     </button>
   );

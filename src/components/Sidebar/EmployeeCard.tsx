@@ -17,8 +17,6 @@ export const EmployeeCard = memo(function EmployeeCard({ employee, isSelected, o
 
   return (
     <button
-      type="button"
-      aria-pressed={isSelected}
       onClick={() => onSelect(employee.erp)}
       className={cn(
         'w-full text-left p-3 rounded-[var(--radius-interactive)] transition-[background-color,box-shadow,color] duration-[var(--duration-fast)] flex flex-col group relative shrink-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-focus-ring)]',

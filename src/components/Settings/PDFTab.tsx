@@ -298,7 +298,6 @@ function DesignationManager({
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={13} />
             <Input
               type="text"
-              aria-label="Search designations to include or exclude from PDF export"
               placeholder="Search designations..."
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -350,7 +349,7 @@ function DesignationManager({
                     {!included && ' · hidden from PDF'}
                   </p>
                 </div>
-                <Switch aria-label={`Include ${d} in PDF export`} checked={included} onCheckedChange={() => toggle(d)} />
+                <Switch checked={included} onCheckedChange={() => toggle(d)} />
               </label>
             </li>
           );

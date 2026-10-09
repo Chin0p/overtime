@@ -97,7 +97,6 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
           />
           <Input
             type="text"
-            aria-label="Search employees by name, ERP, or designation"
             placeholder="Search name, ERP, or designation..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -212,7 +211,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
 
       {/* Select-all strip */}
       <div className="shrink-0 flex items-center gap-2.5 px-3 py-1.5 border-b border-border bg-muted/30 text-micro font-semibold uppercase tracking-wide text-muted-foreground">
-        <Checkbox size="sm" checked={allVisibleSelected} onChange={onToggleAll} aria-label="Select all visible employees" />
+        <Checkbox size="sm" checked={allVisibleSelected} onChange={onToggleAll} title="Select all shown" />
         <span>
           {visibleCount === totalCount ? `${totalCount} employees` : `${visibleCount} of ${totalCount} employees`}
         </span>
@@ -235,7 +234,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                       size="sm"
                       checked={groupSelected}
                       onChange={() => onToggleGroup(g.items)}
-                      aria-label={`Select everyone in ${g.label}`}
+                      title={`Select everyone in ${g.label}`}
                     />
                     <span className="flex-1 min-w-0 truncate text-micro font-semibold uppercase tracking-wide text-foreground">
                       {g.label}
@@ -256,7 +255,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                         isSelected ? 'bg-primary/5' : isActive ? 'bg-[var(--color-neutral-active)]' : 'hover:bg-muted/30',
                       )}
                     >
-                      <Checkbox size="sm" checked={isSelected} onChange={() => onToggleOne(emp.erp)} aria-label={`Select ${emp.name} (ERP ${emp.erp})`} className="mt-3.5" />
+                      <Checkbox size="sm" checked={isSelected} onChange={() => onToggleOne(emp.erp)} className="mt-3.5" />
                       <button
                         type="button"
                         onClick={() => onOpen(emp.erp)}
