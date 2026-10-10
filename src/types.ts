@@ -42,12 +42,15 @@ export type EmployeeCategory = 'official' | 'support' | 'exempt';
 
 export interface OTSettings {
   policy: {
-    officeTiming: {
-      start: string;
-      end: string;
-    };
+    /** Length of the working day. Overtime starts this long after the office start. */
     shiftDurationHours: number;
-    minThreshold: number;
+    /**
+     * The shift start in the file (e.g. 08:10) includes this many minutes of grace. The real office
+     * start is that much earlier (08:00) and lateness counts after the shift start itself.
+     */
+    lateGraceMinutes: number;
+    /** Overtime below this many minutes is not paid. */
+    minThresholdMinutes: number;
     lateArrivalToggle: boolean;
     official: {
       dailyOTCap: number;

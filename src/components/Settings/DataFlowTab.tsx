@@ -34,7 +34,13 @@ function normalizeBackup(json: any, current: { appearance: OTSettings['appearanc
   const policy: OTSettings['policy'] = {
     ...d.policy,
     ...json.policy,
-    officeTiming: { ...d.policy.officeTiming, ...(isObj(json.policy.officeTiming) ? json.policy.officeTiming : {}) },
+    // Office timing now comes from the file; a stored one in an old backup is ignored.
+    minThresholdMinutes: Number.isFinite(json.policy.minThresholdMinutes)
+      ? json.policy.minThresholdMinutes
+      : Number.isFinite(json.policy.minThreshold)
+        ? Math.round(json.policy.minThreshold * 60)
+        : d.policy.minThresholdMinutes,
+    lateGraceMinutes: Number.isFinite(json.policy.lateGraceMinutes) ? json.policy.lateGraceMinutes : d.policy.lateGraceMinutes,
     support: { ...d.policy.support, ...(isObj(json.policy.support) ? json.policy.support : {}) },
     official: { ...d.policy.official, ...(isObj(json.policy.official) ? json.policy.official : {}) },
     designationCategories: isObj(json.policy.designationCategories) ? json.policy.designationCategories : {},
@@ -151,7 +157,8 @@ export function DataFlowTab({
     const lines: string[] = [];
     const inPolicy = importData.policy;
     const policyDiffs: string[] = [];
-    if (inPolicy.minThreshold !== policy.minThreshold) policyDiffs.push('Min threshold');
+    if (inPolicy.minThresholdMinutes !== policy.minThresholdMinutes) policyDiffs.push('Min threshold');
+    if (inPolicy.lateGraceMinutes !== policy.lateGraceMinutes) policyDiffs.push('Late grace');
     if (inPolicy.shiftDurationHours !== policy.shiftDurationHours) policyDiffs.push('Shift duration');
     if (inPolicy.roundingMode !== policy.roundingMode) policyDiffs.push('Rounding mode');
     if (inPolicy.official.dailyOTCap !== policy.official.dailyOTCap) policyDiffs.push('Dynamic daily cap');

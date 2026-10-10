@@ -19,8 +19,9 @@ export interface SidebarFilters {
 
 export const WEEKEND_KEY = 'weekend';
 
+// No filter is on by default: the list shows everyone, and filters are added as needed.
 export const DEFAULT_FILTERS: SidebarFilters = {
-  hasOT: true,
+  hasOT: false,
   eligibility: 'any',
   category: 'any',
   rateType: 'any',
@@ -28,7 +29,7 @@ export const DEFAULT_FILTERS: SidebarFilters = {
   hasExcluded: false,
   holidays: [],
 };
-export const NO_FILTERS: SidebarFilters = { ...DEFAULT_FILTERS, hasOT: false };
+export const NO_FILTERS: SidebarFilters = DEFAULT_FILTERS;
 
 export type SidebarSortKey = 'file' | 'name' | 'designation' | 'ot' | 'amount';
 export type SidebarSortOrder = 'asc' | 'desc';

@@ -1,4 +1,4 @@
-import { AttendanceData, EmployeeRow, AttendanceCell, ProcessedRecord, Holiday } from '../types';
+import { AttendanceData, EmployeeCategory, EmployeeRow, AttendanceCell, ProcessedRecord, Holiday } from '../types';
 import { buildNormalizedEmployee, inferIsSupport } from './parserUtils';
 import { flexibleParseDate, formatCanonicalDate, stripSentinel } from '../lib/utils';
 import { format } from 'date-fns';
@@ -37,21 +37,34 @@ const bool = (v: any) => {
 
 const MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 
-// DAUMS gives "08/01/2026 00:00:00" (mm/dd/yyyy) | also "01-Aug-2026" | "01" -> Date
-// Everything is converted to dd-MMM-yyyy by the caller (formatCanonicalDate).
+/** True when y-m-d is a real calendar date (no rolling 31 Feb into March). */
+function realDate(y: number, m: number, d: number): Date | null {
+  const date = new Date(y, m, d);
+  return date.getFullYear() === y && date.getMonth() === m && date.getDate() === d ? date : null;
+}
+
+// HARD RULE: whatever the source looks like, a date leaves here as a real calendar date (the caller
+// writes it as dd-MMM-yyyy) or as null (the row is skipped with a warning). Nothing is guessed or rolled over.
+//   DAUMS "08/01/2026 00:00:00"  month-first, the ONLY month-first format accepted
+//   "01-Aug-2026", "2026-08-01", "01-08-2026" / "01.08.2026" (day-first), or a bare day number
 export function toDate(v: any, ctx: string): Date | null {
   if (!v) return null;
   const s = String(v).trim();
 
-  // DAUMS source format is month-first. This is the ONLY month-first format accepted.
-  const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (us) return new Date(+us[3], +us[1] - 1, +us[2]);
+  const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s|T|$)/);
+  if (us) return realDate(+us[3], +us[1] - 1, +us[2]);
 
-  const dmy = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})/);
-  if (dmy) {
-    const mi = MONTHS.indexOf(dmy[2].toLowerCase());
-    if (mi >= 0) return new Date(+dmy[3], mi, +dmy[1]);
+  const named = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})(?:\s|$)/);
+  if (named) {
+    const mi = MONTHS.indexOf(named[2].toLowerCase());
+    return mi >= 0 ? realDate(+named[3], mi, +named[1]) : null;
   }
+
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s|T|$)/);
+  if (iso) return realDate(+iso[1], +iso[2] - 1, +iso[3]);
+
+  const dmy = s.match(/^(\d{1,2})[-.](\d{1,2})[-.](\d{4})(?:\s|$)/);
+  if (dmy) return realDate(+dmy[3], +dmy[2] - 1, +dmy[1]);
 
   // Day-of-month only: month (and year) must come from the file name.
   // No month in the name → null (row is skipped with a warning) rather than a silent guess.
@@ -59,44 +72,42 @@ export function toDate(v: any, ctx: string): Date | null {
     const monthMatch = ctx.toLowerCase().match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/);
     if (!monthMatch) return null;
     const y = +(ctx.match(/\b(20\d\d)\b/)?.[1] ?? new Date().getFullYear());
-    return new Date(y, MONTHS.indexOf(monthMatch[1]), +s);
+    return realDate(y, MONTHS.indexOf(monthMatch[1]), +s);
   }
 
-  // Anything else (ISO, dd-mm-yyyy, ...) goes through the shared day-first parser.
-  const d = flexibleParseDate(s);
-  return isNaN(d.getTime()) ? null : d;
+  return null;
 }
 
-// "10:17:40 AM" | "1017" | "10:17" -> "10:17"
-export function toTime(v: any): string {
-  if (!v) return '';
-  const s = String(v).trim();
+// HARD RULE: a punch leaves here as 24-hour "HH:mm", or null when the value is not a real clock time
+// ("13:20 PM", "10:75", "24:10" are rejected). Callers treat empty values as "no punch" before calling.
+//   "10:17:40 AM" | "10:17 PM" | "1017" | "10:17" | "10:17:40"
+export function toTime(v: any): string | null {
+  const s = String(v ?? '').trim();
+  if (!s) return null;
+  const ok = (h: number, m: number, sec = 0) => h >= 0 && h <= 23 && m >= 0 && m <= 59 && sec >= 0 && sec <= 59;
+  const out = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
-  const ap = s.match(/^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*(AM|PM)$/i);
+  const ap = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
   if (ap) {
-    let h = +ap[1];
-    const m = ap[2] ?? '00';
-    const pm = ap[3].toUpperCase() === 'PM';
-    if (pm && h !== 12) h += 12;
-    if (!pm && h === 12) h = 0;
-    return `${String(h).padStart(2, '0')}:${m}`;
+    const h12 = +ap[1], m = +ap[2], sec = ap[3] ? +ap[3] : 0;
+    if (h12 < 1 || h12 > 12 || m > 59 || sec > 59) return null;
+    const pm = ap[4].toUpperCase() === 'PM';
+    return out(pm ? (h12 % 12) + 12 : h12 % 12, m);
   }
 
-  if (/^\d{3,4}$/.test(s)) {
-    const n = +s, h = Math.floor(n / 100), m = n % 100;
-    return h < 24 && m < 60 ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` : '';
-  }
+  const compact = s.match(/^(\d{1,2})(\d{2})$/);
+  if (compact) return ok(+compact[1], +compact[2]) ? out(+compact[1], +compact[2]) : null;
 
-  const hm = s.match(/^(\d{1,2}):(\d{2})/);
-  if (hm && +hm[1] < 24 && +hm[2] < 60) return `${String(+hm[1]).padStart(2, '0')}:${hm[2]}`;
+  const hm = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (hm) return ok(+hm[1], +hm[2], hm[3] ? +hm[3] : 0) ? out(+hm[1], +hm[2]) : null;
 
-  return '';
+  return null;
 }
 
-function addHours(hhmm: string, h: number): string {
-  const [H, M] = hhmm.split(':').map(Number);
-  const total = ((H || 0) * 60 + (M || 0) + h * 60) % 1440;
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+/** An explicit category in the source. Only the three known values count; anything else is ignored. */
+function declaredCategory(v: unknown): EmployeeCategory | undefined {
+  const s = String(v ?? '').trim().toLowerCase();
+  return s === 'exempt' || s === 'support' || s === 'official' ? s : undefined;
 }
 
 // ------------------------------------------------------------------
@@ -122,6 +133,8 @@ export function parseJSON(
     name: string;
     designation: string;
     isSupport: boolean;
+    /** The category the source stated, if any (exempt included). Settings still override it. */
+    category?: EmployeeCategory;
     basicPay: number;
     records: ProcessedRecord[];
   };
@@ -157,12 +170,14 @@ export function parseJSON(
         designation,
       );
       const basicPay = num(pick(row, ['basicPay', 'basic_pay', 'salary', 'basic']));
+      const category = declaredCategory(pick(row, ['category', 'staffCategory', 'staff_category']));
 
       employees.set(erp, {
         erp,
         name,
         designation,
         isSupport,
+        category,
         basicPay,
         records: [],
       });
@@ -170,8 +185,18 @@ export function parseJSON(
     const emp = employees.get(erp)!;
 
     // --- Times ---
-    const timeIn = stripSentinel(toTime(pick(row, ['checkIn', 'timeIn', 'time_in', 'in', 'in_time'])));
-    const timeOut = stripSentinel(toTime(pick(row, ['checkOut', 'timeOut', 'time_out', 'out', 'out_time'])));
+    // An empty or placeholder value ("-", "N/A") means no punch; a value that is not a real clock time
+    // skips the row with a warning instead of being treated as "no punch".
+    const clock = (keys: string[], label: string): string | null => {
+      const raw = stripSentinel(pick(row, keys));
+      if (!raw) return '';
+      const t = toTime(raw);
+      if (t === null) warnings.push(`Row ${rowNum} (ERP ${erp}, ${date}): ${label} "${raw}" is not a valid time — skipped.`);
+      return t;
+    };
+    const timeIn = clock(['checkIn', 'timeIn', 'time_in', 'in', 'in_time'], 'check-in');
+    const timeOut = clock(['checkOut', 'timeOut', 'time_out', 'out', 'out_time'], 'check-out');
+    if (timeIn === null || timeOut === null) return;
 
     // Hours and amounts in the source are never used: the engine calculates every
     // duration, OT hour and amount from the In/Out times and the policy.
@@ -185,9 +210,10 @@ export function parseJSON(
     if (isHoliday) holidays.set(date, 'Holiday');
     dates.add(date);
 
-    const rawShiftStart = pick(row, ['shiftStart', 'officeStart', 'shift_start']);
-    const officeStart = rawShiftStart ? String(rawShiftStart).trim().slice(0, 5) : '';
-    const officeEnd = officeStart ? addHours(officeStart, shiftDurationHours) : '';
+    // The file's shift start (e.g. 08:10) is kept as is. The engine works out the office start and end
+    // from it, the grace and the shift duration, so nothing about office timing is decided here.
+    const rawShiftStart = stripSentinel(pick(row, ['shiftStart', 'officeStart', 'shift_start']));
+    const officeStart = rawShiftStart ? toTime(rawShiftStart) ?? '' : '';
 
     emp.records.push({
       date,
@@ -197,9 +223,7 @@ export function parseJSON(
       totalWorkedHours: 0,
       workedHours: 0,
       officeHours: shiftDurationHours,
-      officeTiming: officeStart ? `${officeStart.replace(':', '')}-${officeEnd.replace(':', '')}` : undefined,
       officeStart: officeStart || undefined,
-      officeEnd: officeEnd || undefined,
       otHours: 0,
       adjustment: 0,
       amount: 0,
@@ -221,6 +245,7 @@ export function parseJSON(
       designation: e.designation,
       attendance,
       isSupport: e.isSupport,
+      category: e.category,
       basicPay: e.basicPay,
       precalculatedRecords: e.records,
       holidayDates: Array.from(holidays.keys()),

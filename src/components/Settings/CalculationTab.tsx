@@ -14,11 +14,11 @@ interface CalculationTabProps {
 
 export function CalculationTab({ policy, onChange }: CalculationTabProps) {
   const issues: string[] = [];
-  if (policy.minThreshold >= policy.official.dailyOTCap) {
-    issues.push(`Min threshold (${policy.minThreshold}h) ≥ dynamic daily cap (${policy.official.dailyOTCap}h) — no dynamic OT will ever be paid.`);
+  if (policy.minThresholdMinutes >= policy.official.dailyOTCap * 60) {
+    issues.push(`Min threshold (${policy.minThresholdMinutes} min) ≥ dynamic daily cap (${policy.official.dailyOTCap}h) — no dynamic OT will ever be paid.`);
   }
-  if (policy.minThreshold >= policy.support.dailyOTCap) {
-    issues.push(`Min threshold (${policy.minThreshold}h) ≥ fixed daily cap (${policy.support.dailyOTCap}h) — no fixed-rate OT will ever be paid.`);
+  if (policy.minThresholdMinutes >= policy.support.dailyOTCap * 60) {
+    issues.push(`Min threshold (${policy.minThresholdMinutes} min) ≥ fixed daily cap (${policy.support.dailyOTCap}h) — no fixed-rate OT will ever be paid.`);
   }
   if (policy.official.dailyOTCap <= 0) issues.push('Dynamic daily cap is zero.');
   if (policy.support.dailyOTCap <= 0) issues.push('Fixed daily cap is zero.');
@@ -52,7 +52,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
       <SettingsSection title="Global Rules">
           <SettingRow
             title="Shift duration"
-            description="Length of a standard working day. Only used when a day has no office end time of its own."
+            description="Length of the working day. Overtime starts this long after the office start."
           >
             <NumberInput
               value={policy.shiftDurationHours ?? 8}
@@ -64,14 +64,29 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
           </SettingRow>
 
           <SettingRow
+            title="Grace period"
+            description="The file's shift start (e.g. 08:10) includes this much grace: the office starts that many minutes earlier (08:00) and lateness counts after the shift start."
+          >
+            <NumberInput
+              value={policy.lateGraceMinutes ?? 10}
+              onChange={(val) => onChange({ ...policy, lateGraceMinutes: val })}
+              suffix="min"
+              min={0}
+              max={120}
+            />
+          </SettingRow>
+
+          <SettingRow
             title="Min overtime threshold"
-            description="Minimum overtime hours required to be eligible for payment."
+            description="Minimum overtime, in minutes, required to be eligible for payment."
             preview={<ThresholdPreview policy={policy} />}
           >
             <NumberInput
-              value={policy.minThreshold}
-              onChange={(val) => onChange({ ...policy, minThreshold: val })}
-              suffix="hrs"
+              value={policy.minThresholdMinutes}
+              onChange={(val) => onChange({ ...policy, minThresholdMinutes: val })}
+              suffix="min"
+              min={0}
+              max={600}
             />
           </SettingRow>
 

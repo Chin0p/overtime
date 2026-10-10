@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { HolidayOption, SidebarFilters, DEFAULT_FILTERS, NO_FILTERS, shortDate } from '../../store/useSidebarView';
+import { HolidayOption, SidebarFilters, NO_FILTERS, shortDate } from '../../store/useSidebarView';
 
 interface FilterBarProps {
   filters: SidebarFilters;
@@ -57,7 +57,6 @@ export function FilterBar({ filters, onChange, holidayOptions }: FilterBarProps)
   const chips = activeChips(filters, holidayOptions);
   const toggleHoliday = (key: string, on: boolean) =>
     onChange({ ...filters, holidays: on ? [...filters.holidays, key] : filters.holidays.filter((k) => k !== key) });
-  const same = JSON.stringify(filters) === JSON.stringify(DEFAULT_FILTERS);
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -143,16 +142,6 @@ export function FilterBar({ filters, onChange, holidayOptions }: FilterBarProps)
           className="text-caption font-medium text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer"
         >
           Clear
-        </button>
-      )}
-      {/* After clearing everything the list shows all employees; offer the default view back. */}
-      {chips.length === 0 && !same && (
-        <button
-          type="button"
-          onClick={() => onChange(DEFAULT_FILTERS)}
-          className="text-caption font-medium text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer"
-        >
-          Reset
         </button>
       )}
     </div>

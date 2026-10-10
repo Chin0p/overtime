@@ -70,19 +70,42 @@ export function processEmployees(
   const { policy } = settings;
   const roundingMode = policy.roundingMode || 'round';
 
-  const globalOfficeStart = parseHHMM(policy.officeTiming?.start || '09:00');
-  const globalOfficeEnd = parseHHMM(policy.officeTiming?.end || '17:00');
+  // ---- Office timing -------------------------------------------------------------------------
+  // The FILE says when the day starts (its shift start, e.g. 08:10) so a mid-month change of office
+  // hours is picked up automatically. That shift start includes a few minutes of grace:
+  //   office start = shift start - grace            (08:10 - 10 min = 08:00)
+  //   overtime starts at office start + shift duration  (08:00 + 8h = 16:00)
+  //   late limit = shift start                       (arriving 08:10 or earlier is not late)
+  // A row without a usable shift start (a CSV addition, a blank) takes the most common shift start
+  // of that date in the file, or 08:00 + grace when the file has none. Only morning starts count; a
+  // stray evening value such as 15:10 is treated as bad data.
   const shiftDurationHours = policy.shiftDurationHours ?? 8;
-  const globalOfficeDuration = Math.max(0, globalOfficeEnd - globalOfficeStart) || shiftDurationHours;
+  const graceMin = Math.max(0, Math.round(policy.lateGraceMinutes ?? 10));
+  const minThresholdHours = Math.max(0, policy.minThresholdMinutes ?? 60) / 60;
+  const FALLBACK_OFFICE_START_MIN = 8 * 60;
 
-  // Late limit = office start plus the grace the file allows (its shift start, e.g. 08:10 → 10 minutes).
-  // Only a shift start within an hour after the office start counts as grace; anything else (an
-  // evening shift, a missing value) falls back to the office start, so 08:00–16:00 applies to everyone.
-  const lateLimitFor = (fileShiftStart?: string): number => {
-    if (!fileShiftStart) return globalOfficeStart;
-    const s = parseHHMM(fileShiftStart);
-    return s >= globalOfficeStart && s <= globalOfficeStart + 1 ? s : globalOfficeStart;
+  const toShiftMin = (v?: string): number | undefined => {
+    if (!v) return undefined;
+    const min = Math.round(parseHHMM(v) * 60);
+    return min > 0 && min < 12 * 60 ? min : undefined;
   };
+
+  const startVotes = new Map<string, Map<number, number>>();
+  employees.forEach(e => (e.precalculatedRecords || []).forEach(r => {
+    const m = toShiftMin(r?.officeStart);
+    if (m === undefined || !r.date) return;
+    const d = flexibleParseDate(r.date);
+    const key = !isNaN(d.getTime()) ? formatCanonicalDate(d) : r.date;
+    const votes = startVotes.get(key) ?? new Map<number, number>();
+    votes.set(m, (votes.get(m) ?? 0) + 1);
+    startVotes.set(key, votes);
+  }));
+  const dateShiftStartMin = new Map<string, number>();
+  startVotes.forEach((votes, key) => {
+    const best = Array.from(votes.entries()).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
+    if (best) dateShiftStartMin.set(key, best[0]);
+  });
+  const hhmm = (min: number) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}${String(min % 60).padStart(2, '0')}`;
 
   // Settings is the only source of truth for holidays (gazetted dates + Saturday/Sunday). Whatever
   // a file says about holidays is copied into Settings once at upload, never read here.
@@ -182,9 +205,12 @@ export function processEmployees(
       // Office timing is ALWAYS the one in Settings (e.g. 08:00 to 16:00): overtime starts at its end.
       // The shift start in the file (e.g. 08:10) is only the late limit — it is NOT added to the end
       // of the day, so someone leaving at 18:04 has 2h 04m of overtime, not 1h 54m.
-      const officeEnd = globalOfficeEnd;
-      const officeHours = globalOfficeDuration;
-      const lateLimit = lateLimitFor(precalc?.officeStart);
+      const shiftStartMin = toShiftMin(precalc?.officeStart) ?? dateShiftStartMin.get(formattedDate);
+      const officeStartMin = shiftStartMin !== undefined ? shiftStartMin - graceMin : FALLBACK_OFFICE_START_MIN;
+      const lateLimit = (shiftStartMin !== undefined ? shiftStartMin : FALLBACK_OFFICE_START_MIN + graceMin) / 60;
+      const officeEndMin = officeStartMin + Math.round(shiftDurationHours * 60);
+      const officeEnd = officeEndMin / 60;
+      const officeHours = shiftDurationHours;
       const workedHours = hasAttendanceTime ? Math.max(0, hoursBetween(officeEnd, timeOut)) : 0;
 
       let otHours = 0;
@@ -222,7 +248,7 @@ export function processEmployees(
           // offset hour-for-hour, then the minimum threshold and rounding mode apply.
           const grossOT = hasAttendanceTime ? Math.max(0, hoursBetween(officeEnd, timeOut)) : 0;
           const netOT = netOvertimeHours(grossOT, adjustment, policy.lateArrivalToggle);
-          const eligibleOT = computeOTHours(netOT, policy.minThreshold, roundingMode);
+          const eligibleOT = computeOTHours(netOT, minThresholdHours, roundingMode);
 
           if (eligibleOT > 0) {
             // Caps are selected by rate type, not category:
@@ -256,7 +282,7 @@ export function processEmployees(
         totalWorkedHours: isDayHoliday && !hasAttendanceTime ? 0 : round(totalWorkedHours, roundingMode),
         workedHours: isDayHoliday && !hasAttendanceTime ? 0 : round(workedHours || otHours, roundingMode),
         officeHours,
-        officeTiming: `${(policy.officeTiming?.start || '08:00').replace(':', '')}-${(policy.officeTiming?.end || '16:00').replace(':', '')}`,
+        officeTiming: `${hhmm(officeStartMin)}-${hhmm(officeEndMin)}`,
         otHours,
         adjustment,
         amount: round(amount, roundingMode),

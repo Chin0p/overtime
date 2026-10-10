@@ -18,10 +18,12 @@ export function useSettings() {
     return {
       ...DEFAULT_SETTINGS.policy,
       ...saved,
-      officeTiming: {
-        ...DEFAULT_SETTINGS.policy.officeTiming,
-        ...(saved?.officeTiming || {})
-      },
+      // Older saves kept the threshold in hours; the setting is now in minutes.
+      minThresholdMinutes: Number.isFinite(saved?.minThresholdMinutes)
+        ? saved.minThresholdMinutes
+        : Number.isFinite((saved as any)?.minThreshold)
+          ? Math.round((saved as any).minThreshold * 60)
+          : DEFAULT_SETTINGS.policy.minThresholdMinutes,
       support: {
         ...DEFAULT_SETTINGS.policy.support,
         ...(saved?.support || {})

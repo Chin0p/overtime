@@ -5,7 +5,8 @@ export const SUPPORT_DESIGNATION_KEYWORDS = [
   'driver', 'naib qasid', 'qasid', 'peon', 'daftari', 'cook', 'security guard',
   'guard', 'sweeper', 'sanitary', 'dispatch rider', 'attendant', 'electrician',
   'plumber', 'gardener', 'mali', 'waiter', 'bearer', 'janitor', 'helper', 'messenger',
-  'chowkidar', 'office boy', 'rider', 'technician', 'operator', 'support'
+  'chowkidar', 'office boy', 'rider', 'technician', 'operator', 'support',
+  'dish washer', 'dishwasher', 'washer', 'carpenter', 'cleaner'
 ];
 
 const TITLE_PREFIXES = /^(mr|mrs|miss|ms)\.?\s+/i;

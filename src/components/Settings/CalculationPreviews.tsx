@@ -26,7 +26,7 @@ const Strong = ({ children }: { children: React.ReactNode }) => (
 );
 
 const paid = (hours: number, policy: Policy, mode: 'floor' | 'round') => {
-  const p = computeOTHours(hours, policy.minThreshold, mode);
+  const p = computeOTHours(hours, policy.minThresholdMinutes / 60, mode);
   return p > 0 ? hm(p) : 'not paid';
 };
 
@@ -44,9 +44,8 @@ export function RoundingPreview({ policy }: { policy: Policy }) {
 
 export function ThresholdPreview({ policy }: { policy: Policy }) {
   const mode = policy.roundingMode === 'floor' ? 'floor' : 'round';
-  const t = policy.minThreshold;
-  const tMin = Math.round(t * 60);
-  if (t <= 0) return <Hint>No minimum: any overtime counts.</Hint>;
+  const tMin = Math.max(0, Math.round(policy.minThresholdMinutes));
+  if (tMin <= 0) return <Hint>No minimum: any overtime counts.</Hint>;
   return (
     <Hint>
       {hm((tMin - 1) / 60)} → <Strong>{paid((tMin - 1) / 60, policy, mode)}</Strong>, {hm(tMin / 60)} →{' '}

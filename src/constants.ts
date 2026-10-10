@@ -1,12 +1,9 @@
 import { OTSettings } from './types';
 
 export const DEFAULT_POLICY: OTSettings['policy'] = {
-  officeTiming: {
-    start: '08:00',
-    end: '16:00'
-  },
   shiftDurationHours: 8,
-  minThreshold: 1,
+  lateGraceMinutes: 10,
+  minThresholdMinutes: 60,
   lateArrivalToggle: false,
   roundingMode: 'round',
   official: {
