@@ -81,6 +81,10 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
     updatePolicy({ ...tempPolicy, employeeEligibility });
   };
 
+  const updateExcludeHolidays = (employeeExcludeHolidays: Record<string, boolean>) => {
+    updatePolicy({ ...tempPolicy, employeeExcludeHolidays });
+  };
+
   const updateExcludedDays = (employeeExcludedDays: Record<string, string[]>) => {
     updatePolicy({ ...tempPolicy, employeeExcludedDays });
   };
@@ -152,6 +156,8 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
                 employeeExcludedDays={tempPolicy.employeeExcludedDays || {}}
                 dates={dates}
                 onExcludedDaysChange={updateExcludedDays}
+                employeeExcludeHolidays={tempPolicy.employeeExcludeHolidays || {}}
+                onExcludeHolidaysChange={updateExcludeHolidays}
               />
             )}
             {activeTab === 'pdf' && (

@@ -180,6 +180,7 @@ export function processEmployees(
 
     const records: ProcessedRecord[] = [];
     const excludedDays = new Set(policy.employeeExcludedDays?.[emp.erp] ?? []);
+    const excludeHolidays = policy.employeeExcludeHolidays?.[emp.erp] === true;
 
     dateInfo.forEach(({ dateStr, formattedDate, holidayName, dayName: calendarDayName }) => {
       const precalc = precalcMap.get(formattedDate) || precalcMap.get(dateStr);
@@ -271,6 +272,9 @@ export function processEmployees(
         }
       }
 
+      // Left out of pay: a day picked for this person, or any holiday/weekend they attended when their
+      // "exclude all holidays" switch is on.
+      const isExcluded = excludedDays.has(formattedDate) || (excludeHolidays && isDayHoliday && hasAttendanceTime);
       const rawRemark = (precalc?.remarks || '').trim();
       const fileRemark = /^holiday$/i.test(rawRemark) ? '' : rawRemark;
 
@@ -288,10 +292,10 @@ export function processEmployees(
         amount: round(amount, roundingMode),
         // A remark that only says "Holiday" is stale file text; the real reason comes from Settings.
         // An excluded day says so instead: it is left out of this person's pay on purpose.
-        remarks: excludedDays.has(formattedDate) ? 'Excluded' : (fileRemark || holidayName || ''),
+        remarks: isExcluded ? 'Excluded' : (fileRemark || holidayName || ''),
         isHoliday: isDayHoliday,
         holidayName,
-        ...(excludedDays.has(formattedDate) ? { excluded: true } : {}),
+        ...(isExcluded ? { excluded: true } : {}),
       });
     });
 

@@ -58,6 +58,11 @@ function normalizeBackup(json: any, current: { appearance: OTSettings['appearanc
             .map(([k, v]) => [k, (v as unknown[]).filter((d) => typeof d === 'string')]),
         ) as Record<string, string[]>
       : {},
+    employeeExcludeHolidays: isObj(json.policy.employeeExcludeHolidays)
+      ? (Object.fromEntries(
+          Object.entries(json.policy.employeeExcludeHolidays).filter(([, v]) => v === true),
+        ) as Record<string, boolean>)
+      : {},
     fileHolidaysSeen: Array.isArray(json.policy.fileHolidaysSeen)
       ? json.policy.fileHolidaysSeen.filter((d: unknown) => typeof d === 'string')
       : [],
@@ -166,6 +171,7 @@ export function DataFlowTab({
     if (JSON.stringify(inPolicy.designationCategories) !== JSON.stringify(policy.designationCategories)) policyDiffs.push('Designation categories');
     if (JSON.stringify(inPolicy.employeeEligibility || {}) !== JSON.stringify(policy.employeeEligibility || {})) policyDiffs.push('Per-employee exemptions');
     if (JSON.stringify(inPolicy.employeeExcludedDays || {}) !== JSON.stringify(policy.employeeExcludedDays || {})) policyDiffs.push('Excluded days');
+    if (JSON.stringify(inPolicy.employeeExcludeHolidays || {}) !== JSON.stringify(policy.employeeExcludeHolidays || {})) policyDiffs.push('Holidays excluded');
     if (policyDiffs.length) lines.push(`Policy: ${policyDiffs.join(', ')}`);
 
     const keys = new Set([...Object.keys(importData.basicPay), ...Object.keys(basicPay)]);

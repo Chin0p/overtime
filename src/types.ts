@@ -85,6 +85,8 @@ export interface OTSettings {
      * the dashboard (greyed, remark "Excluded") but counts toward no total and never reaches the PDF.
      */
     employeeExcludedDays?: Record<string, string[]>;
+    /** People whose holidays are all left out of pay: Saturdays, Sundays, gazetted and custom holidays. */
+    employeeExcludeHolidays?: Record<string, boolean>;
     roundingMode?: "floor" | "round";
   };
   appearance: {

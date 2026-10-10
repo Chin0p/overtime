@@ -25,6 +25,7 @@ interface EmployeesTabProps {
   designationCapExempt: Record<string, boolean>;
   employeeEligibility: Record<string, 'exempt' | 'included'>;
   employeeExcludedDays: Record<string, string[]>;
+  employeeExcludeHolidays: Record<string, boolean>;
   /** Dates in the loaded file (dd-MMM-yyyy), offered when excluding days. */
   dates: string[];
   onBasicPayChange: (basicPay: Record<string, number>) => void;
@@ -35,6 +36,7 @@ interface EmployeesTabProps {
   ) => void;
   onEligibilityChange: (next: Record<string, 'exempt' | 'included'>) => void;
   onExcludedDaysChange: (next: Record<string, string[]>) => void;
+  onExcludeHolidaysChange: (next: Record<string, boolean>) => void;
 }
 
 const CATEGORY_ORDER: EmployeeCategory[] = ['support', 'official', 'exempt'];
@@ -47,11 +49,13 @@ export function EmployeesTab({
   designationCapExempt,
   employeeEligibility,
   employeeExcludedDays,
+  employeeExcludeHolidays,
   dates,
   onBasicPayChange,
   onDesignationChange,
   onEligibilityChange,
   onExcludedDaysChange,
+  onExcludeHolidaysChange,
 }: EmployeesTabProps) {
   const [search, setSearch] = useState('');
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
@@ -78,12 +82,13 @@ export function EmployeesTab({
           designationCategory,
           eligibility: employeeEligibility[emp.erp],
           excludedCount: (employeeExcludedDays[emp.erp] || []).length,
+          excludesHolidays: employeeExcludeHolidays[emp.erp] === true,
           rate,
           capExempt: resolveCapExempt(designation, rate, { designationCapExempt }),
           pay: basicPay[emp.erp] !== undefined ? basicPay[emp.erp] : emp.basicPay || 0,
         };
       }),
-    [employees, basicPay, designationCategories, designationRateTypes, designationCapExempt, employeeEligibility, employeeExcludedDays],
+    [employees, basicPay, designationCategories, designationRateTypes, designationCapExempt, employeeEligibility, employeeExcludedDays, employeeExcludeHolidays],
   );
 
   const designationCounts = useMemo(() => {
@@ -218,6 +223,14 @@ export function EmployeesTab({
     });
     onExcludedDaysChange(next);
   };
+  const handleSetExcludeHolidays = (erps: string[], on: boolean) => {
+    const next = { ...employeeExcludeHolidays };
+    erps.forEach((erp) => {
+      if (on) next[erp] = true;
+      else delete next[erp];
+    });
+    onExcludeHolidaysChange(next);
+  };
   const handleClearExcluded = (erps: string[]) => {
     const next = { ...employeeExcludedDays };
     erps.forEach((erp) => delete next[erp]);
@@ -276,6 +289,8 @@ export function EmployeesTab({
         dates={dates}
         onExcludeDay={handleExcludeDay}
         onClearExcluded={handleClearExcluded}
+        excludeHolidays={employeeExcludeHolidays}
+        onSetExcludeHolidays={handleSetExcludeHolidays}
         onClearSelection={clearSelection}
       />
     </div>

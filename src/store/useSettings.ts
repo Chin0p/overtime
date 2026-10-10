@@ -37,7 +37,8 @@ export function useSettings() {
       designationCapExempt: saved?.designationCapExempt || {},
       employeeEligibility: saved?.employeeEligibility || {},
       fileHolidaysSeen: Array.isArray(saved?.fileHolidaysSeen) ? saved.fileHolidaysSeen : [],
-      employeeExcludedDays: saved?.employeeExcludedDays || {}
+      employeeExcludedDays: saved?.employeeExcludedDays || {},
+      employeeExcludeHolidays: saved?.employeeExcludeHolidays || {}
     };
   });
 

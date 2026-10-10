@@ -19,7 +19,6 @@ import {
   EmployeeInfo,
   Filters,
   GroupBy,
-  InfoBadges,
   InfoGroup,
   Rate,
   SortBy,
@@ -267,6 +266,12 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                           <span className="font-mono">{emp.erp}</span>
                           <span className="mx-1 opacity-50">·</span>
                           {emp.designation}
+                          {info.excludesHolidays && (
+                            <>
+                              <span className="mx-1 opacity-50">·</span>
+                              holidays excluded
+                            </>
+                          )}
                           {info.excludedCount > 0 && (
                             <>
                               <span className="mx-1 opacity-50">·</span>
@@ -275,10 +280,11 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                           )}
                         </div>
                       </button>
-                      {/* Tags sit on the right and wrap among themselves. */}
-                      <div className="shrink-0 max-w-[9rem] flex flex-wrap justify-end items-center gap-1 py-2.5">
-                        <InfoBadges info={info} />
-                        {missingPay && (
+                      {/* One quiet status on the right: the amber "Set pay" warning is the only loud thing here. */}
+                      <div className="shrink-0 flex items-start pt-3">
+                        {info.category === 'exempt' ? (
+                          <span className="text-caption text-muted-foreground">Exempt</span>
+                        ) : missingPay ? (
                           <span
                             className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning)] text-micro font-semibold leading-none whitespace-nowrap"
                             title="Basic pay is needed to calculate this employee's overtime"
@@ -286,7 +292,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                             <AlertCircle size={11} className="shrink-0" />
                             Set pay
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   );

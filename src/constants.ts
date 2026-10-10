@@ -23,6 +23,7 @@ export const DEFAULT_POLICY: OTSettings['policy'] = {
   employeeEligibility: {},
   fileHolidaysSeen: [],
   employeeExcludedDays: {},
+  employeeExcludeHolidays: {},
 };
 
 export const DEFAULT_SETTINGS: OTSettings = {

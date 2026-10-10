@@ -7,7 +7,7 @@ import { SettingRow } from './SettingRow';
 import { cn, toTitleCase } from '../../lib/utils';
 import { EmployeeCategory } from '../../types';
 import { ExcludedDaysChips } from './ExcludedDaysChips';
-import { Eligibility, EmployeeInfo, InfoBadges, Rate, RuleChange, RuleSelect } from './employeeShared';
+import { Eligibility, EmployeeInfo, InfoBadges, Rate, RuleChange, RuleSelect, SegmentedControl } from './employeeShared';
 
 const CATEGORY_OPTIONS: { value: EmployeeCategory; label: string }[] = [
   { value: 'support', label: 'Support' },
@@ -22,10 +22,6 @@ const ELIGIBILITY_OPTIONS: { value: Eligibility; label: string }[] = [
   { value: 'default', label: 'Follow designation' },
   { value: 'exempt', label: 'Exempt' },
   { value: 'included', label: 'Not exempt' },
-];
-const CAP_OPTIONS = [
-  { value: 'capped', label: 'Capped' },
-  { value: 'exempt', label: 'Exempt' },
 ];
 
 interface Props {
@@ -46,6 +42,9 @@ interface Props {
   /** Exclude (on) or include again (off) one day for the given people. */
   onExcludeDay: (erps: string[], date: string, on: boolean) => void;
   onClearExcluded: (erps: string[]) => void;
+  /** People with "exclude all holidays" on, and a setter. */
+  excludeHolidays: Record<string, boolean>;
+  onSetExcludeHolidays: (erps: string[], on: boolean) => void;
   onClearSelection: () => void;
 }
 
@@ -91,13 +90,16 @@ function ExcludedDaysCard({
   dates,
   onExcludeDay,
   onClearExcluded,
-}: Pick<Props, 'excludedDays' | 'dates' | 'onExcludeDay' | 'onClearExcluded'> & { erps: string[] }) {
+  excludeHolidays,
+  onSetExcludeHolidays,
+}: Pick<Props, 'excludedDays' | 'dates' | 'onExcludeDay' | 'onClearExcluded' | 'excludeHolidays' | 'onSetExcludeHolidays'> & { erps: string[] }) {
   const sets = erps.map((erp) => new Set(excludedDays[erp] || []));
   const stateOf = (date: string) => {
     const n = sets.filter((s) => s.has(date)).length;
     return n === 0 ? 'none' : n === sets.length ? 'all' : 'some';
   };
   const many = erps.length > 1;
+  const withHolidays = erps.filter((erp) => excludeHolidays[erp]).length;
   return (
     <Card
       title="Excluded days"
@@ -107,12 +109,28 @@ function ExcludedDaysCard({
           : 'Left out of this employee’s pay and the PDF; still shown on the dashboard, greyed.'
       }
     >
+      <SettingRow
+        title="Exclude all holidays"
+        description={
+          withHolidays > 0 && withHolidays < erps.length
+            ? `Saturdays, Sundays, gazetted and custom holidays. On for ${withHolidays} of the ${erps.length} ticked.`
+            : 'Saturdays, Sundays, gazetted and custom holidays.'
+        }
+      >
+        <Switch
+          checked={withHolidays === erps.length}
+          onCheckedChange={(on) => onSetExcludeHolidays(erps, on)}
+        />
+      </SettingRow>
+      <div className="border-t border-border pt-3">
+        <div className="text-body font-medium text-foreground mb-2">Other days</div>
       <ExcludedDaysChips
         dates={dates}
         stateOf={stateOf}
         onSet={(date, on) => onExcludeDay(erps, date, on)}
         onClear={() => onClearExcluded(erps)}
       />
+      </div>
     </Card>
   );
 }
@@ -156,8 +174,10 @@ function SingleForm({
   dates,
   onExcludeDay,
   onClearExcluded,
+  excludeHolidays,
+  onSetExcludeHolidays,
 }: { info: EmployeeInfo } & Props) {
-  const excludedProps = { excludedDays, dates, onExcludeDay, onClearExcluded };
+  const excludedProps = { excludedDays, dates, onExcludeDay, onClearExcluded, excludeHolidays, onSetExcludeHolidays };
   const { emp, category, designationCategory, eligibility, rate, capExempt, pay } = info;
   const designation = emp.designation || '';
   // This person is not paid overtime (their own setting or their designation's).
@@ -238,9 +258,11 @@ function BulkForm({
   dates,
   onExcludeDay,
   onClearExcluded,
+  excludeHolidays,
+  onSetExcludeHolidays,
   onClearSelection,
 }: Props) {
-  const excludedProps = { excludedDays, dates, onExcludeDay, onClearExcluded };
+  const excludedProps = { excludedDays, dates, onExcludeDay, onClearExcluded, excludeHolidays, onSetExcludeHolidays };
   const [bulkPay, setBulkPay] = useState(0);
   const designations = Array.from(new Set(selectedInfos.map((i) => i.emp.designation || '')));
   const affected = designations.reduce((sum, d) => sum + (designationCounts[d] || 0), 0);
@@ -338,19 +360,20 @@ function RulesRows({
         title="Rate type"
         description={exempt ? 'Exempt designations have no overtime rate.' : 'Fixed uses the policy rate; Dynamic uses basic pay.'}
       >
-        <RuleSelect value={rate} options={RATE_OPTIONS} onChange={(v) => onChange({ rate: v })} disabled={exempt} mixedLabel={mixed} />
+        <SegmentedControl label="Rate type" value={rate} options={RATE_OPTIONS} onChange={(v) => onChange({ rate: v })} disabled={exempt} />
       </SettingRow>
       <SettingRow
         title="Monthly day cap"
-        description={fixed ? 'Exempt lets this designation go past the monthly day cap.' : 'Only available for fixed-rate designations.'}
+        description={fixed ? 'On: limited to the monthly day cap. Off: can go past it.' : 'Only available for fixed-rate designations.'}
       >
-        <RuleSelect
-          value={cap as 'capped' | 'exempt' | null}
-          options={CAP_OPTIONS}
-          onChange={(v) => onChange({ capExempt: v === 'exempt' })}
-          disabled={!fixed || exempt}
-          mixedLabel={fixed ? mixed : '—'}
-        />
+        <div className="flex items-center gap-2">
+          {cap === null && fixed && !exempt && <span className="text-caption text-muted-foreground">{mixed}</span>}
+          <Switch
+            checked={cap === 'capped'}
+            disabled={!fixed || exempt}
+            onCheckedChange={(on) => onChange({ capExempt: !on })}
+          />
+        </div>
       </SettingRow>
     </div>
   );

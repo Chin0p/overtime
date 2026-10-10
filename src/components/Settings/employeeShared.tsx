@@ -17,6 +17,8 @@ export interface EmployeeInfo {
   designationCategory: EmployeeCategory;
   /** Days excluded from this person's pay (Settings). */
   excludedCount: number;
+  /** All holidays and weekends are left out of this person's pay. */
+  excludesHolidays: boolean;
   /** This person's own override, if any. */
   eligibility?: 'exempt' | 'included';
   rate: Rate;
@@ -83,6 +85,52 @@ export function InfoBadges({ info }: { info: EmployeeInfo }) {
       {info.category !== 'exempt' && <Badge label={info.rate === 'fixed' ? 'Fixed' : 'Dynamic'} />}
       {info.category !== 'exempt' && info.rate === 'fixed' && !info.capExempt && <Badge label="Capped" />}
     </>
+  );
+}
+
+/** A row of mutually exclusive choices (two or three), shown side by side instead of in a dropdown. */
+export function SegmentedControl<T extends string>({
+  value,
+  options,
+  onChange,
+  disabled,
+  label,
+}: {
+  /** `null` = the selection disagrees (bulk edit): nothing is highlighted. */
+  value: T | null;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  disabled?: boolean;
+  label: string;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className={cn('inline-flex rounded-lg border border-border bg-muted/50 p-0.5', disabled && 'opacity-50')}
+    >
+      {options.map((o) => {
+        const selected = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            disabled={disabled}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              'h-7 min-w-[4.5rem] px-3 rounded-md text-ui font-medium transition-colors',
+              selected ? 'bg-card text-foreground shadow-xs ring-1 ring-border' : 'text-muted-foreground',
+              !disabled && !selected && 'hover:text-foreground cursor-pointer',
+              disabled && 'cursor-not-allowed',
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
