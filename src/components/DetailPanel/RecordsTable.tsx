@@ -11,10 +11,18 @@ interface RecordsTableProps {
   /** Which column the rows are currently ordered by. */
   sortKey?: 'date' | 'ot' | 'amount';
   onToggleSort: () => void;
+  /** Click on the OT Hrs or Amount header. */
+  onSortColumn: (key: 'ot' | 'amount') => void;
 }
 
-export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'date', onToggleSort }: RecordsTableProps) {
+/** Header cell: pinned under the title bar. */
+const HEAD = 'sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold';
+const SORTABLE = 'cursor-pointer hover:bg-accent transition-colors select-none group';
+
+export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'date', onToggleSort, onSortColumn }: RecordsTableProps) {
   const visibleColsSet = new Set(visibleColumns);
+  const sortIcon = (key: 'date' | 'ot' | 'amount') =>
+    sortKey !== key ? <ArrowUpDown size={14} /> : sortOrder === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpZA size={14} />;
   
   return (
     // No overflow clipping here: sticky <th> must stick to the DetailPanel scroller.
@@ -27,28 +35,36 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
           <TableHeader>
             <TableRow className="border-b-0">
               <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
-              <TableHead 
-                className="sticky top-[var(--header-sticky)] left-0 z-30 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold cursor-pointer hover:bg-accent transition-colors select-none group"
+              <TableHead
+                className={cn(HEAD, 'left-0 z-30', SORTABLE)}
                 onClick={onToggleSort}
-                title="Toggle Sort Order"
+                title="Sort by date"
               >
                 <div className="flex items-center gap-1.5">
                   Date
-                  <div className="text-muted-foreground group-hover:text-foreground">
-                    {sortKey !== 'date' ? <ArrowUpDown size={14} /> : sortOrder === 'asc' ? <ArrowDownAZ size={14} /> : <ArrowUpZA size={14} />}
-                  </div>
+                  <div className="text-muted-foreground group-hover:text-foreground">{sortIcon('date')}</div>
                 </div>
               </TableHead>
-              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Day</TableHead>
-              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">In</TableHead>
-              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Out</TableHead>
-              {visibleColsSet.has('Office Timing') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Office Timing</TableHead>}
-              {visibleColsSet.has('Total Hours Worked') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Total Worked</TableHead>}
-              {visibleColsSet.has('Worked (OT)') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Worked (OT)</TableHead>}
-              {visibleColsSet.has('Adjustment') && <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Adjustment</TableHead>}
-              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">OT Hrs</TableHead>
-              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Amount</TableHead>
-              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold">Remarks</TableHead>
+              <TableHead className={HEAD}>Day</TableHead>
+              <TableHead className={HEAD}>In</TableHead>
+              <TableHead className={HEAD}>Out</TableHead>
+              {visibleColsSet.has('Office Timing') && <TableHead className={HEAD}>Office Timing</TableHead>}
+              {visibleColsSet.has('Total Hours Worked') && <TableHead className={HEAD}>Total Worked</TableHead>}
+              {visibleColsSet.has('Worked (OT)') && <TableHead className={HEAD}>Worked (OT)</TableHead>}
+              {visibleColsSet.has('Adjustment') && <TableHead className={HEAD}>Adjustment</TableHead>}
+              <TableHead className={cn(HEAD, SORTABLE)} onClick={() => onSortColumn('ot')} title="Sort by overtime hours">
+                <div className="flex items-center gap-1.5">
+                  OT Hrs
+                  <div className="text-muted-foreground group-hover:text-foreground">{sortIcon('ot')}</div>
+                </div>
+              </TableHead>
+              <TableHead className={cn(HEAD, SORTABLE)} onClick={() => onSortColumn('amount')} title="Sort by amount">
+                <div className="flex items-center gap-1.5">
+                  Amount
+                  <div className="text-muted-foreground group-hover:text-foreground">{sortIcon('amount')}</div>
+                </div>
+              </TableHead>
+              <TableHead className={HEAD}>Remarks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-border [&_tr:last-child_td:first-child]:rounded-bl-lg [&_tr:last-child_td:last-child]:rounded-br-lg">

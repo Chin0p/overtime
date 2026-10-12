@@ -39,10 +39,11 @@ function activeChips(f: SidebarFilters, holidayOptions: HolidayOption[]): Chip[]
   if (f.missingPay) chips.push({ id: 'missingPay', label: 'Missing basic pay', remove: (x) => ({ ...x, missingPay: false }) });
   if (f.hasExcluded) chips.push({ id: 'hasExcluded', label: 'Has excluded days', remove: (x) => ({ ...x, hasExcluded: false }) });
   if (f.holidays.length > 0) {
-    const names = f.holidays.map((k) => holidayOptions.find((o) => o.key === k)?.label.split(' · ')[0] ?? k);
+    // One holiday keeps its name and date; several are counted.
+    const picked = f.holidays.map((k) => holidayOptions.find((o) => o.key === k)?.label.replace(' · ', ' ') ?? k);
     chips.push({
       id: 'holidays',
-      label: names.length <= 2 ? `Availed: ${names.join(', ')}` : `Availed: ${names.length} holidays`,
+      label: picked.length === 1 ? `Availed: ${picked[0]}` : `Availed: ${picked.length} holidays`,
       remove: (x) => ({ ...x, holidays: [] }),
     });
   }
@@ -82,7 +83,7 @@ export function FilterBar({ filters, onChange, holidayOptions }: FilterBarProps)
           <Plus size={12} className="shrink-0" />
           Filter
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-60 max-h-[22rem] overflow-y-auto text-ui">
+        <DropdownMenuContent align="start" className="w-60 max-h-[min(30rem,var(--available-height))] overflow-y-auto text-ui">
           <DropdownMenuLabel className="text-caption">Overtime</DropdownMenuLabel>
           <DropdownMenuCheckboxItem checked={filters.hasOT} onCheckedChange={(v) => onChange({ ...filters, hasOT: v })}>
             Has OT hours

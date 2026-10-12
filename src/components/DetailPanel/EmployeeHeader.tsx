@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { formatCurrency, cn, toTitleCase } from '../../lib/utils';
 import { ProcessedEmployee } from '../../types';
-import { Banknote, Coins, Clock, Zap, AlertTriangle, ChevronLeft, Activity, Lock, Info } from 'lucide-react';
+import { Banknote, Coins, Clock, Zap, AlertTriangle, ChevronLeft, Info } from 'lucide-react';
 
 interface EmployeeHeaderProps {
   employee: ProcessedEmployee;
@@ -52,28 +52,14 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
     };
   }, []);
 
-  const categoryBadge = (
-    <span className="shrink-0 px-2 py-0.5 rounded text-caption font-semibold bg-primary/10 text-primary border border-primary/20">
-      {CATEGORY_LABEL[employee.category] ?? (employee.isSupport ? 'Support' : 'Official')}
-    </span>
-  );
-
-  const rateBadge = isExempt ? null : (
+  // Plain text, no colour: "Support · Fixed rate". Exempt people have no rate.
+  const kindText = (
     <span
-      className="shrink-0 inline-flex items-center gap-1 text-caption font-medium text-muted-foreground"
-      title={!isDynamic ? 'Fixed Rate Policy' : 'Dynamic Rate calculated from Basic Pay'}
+      className="shrink-0 text-caption font-medium text-muted-foreground"
+      title={isExempt ? undefined : isDynamic ? 'Dynamic rate, calculated from basic pay' : 'Fixed rate policy'}
     >
-      {!isDynamic ? (
-        <>
-          <Lock size={12} className="shrink-0" />
-          <span>Fixed</span>
-        </>
-      ) : (
-        <>
-          <Activity size={12} className="shrink-0 text-emerald-500" />
-          <span className="text-foreground">Dynamic</span>
-        </>
-      )}
+      {CATEGORY_LABEL[employee.category] ?? (employee.isSupport ? 'Support' : 'Official')}
+      {!isExempt && ` · ${isDynamic ? 'Dynamic rate' : 'Fixed rate'}`}
     </span>
   );
 
@@ -109,7 +95,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
           )}
           <h2 className="min-w-0 truncate text-title text-foreground tracking-tight pl-1 md:pl-0">{name}</h2>
 
-          {/* "• designation" slides in next to the name once condensed. */}
+          {/* "· designation" slides in next to the name once condensed. */}
           <div
             className={cn(
               'min-w-0 flex items-center gap-1.5 overflow-hidden whitespace-nowrap',
@@ -117,7 +103,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
               condensed ? 'max-w-[320px] opacity-100' : 'max-w-0 opacity-0',
             )}
           >
-            <span className="text-muted-foreground/40 select-none">•</span>
+            <span className="text-muted-foreground select-none" aria-hidden>·</span>
             <span className="min-w-0 truncate text-caption font-medium text-muted-foreground">{employee.designation}</span>
           </div>
         </div>
@@ -131,19 +117,15 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
               <h1 className="text-display font-extrabold text-foreground tracking-tight break-words min-w-0">
                 {name}
               </h1>
-              {categoryBadge}
-              {rateBadge}
+              {kindText}
             </div>
 
             {/* Row 2: ERP · designation (+ badges on mobile, where row 1 is the pinned bar) */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-ui sm:text-body text-muted-foreground min-w-0">
               <span className="font-mono font-medium text-foreground shrink-0">{employee.erp}</span>
-              <span className="text-muted-foreground/40 select-none shrink-0">•</span>
+              <span className="select-none shrink-0" aria-hidden>·</span>
               <span className="font-medium text-foreground min-w-0 break-words">{employee.designation}</span>
-              <span className="md:hidden inline-flex items-center gap-2">
-                {categoryBadge}
-                {rateBadge}
-              </span>
+              <span className="md:hidden">{kindText}</span>
             </div>
 
             {isExempt && (
@@ -165,7 +147,9 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
               </div>
             )}
 
-            {/* Stat cards: one horizontal strip on phones (Total first), a row on desktop */}
+            {/* Stat cards: one horizontal strip on phones (Total first), a row on desktop.
+                Exempt people have none; a missing basic pay shows only the "Required" card, never a row of zeros. */}
+            {!isExempt && (
             <div
               className={cn(
                 'flex gap-2 select-none overflow-x-auto no-scrollbar -mx-3 px-3 @3xl:-mx-6 @3xl:px-6 lg:mx-0 lg:px-0 lg:overflow-visible',
@@ -185,8 +169,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
                   color="bg-muted/50 text-foreground border-border"
                 />
               )}
-              {/* Rates are meaningless for someone who is not paid overtime. */}
-              {!isExempt && (
+              {!missingPay && (
                 <>
                   <StatCard
                     icon={<Zap size={13} />}
@@ -202,15 +185,18 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
                   />
                 </>
               )}
-              <StatCard
-                icon={<Coins size={13} />}
-                label="Total Overtime"
-                value={formatCurrency(employee.totalAmount)}
-                color="bg-primary/10 text-primary border-primary/20"
-                highlight
-                className="order-first lg:order-last"
-              />
+              {!missingPay && (
+                <StatCard
+                  icon={<Coins size={13} />}
+                  label="Total Overtime"
+                  value={formatCurrency(employee.totalAmount)}
+                  color="bg-primary/10 text-primary border-primary/20"
+                  highlight
+                  className="order-first lg:order-last"
+                />
+              )}
             </div>
+            )}
           </div>
         </div>
       </header>

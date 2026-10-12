@@ -49,18 +49,12 @@ export function Sidebar({ employees, totalCount, holidayOptions, view, selectedE
   return (
     <aside className="w-full h-full bg-card flex flex-col shrink-0">
       <div className="p-2 md:p-3 border-b border-border">
-        <div className="hidden md:flex items-baseline justify-between mb-2">
-          <h2 className="text-label text-foreground tracking-wide uppercase">Employees</h2>
-          <span className="text-caption text-muted-foreground tabular-nums" aria-live="polite">
-            {filteredEmployees.length === totalCount ? totalCount : `${filteredEmployees.length} of ${totalCount}`}
-          </span>
-        </div>
         <div className="flex items-center gap-1.5 mb-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
             <Input
               type="text"
-              placeholder="Search name, ERP or designation..."
+              placeholder="Search name, ERP or designation…"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-8 text-body h-8"
@@ -101,8 +95,7 @@ export function Sidebar({ employees, totalCount, holidayOptions, view, selectedE
           </DropdownMenu>
         </div>
         <FilterBar filters={filters} onChange={setFilters} holidayOptions={holidayOptions} />
-        {/* On phones the heading (and its count) is hidden, so the count sits under the chips. */}
-        <p className="md:hidden mt-1.5 text-caption text-muted-foreground tabular-nums">
+        <p className="mt-1.5 text-caption text-muted-foreground tabular-nums" aria-live="polite">
           {filteredEmployees.length === totalCount ? `${totalCount} employees` : `${filteredEmployees.length} of ${totalCount} employees`}
         </p>
       </div>
