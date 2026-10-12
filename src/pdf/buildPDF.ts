@@ -71,7 +71,7 @@ export function buildPDF(
   // Capitalize each word in subject
   const summarySubject = toTitleCase(
     pdf.summarySubject 
-      ? `${pdf.summarySubject} ${monthLabel}` 
+      ? `${pdf.summarySubject} of ${monthLabel}` 
       : `Overtime Of Admin Branch For The Month Of ${monthLabel}`
   );
   const { tableStartY: summaryTableStartY } = drawHeader(baseMargin + 4, baseMargin, summarySubject);

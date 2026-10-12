@@ -4,6 +4,14 @@ import { Download, Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { OTSettings, Holiday } from '../../types';
 import { DEFAULT_SETTINGS } from '../../constants';
 import { CustomConfirmDialog } from '../ui/CustomConfirmDialog';
+import { format } from 'date-fns';
+
+/** Backup time for display: dd-MMM-yyyy HH:mm, or "unknown" when missing or unreadable. */
+function formatBackupTime(timestamp?: string): string {
+  if (!timestamp) return 'unknown';
+  const d = new Date(timestamp);
+  return isNaN(d.getTime()) ? 'unknown' : format(d, 'dd-MMM-yyyy HH:mm');
+}
 
 interface DataFlowTabProps {
   policy: OTSettings['policy'];
@@ -123,7 +131,7 @@ export function DataFlowTab({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ot-manager-settings-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `ot-manager-settings-${format(new Date(), 'dd-MMM-yyyy')}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -229,7 +237,7 @@ export function DataFlowTab({
         <CustomConfirmDialog
           title="Import Settings"
           message={
-            `Backup version: ${importData.version || 'unknown'} · exported ${importData.timestamp ? new Date(importData.timestamp).toLocaleString() : 'unknown'}\n\n` +
+            `Backup version: ${importData.version || 'unknown'} · exported ${importData.timestamp ? formatBackupTime(importData.timestamp) : 'unknown'}\n\n` +
             (diffSummary ? diffSummary.join('\n') : '') +
             '\n\nThis replaces the settings you are editing. Press Save & Apply afterwards to keep them.'
           }

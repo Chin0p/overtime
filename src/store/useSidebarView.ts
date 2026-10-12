@@ -57,13 +57,6 @@ export interface HolidayOption {
   label: string;
 }
 
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** "14-Aug-2026" -> "14 Aug". */
-export const shortDate = (date: string): string => {
-  const d = flexibleParseDate(date);
-  return isNaN(d.getTime()) ? date : `${d.getDate()} ${MON[d.getMonth()]}`;
-};
-
 const isWeekendName = (name?: string | null) => name === 'Saturday' || name === 'Sunday';
 
 /** The holidays present in the loaded data (named ones), plus one option for Saturdays and Sundays. */
@@ -79,7 +72,7 @@ export function buildHolidayOptions(employees: ProcessedEmployee[]): HolidayOpti
   );
   const list: HolidayOption[] = Array.from(named.entries())
     .sort((a, b) => flexibleParseDate(a[0]).getTime() - flexibleParseDate(b[0]).getTime())
-    .map(([date, name]) => ({ key: date, label: `${name} · ${shortDate(date)}` }));
+    .map(([date, name]) => ({ key: date, label: `${name} · ${date}` }));
   if (weekends) list.push({ key: WEEKEND_KEY, label: 'Saturdays & Sundays' });
   return list;
 }

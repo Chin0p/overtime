@@ -105,7 +105,7 @@ export function processEmployees(
     const best = Array.from(votes.entries()).sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
     if (best) dateShiftStartMin.set(key, best[0]);
   });
-  const hhmm = (min: number) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}${String(min % 60).padStart(2, '0')}`;
+  const hhmm = (min: number) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
   // Settings is the only source of truth for holidays (gazetted dates + Saturday/Sunday). Whatever
   // a file says about holidays is copied into Settings once at upload, never read here.

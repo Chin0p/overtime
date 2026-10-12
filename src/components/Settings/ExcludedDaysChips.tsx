@@ -16,13 +16,12 @@ export type DayState = 'all' | 'some' | 'none';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** "03-Sep-2026" -> "Wed 03 Sep". */
+/** "03-Sep-2026" -> "Wed 03-Sep-2026". */
 function dayLabel(date: string): string {
   const d = flexibleParseDate(date);
   if (isNaN(d.getTime())) return date;
-  return `${DAYS[d.getDay()]} ${String(d.getDate()).padStart(2, '0')} ${MON[d.getMonth()]}`;
+  return `${DAYS[d.getDay()]} ${date}`;
 }
 
 interface Props {

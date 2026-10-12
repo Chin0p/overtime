@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { HolidayOption, SidebarFilters, NO_FILTERS, shortDate } from '../../store/useSidebarView';
+import { HolidayOption, SidebarFilters, NO_FILTERS } from '../../store/useSidebarView';
 
 interface FilterBarProps {
   filters: SidebarFilters;
@@ -39,7 +39,7 @@ function activeChips(f: SidebarFilters, holidayOptions: HolidayOption[]): Chip[]
   if (f.missingPay) chips.push({ id: 'missingPay', label: 'Missing basic pay', remove: (x) => ({ ...x, missingPay: false }) });
   if (f.hasExcluded) chips.push({ id: 'hasExcluded', label: 'Has excluded days', remove: (x) => ({ ...x, hasExcluded: false }) });
   if (f.holidays.length > 0) {
-    const names = f.holidays.map((k) => holidayOptions.find((o) => o.key === k)?.label.split(' · ')[0] ?? shortDate(k));
+    const names = f.holidays.map((k) => holidayOptions.find((o) => o.key === k)?.label.split(' · ')[0] ?? k);
     chips.push({
       id: 'holidays',
       label: names.length <= 2 ? `Availed: ${names.join(', ')}` : `Availed: ${names.length} holidays`,
