@@ -119,7 +119,7 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
         </DialogHeader>
 
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          <aside className="w-full md:w-[200px] border-b md:border-b-0 md:border-r border-border bg-muted/20 p-2 md:p-3 shrink-0 overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <aside className="w-full md:w-[200px] border-b md:border-b-0 md:border-r border-border bg-muted/20 p-2 md:p-3 shrink-0 overflow-x-auto no-scrollbar">
             <nav className="flex md:flex-col flex-row gap-1.5 md:gap-1 w-max md:w-auto">
               {TABS.map((t) => (
                 <Fragment key={t.id}>

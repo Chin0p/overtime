@@ -32,7 +32,6 @@
   --color-warning: var(--color-warning);
   --color-warning-light: var(--color-warning-light);
   --color-holiday: var(--color-holiday);
-  --color-late-arrival: var(--color-late-arrival);
   --color-success: var(--color-success);
 
   --color-neutral-hover: var(--color-neutral-hover);
@@ -86,7 +85,6 @@
   --color-warning: #D97706;
   --color-warning-light: #FEF3C7;
   --color-holiday: #059669;
-  --color-late-arrival: #EA580C;
   --color-success: #059669;
 
   /* Interactive neutrals */
@@ -102,22 +100,14 @@
   --header-sticky: 2.75rem; /* 44px — single sticky offset */
 
   /* Spacing (8pt grid) */
-  --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
-  --space-lg: 16px;
-  --space-xl: 24px;
-  --space-2xl: 32px;
 
   /* Motion — snappy by default.
-     --duration-* are bare times (for Tailwind duration-[var(--duration-x)]);
-     --transition-* are duration + easing shorthands (for plain CSS `transition:`). */
+     --duration-* are bare times (for Tailwind duration-[var(--duration-x)]). */
   --duration-fast: 80ms;
   --duration-smooth: 160ms;
   --duration-enter: 180ms;
-  --transition-fast: var(--duration-fast) cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-smooth: var(--duration-smooth) cubic-bezier(0.25, 1, 0.5, 1);
-  --transition-enter: var(--duration-enter) cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Z-index */
   --z-below: -1;
@@ -188,7 +178,6 @@
   --color-warning: #FBBF24;
   --color-warning-light: rgba(251, 191, 36, 0.12);
   --color-holiday: #34D399;
-  --color-late-arrival: #FB923C;
   --color-success: #34D399;
 
   --color-neutral-hover: #27272a;
@@ -311,16 +300,6 @@
 
 @layer utilities {
   /* Safe areas for notched devices */
-  .safe-top {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .safe-x {
-    padding-left: env(safe-area-inset-left, 0px);
-    padding-right: env(safe-area-inset-right, 0px);
-  }
   /*
    * Top bar: the side gutter and the notch inset are ONE rule (the larger of the two).
    * These used to be separate (px-* for the gutter, safe-nav for the inset), and because both are
@@ -345,38 +324,6 @@
     padding-bottom: var(--shell-gap);
     padding-left: max(var(--shell-gap), env(safe-area-inset-left, 0px));
     padding-right: max(var(--shell-gap), env(safe-area-inset-right, 0px));
-  }
-
-  .btn-click {
-    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-  }
-  .btn-click:active:not(:disabled) {
-    transform: none;
-  }
-
-  .btn-squeeze {
-    position: relative;
-    z-index: 1;
-    background-color: transparent !important;
-  }
-  .btn-squeeze::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background-color: var(--color-accent);
-    z-index: -1;
-    transition: inset var(--transition-fast), background-color var(--transition-fast);
-  }
-  .btn-squeeze:hover:not(:disabled)::before {
-    background-color: var(--color-accent-hover);
-  }
-  .btn-squeeze:active:not(:disabled)::before {
-    background-color: var(--color-accent-pressed);
-    inset: 0 6px;
-  }
-  .btn-squeeze:disabled::before {
-    background-color: var(--color-disabled-accent);
   }
 
   .no-scrollbar::-webkit-scrollbar {

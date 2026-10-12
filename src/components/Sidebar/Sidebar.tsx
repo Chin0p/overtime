@@ -107,7 +107,7 @@ export function Sidebar({ employees, totalCount, holidayOptions, view, selectedE
         </p>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-1.5 gap-1 flex flex-col" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="flex-1 overflow-y-auto p-1.5 gap-1 flex flex-col">
         {filteredEmployees.length > 0 ? (
           filteredEmployees.map(emp => (
             <EmployeeCard

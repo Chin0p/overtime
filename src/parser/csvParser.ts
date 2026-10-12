@@ -3,7 +3,7 @@ import { flexibleParseDate, formatCanonicalDate } from '../lib/utils';
 import { parseJSON } from './jsonParser';
 
 /**
- * Records CSV (Settings > Backup / Reset > Add employee records).
+ * Records CSV (menu > Add records (CSV)…).
  *
  *   erp,name,designation,01-08-2026,02-08-2026,...,31-08-2026
  *   4747,tariq butt,electrician,0800:1600,0800:1600,...,0800:1600
