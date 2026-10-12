@@ -1,4 +1,4 @@
-import { AlertTriangle } from 'lucide-react';
+import { Notice } from '../ui/notice';
 import { OTSettings } from '../../types';
 import { NumberInput } from '../ui/NumberInput';
 import { Switch } from '../ui/switch';
@@ -38,15 +38,11 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {issues.length > 0 && (
-        <div className="p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-caption space-y-1">
-          <div className="flex items-center gap-1.5 font-semibold text-[var(--color-warning)]">
-            <AlertTriangle size={13} />
-            <span>Policy issues</span>
-          </div>
-          <ul className="list-disc list-inside text-[var(--color-warning)]/90 space-y-0.5 pl-1">
+        <Notice tone="warning" title="Policy issues">
+          <ul className="list-disc list-inside space-y-0.5 pl-1">
             {issues.map((s, i) => <li key={i}>{s}</li>)}
           </ul>
-        </div>
+        </Notice>
       )}
 
       <SettingsSection title="Global Rules">

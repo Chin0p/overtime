@@ -6,7 +6,8 @@ import { SUMMARY_SORT_OPTIONS, SummarySort, defaultSortDir } from '../../pdf/sum
 import { SettingRow } from './SettingRow';
 import { SettingsSection } from './SettingsSection';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
-import { AlertTriangle, ChevronLeft, ChevronRight, Search, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, FileText } from 'lucide-react';
+import { Notice } from '../ui/notice';
 import { Input } from '../ui/input';
 import { cn } from '../../lib/utils';
 
@@ -154,12 +155,9 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
         </button>
 
         {allExcluded && (
-          <div className="mt-2 p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-caption flex items-start gap-2">
-            <AlertTriangle size={14} className="shrink-0 text-[var(--color-warning)] mt-0.5" />
-            <span className="text-[var(--color-warning)]">
-              <strong>All designations are excluded.</strong> The PDF will have no pages.
-            </span>
-          </div>
+          <Notice tone="warning" className="mt-2">
+            <strong>All designations are excluded.</strong> The PDF will have no pages.
+          </Notice>
         )}
         </div>
       </SettingsSection>
@@ -315,12 +313,9 @@ function DesignationManager({
 
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
       {allExcluded && (
-        <div className="mx-3 sm:mx-5 mt-3 p-2.5 rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-caption flex items-start gap-2">
-          <AlertTriangle size={14} className="shrink-0 text-[var(--color-warning)] mt-0.5" />
-          <span className="text-[var(--color-warning)]">
-            <strong>Everything is excluded.</strong> The PDF will have no pages.
-          </span>
-        </div>
+        <Notice tone="warning" className="mx-3 sm:mx-5 mt-3">
+          <strong>All designations are excluded.</strong> The PDF will have no pages.
+        </Notice>
       )}
 
       <ul className="px-3 sm:px-5 py-3 space-y-1.5">

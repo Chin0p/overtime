@@ -1,6 +1,7 @@
 import { SettingsSection } from './SettingsSection';
 import React, { useRef, useState, useMemo } from 'react';
-import { Download, Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
+import { Notice } from '../ui/notice';
 import { OTSettings, Holiday } from '../../types';
 import { DEFAULT_SETTINGS } from '../../constants';
 import { CustomConfirmDialog } from '../ui/CustomConfirmDialog';
@@ -201,18 +202,7 @@ export function DataFlowTab({
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      {notice && (
-        <div
-          className={
-            notice.kind === 'error'
-              ? 'p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-caption flex items-start gap-2'
-              : 'p-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-caption flex items-start gap-2'
-          }
-        >
-          {notice.kind === 'error' ? <AlertCircle size={14} className="shrink-0 mt-0.5" /> : <CheckCircle2 size={14} className="shrink-0 mt-0.5" />}
-          <span>{notice.text}</span>
-        </div>
-      )}
+      {notice && <Notice tone={notice.kind}>{notice.text}</Notice>}
 
       <SettingsSection
         title="Backup & Restore"

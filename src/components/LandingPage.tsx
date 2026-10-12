@@ -1,13 +1,7 @@
 import React, { useRef, useState } from 'react';
-import {
-  FileCode,
-  FileSpreadsheet,
-  Upload,
-  Loader2,
-  AlertCircle,
-  ChevronLeft,
-} from 'lucide-react';
+import { Upload, Loader2, ChevronLeft } from 'lucide-react';
 import { Button } from './ui/button';
+import { Notice } from './ui/notice';
 
 interface LandingPageProps {
   onUpload: (text: string, fileName?: string) => void;
@@ -19,11 +13,11 @@ interface LandingPageProps {
 export function LandingPage({ onUpload, error, hasExistingData, onReturnToDashboard }: LandingPageProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState('Processing attendance data...');
+  const [uploadMessage, setUploadMessage] = useState('Processing attendance data…');
 
   const processFile = (file: File) => {
     setIsUploading(true);
-    setUploadMessage(`Reading ${file.name}...`);
+    setUploadMessage(`Reading ${file.name}…`);
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -97,12 +91,7 @@ export function LandingPage({ onUpload, error, hasExistingData, onReturnToDashbo
           </div>
         ) : (
           <>
-            {error && (
-              <div className="p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-caption flex items-center gap-2">
-                <AlertCircle size={14} className="shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+            {error && <Notice tone="error">{error}</Notice>}
 
             {hasExistingData && (
               <p className="text-caption text-muted-foreground">
@@ -111,33 +100,9 @@ export function LandingPage({ onUpload, error, hasExistingData, onReturnToDashbo
             )}
 
             <div className="grid gap-2">
-              <div className="p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 transition-colors flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center">
-                    <FileCode size={14} />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-label text-foreground block">JSON records</span>
-                    <span className="text-caption text-muted-foreground">Daily punch rows from attendance system</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 transition-colors flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-md bg-[var(--color-holiday)]/10 text-[var(--color-holiday)] flex items-center justify-center">
-                    <FileSpreadsheet size={14} />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-label text-foreground block">CSV spreadsheet</span>
-                    <span className="text-caption text-muted-foreground">Header: erp, name, designation, dd-mm-yyyy…</span>
-                  </div>
-                </div>
-              </div>
-
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full text-label h-9 flex items-center justify-center gap-1.5 mt-1"
+                className="w-full text-label h-9 flex items-center justify-center gap-1.5"
               >
                 <Upload size={14} />
                 <span>Choose file</span>

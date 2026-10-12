@@ -17,7 +17,8 @@ import { buildPDF } from './pdf/buildPDF';
 import { format } from 'date-fns';
 import { flexibleParseDate, cn } from './lib/utils';
 import { seedFileHolidays } from './lib/seedHolidays';
-import { AlertTriangle, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
+import { Notice } from './components/ui/notice';
 
 export default function App() {
   const { policy, appearance, pdf, basicPay, holidays, saveSettings, setAppearance } = useSettings();
@@ -225,7 +226,11 @@ export default function App() {
       }
     } catch (err) {
       clearTimeout(errorTimer.current);
-      setError(err instanceof Error ? err.message : 'Failed to parse file');
+      setError(
+        err instanceof SyntaxError
+          ? 'This file is not valid JSON. Choose the attendance file exported from DAUMS.'
+          : err instanceof Error ? err.message : 'Failed to parse file'
+      );
       errorTimer.current = setTimeout(() => setError(null), 8000);
     }
   };
@@ -330,44 +335,25 @@ export default function App() {
           </div>
         )}
 
-        {error && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-2 duration-[var(--duration-enter)] w-[90%] md:w-[400px]">
-            <div className="bg-[var(--color-bg-card)] border-l-4 border-[var(--color-danger)] text-[var(--color-text-main)] px-4 py-3 rounded shadow-xl flex items-center gap-3">
-              <div className="w-8 h-8 flex items-center justify-center shrink-0 text-[var(--color-danger)]">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <div>
-                <h4 className="font-bold text-ui text-[var(--color-danger)]">Upload Error</h4>
-                <p className="text-caption opacity-90">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {warnings.length > 0 && !error && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-2 duration-[var(--duration-enter)] w-[90%] md:w-[500px]">
-            <div className="bg-[var(--color-bg-card)] border-l-4 border-[var(--color-warning)] text-[var(--color-text-main)] px-4 py-3 rounded shadow-xl">
-              <div className="flex items-start gap-2">
-                <AlertTriangle size={16} className="shrink-0 text-[var(--color-warning)] mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-ui text-[var(--color-warning)]">
-                    {warnings.length} row{warnings.length === 1 ? '' : 's'} skipped
-                  </h4>
-                  <ul className="text-caption opacity-90 mt-0.5 space-y-0.5 max-h-32 overflow-y-auto">
-                    {warnings.slice(0, 8).map((w, i) => <li key={i}>{w}</li>)}
-                    {warnings.length > 8 && <li className="italic">…and {warnings.length - 8} more.</li>}
-                  </ul>
-                </div>
+        {warnings.length > 0 && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[var(--z-fixed)] animate-in fade-in slide-in-from-top-2 duration-[var(--duration-enter)] w-[90%] md:w-[500px] rounded-lg bg-card shadow-lg">
+            <Notice
+              tone="warning"
+              title={`${warnings.length} row${warnings.length === 1 ? '' : 's'} skipped`}
+              action={
                 <button
                   onClick={() => setWarnings([])}
                   className="shrink-0 text-muted-foreground hover:text-foreground text-caption"
                 >
                   Dismiss
                 </button>
-              </div>
-            </div>
+              }
+            >
+              <ul className="text-foreground/80 space-y-0.5 max-h-32 overflow-y-auto">
+                {warnings.slice(0, 8).map((w, i) => <li key={i}>{w}</li>)}
+                {warnings.length > 8 && <li className="italic">…and {warnings.length - 8} more.</li>}
+              </ul>
+            </Notice>
           </div>
         )}
       </main>

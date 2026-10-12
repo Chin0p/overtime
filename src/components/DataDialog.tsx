@@ -1,9 +1,10 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle2, Download, FileSpreadsheet, Undo2 } from 'lucide-react';
+import { Download, FileSpreadsheet, Undo2 } from 'lucide-react';
 import { AttendanceData } from '../types';
 import { buildRecordsTemplate, parseRecordsCSV } from '../parser/csvParser';
 import { mergeRecords } from '../parser/mergeRecords';
 import { Button } from './ui/button';
+import { Notice } from './ui/notice';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface AddSummary {
@@ -88,13 +89,10 @@ export function DataDialog({ current, monthLabel, shiftDurationHours, canUndo, o
 
         {result ? (
           <div className="space-y-3">
-            <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-caption flex items-start gap-2">
-              <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
-              <span>
-                Added {plural(result.addedEmployees, 'new employee')}, updated {result.updatedEmployees}.
-                Category and basic pay can be set in Settings.
-              </span>
-            </div>
+            <Notice tone="success">
+              Added {plural(result.addedEmployees, 'new employee')}, updated {result.updatedEmployees}.
+              Category and basic pay can be set in Settings.
+            </Notice>
             <DialogFooter className="gap-2 sm:gap-0">
               {canUndo && (
                 <Button variant="outline" onClick={() => { onUndo(); onClose(); }}>
@@ -125,14 +123,11 @@ export function DataDialog({ current, monthLabel, shiftDurationHours, canUndo, o
             </div>
 
             {warnings.length > 0 && (
-              <div className="rounded-lg border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] p-3 text-caption">
-                <div className="flex items-center gap-1.5 font-semibold text-[var(--color-warning)] mb-1">
-                  <AlertCircle size={14} /> {plural(warnings.length, 'cell')} skipped
-                </div>
+              <Notice tone="warning" title={`${plural(warnings.length, 'cell')} skipped`}>
                 <ul className="max-h-40 overflow-y-auto space-y-0.5 text-foreground/80 list-disc pl-4">
                   {warnings.map((w, i) => <li key={i}>{w}</li>)}
                 </ul>
-              </div>
+              </Notice>
             )}
 
             <DialogFooter className="gap-2 sm:gap-0">
@@ -148,12 +143,7 @@ export function DataDialog({ current, monthLabel, shiftDurationHours, canUndo, o
           </div>
         ) : (
           <div className="space-y-3">
-            {error && (
-              <div className="p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-caption flex items-start gap-2">
-                <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
+            {error && <Notice tone="error">{error}</Notice>}
             <p className="text-caption text-muted-foreground">
               Missing someone from the attendance file? Add them from a CSV. They are added to the data loaded now
               and are gone when you load a different file.
