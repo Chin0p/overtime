@@ -66,7 +66,7 @@ export function NumberInput({
         onChange={handleChange}
         onBlur={handleBlur}
         placeholder="0"
-        className={cn('w-full text-right h-8', suffix ? 'pr-12' : '')}
+        className={cn('w-full text-right h-11 md:h-8', suffix ? 'pr-12' : '')}
       />
       {suffix && (
         <span className="absolute right-3 text-ui font-semibold text-muted-foreground pointer-events-none select-none">

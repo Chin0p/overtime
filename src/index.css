@@ -335,8 +335,11 @@
   }
 
   /* Edge fade for horizontally scrollable strips */
-  .scroll-fade-x {
-    mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  /* Hints that a horizontal strip scrolls: fades its right edge. Phones only, where the Settings tabs are a strip. */
+  @media (max-width: 767px) {
+    .scroll-fade-x {
+      mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    }
   }
 
   /* Data table */

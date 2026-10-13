@@ -86,7 +86,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
           {onBack && (
             <button
               onClick={onBack}
-              className="md:hidden size-9 shrink-0 flex items-center justify-center rounded-[var(--radius-interactive)] hover:bg-muted text-foreground transition-colors"
+              className="md:hidden size-11 shrink-0 flex items-center justify-center rounded-[var(--radius-interactive)] hover:bg-muted text-foreground transition-colors"
               aria-label="Back to employee list"
               id="mobile-back-button"
             >

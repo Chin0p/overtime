@@ -87,7 +87,7 @@ export function SegmentedControl<T extends string>({
             disabled={disabled}
             onClick={() => onChange(o.value)}
             className={cn(
-              'h-7 min-w-[4.5rem] px-3 rounded-md text-ui font-medium transition-colors',
+              'h-10 md:h-7 min-w-[4.5rem] px-3 rounded-md text-ui font-medium transition-colors',
               selected ? 'bg-card text-foreground shadow-xs ring-1 ring-border' : 'text-muted-foreground',
               !disabled && !selected && 'hover:text-foreground cursor-pointer',
               disabled && 'cursor-not-allowed',

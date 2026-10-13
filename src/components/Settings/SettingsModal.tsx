@@ -1,4 +1,4 @@
-import React, { Fragment, useRef, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Settings, Calendar, Users, FileText, Database, ChevronRight } from 'lucide-react';
 import { OTSettings, Holiday, EmployeeRow, EmployeeCategory } from '../../types';
 import { CalculationTab } from './CalculationTab';
@@ -90,6 +90,25 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
   };
 
   const popupRef = useRef<HTMLDivElement>(null);
+
+  // On a phone the tabs are a sideways strip; fade its right edge while more tabs are out of view.
+  const tabStripEl = useRef<HTMLElement | null>(null);
+  const [moreTabs, setMoreTabs] = useState(false);
+  const checkTabStrip = useCallback(() => {
+    const el = tabStripEl.current;
+    setMoreTabs(!!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+  const tabStrip = useCallback(
+    (el: HTMLElement | null) => {
+      tabStripEl.current = el;
+      if (el) requestAnimationFrame(checkTabStrip);
+    },
+    [checkTabStrip],
+  );
+  useEffect(() => {
+    window.addEventListener('resize', checkTabStrip);
+    return () => window.removeEventListener('resize', checkTabStrip);
+  }, [checkTabStrip]);
   const current = TABS.find((t) => t.id === activeTab) ?? TABS[0];
 
   const handleSaveAndClose = () => {
@@ -103,7 +122,7 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
       <DialogContent
         ref={popupRef}
         initialFocus={popupRef}
-        closeClassName="top-3.5 right-3 sm:right-4"
+        closeClassName="top-1.5 md:top-3.5 right-3 sm:right-4"
         className="focus-visible:outline-none! max-w-full sm:max-w-[750px] md:max-w-[900px] lg:max-w-[1000px] p-0 overflow-hidden flex flex-col h-[100svh] max-h-[100svh] rounded-none border-border bg-card gap-0 tall:h-[min(85svh,780px)] tall:max-h-[calc(100svh-2rem)] tall:rounded-xl">
 
         <DialogHeader className="h-14 pl-4 pr-14 sm:pl-5 border-b border-border shrink-0 m-0 flex flex-row items-center">
@@ -118,7 +137,14 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
         </DialogHeader>
 
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          <aside className="w-full md:w-[200px] border-b md:border-b-0 md:border-r border-border bg-muted/20 p-2 md:p-3 shrink-0 overflow-x-auto no-scrollbar">
+          <aside
+            ref={tabStrip}
+            onScroll={checkTabStrip}
+            className={cn(
+              'w-full md:w-[200px] border-b md:border-b-0 md:border-r border-border bg-muted/20 p-2 md:p-3 shrink-0 overflow-x-auto no-scrollbar',
+              moreTabs && 'scroll-fade-x',
+            )}
+          >
             <nav className="flex md:flex-col flex-row gap-1.5 md:gap-1 w-max md:w-auto">
               {TABS.map((t) => (
                 <Fragment key={t.id}>
@@ -188,14 +214,14 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="text-ui h-7 px-3"
+              className="text-ui h-11 md:h-7 px-3"
             >
               Cancel
             </Button>
             <Button
               size="sm"
               onClick={handleSaveAndClose}
-              className="text-ui h-7 px-3 font-semibold"
+              className="text-ui h-11 md:h-7 px-3 font-semibold"
             >
               Save & Apply
             </Button>
@@ -219,7 +245,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean, onClick:
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center w-auto md:w-full justify-start gap-2 rounded-[var(--radius-interactive)] transition-all shrink-0 px-3 py-2 text-body font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring",
+        "flex items-center w-auto md:w-full justify-start gap-2 rounded-[var(--radius-interactive)] transition-all shrink-0 px-3 min-h-11 md:min-h-0 py-2 text-body font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring",
         active
           ? "bg-[var(--color-neutral-active)] text-[var(--color-accent)] hover:bg-[var(--color-neutral-active)] hover:text-[var(--color-accent)]"
           : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-neutral-hover)]"

@@ -23,7 +23,7 @@ interface DetailPanelProps {
   view: RecordsView;
 }
 
-const btn = cn(buttonVariants({ variant: 'outline' }), 'w-full md:w-auto h-9 md:h-8 justify-center gap-1.5 px-3 cursor-pointer');
+const btn = cn(buttonVariants({ variant: 'outline' }), 'w-full md:w-auto h-11 md:h-8 justify-center gap-1.5 px-3 cursor-pointer');
 const active = 'text-primary border-primary';
 
 export function DetailPanel({ employee, onBack, view }: DetailPanelProps) {

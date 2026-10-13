@@ -58,7 +58,7 @@ export function Navbar({
         {hasData && (
           <Button
             onClick={onExportClick}
-            className="text-label h-8 px-2.5 gap-1.5 font-semibold bg-primary text-primary-foreground"
+            className="text-label h-11 min-w-11 sm:h-8 sm:min-w-0 px-2.5 gap-1.5 font-semibold bg-primary text-primary-foreground"
             title="Export PDF Report"
           >
             <FileText size={14} />
@@ -68,7 +68,7 @@ export function Navbar({
 
         <DropdownMenu>
           <DropdownMenuTrigger
-            className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'cursor-pointer size-8')}
+            className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'cursor-pointer')}
             title="Menu"
             aria-label="Open menu"
           >

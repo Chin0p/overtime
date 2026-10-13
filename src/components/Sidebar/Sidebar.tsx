@@ -38,7 +38,7 @@ const SORT_OPTIONS: { key: SidebarSortKey; label: string; asc?: string; desc?: s
 
 const iconBtn = cn(
   buttonVariants({ variant: 'outline' }),
-  'size-8 p-0 shrink-0 justify-center cursor-pointer',
+  'size-11 md:size-8 p-0 shrink-0 justify-center cursor-pointer',
 );
 const activeCls = 'text-primary border-primary';
 
@@ -57,7 +57,7 @@ export function Sidebar({ employees, totalCount, holidayOptions, view, selectedE
               placeholder="Search name, ERP or designation…"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-8 text-body h-8"
+              className="pl-8 text-body h-11 md:h-8"
             />
           </div>
 

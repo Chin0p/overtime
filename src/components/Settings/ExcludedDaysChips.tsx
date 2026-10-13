@@ -63,7 +63,7 @@ export function ExcludedDaysChips({ dates, stateOf, onSet, onClear }: Props) {
             <span
               key={date}
               className={cn(
-                'inline-flex items-center h-7 rounded-full border text-ui font-medium tabular-nums overflow-hidden',
+                'inline-flex items-center h-8 md:h-7 rounded-full border text-ui font-medium tabular-nums overflow-hidden',
                 partial ? 'border-dashed border-primary/50 bg-primary/5 text-primary' : 'border-primary/30 bg-primary/10 text-primary',
               )}
             >
@@ -95,7 +95,7 @@ export function ExcludedDaysChips({ dates, stateOf, onSet, onClear }: Props) {
       <div className="flex items-center gap-3">
         <DropdownMenu>
           <DropdownMenuTrigger
-            className={cn(buttonVariants({ variant: 'outline' }), 'h-8 gap-1.5 px-2.5 text-ui cursor-pointer')}
+            className={cn(buttonVariants({ variant: 'outline' }), 'h-11 md:h-8 gap-1.5 px-2.5 text-ui cursor-pointer')}
             disabled={months.length === 0}
           >
             <Plus size={14} />

@@ -51,7 +51,7 @@ function activeChips(f: SidebarFilters, holidayOptions: HolidayOption[]): Chip[]
 }
 
 const chipBase =
-  'inline-flex items-center gap-1 h-6 rounded-full border px-2 text-caption font-medium whitespace-nowrap cursor-pointer transition-colors';
+  'inline-flex items-center gap-1 h-8 md:h-6 rounded-full border px-2 text-caption font-medium whitespace-nowrap cursor-pointer transition-colors';
 
 /** Active filters as removable chips, plus a "+ Filter" menu for adding more. */
 export function FilterBar({ filters, onChange, holidayOptions }: FilterBarProps) {
