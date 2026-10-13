@@ -6,8 +6,10 @@ import { SUMMARY_SORT_OPTIONS, SummarySort, defaultSortDir } from '../../pdf/sum
 import { SettingRow } from './SettingRow';
 import { SettingsSection } from './SettingsSection';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
-import { ChevronLeft, ChevronRight, Search, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Notice } from '../ui/notice';
+import { Button } from '../ui/button';
+import { SegmentedControl } from './employeeShared';
 import { Input } from '../ui/input';
 import { cn } from '../../lib/utils';
 
@@ -66,9 +68,9 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
   return (
     <div className="absolute inset-0 overflow-y-auto bg-muted/25 p-4 sm:p-6">
     <div className="space-y-6 max-w-3xl mx-auto">
-      <SettingsSection title="Summary Options">
+      <SettingsSection title="Summary page">
           <SettingRow
-            title="Summary Sort Order"
+            title="Sort by"
             description="What the summary page is ordered by."
           >
             <div className="w-36">
@@ -94,77 +96,55 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
             </div>
           </SettingRow>
           <SettingRow title="Order" description="Smallest to largest, or largest to smallest.">
-            <div className="w-36">
-              <Select
-                value={pdf.summarySortDir ?? 'asc'}
-                onValueChange={(val) => onChange({ ...pdf, summarySortDir: val as 'asc' | 'desc' })}
-              >
-                <SelectTrigger className="w-full text-ui">
-                  <span className="truncate">{(pdf.summarySortDir ?? 'asc') === 'asc' ? 'Ascending' : 'Descending'}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asc" className="text-ui">Ascending</SelectItem>
-                  <SelectItem value="desc" className="text-ui">Descending</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <SegmentedControl
+              label="Order"
+              value={pdf.summarySortDir ?? 'asc'}
+              options={[{ value: 'asc', label: 'Ascending' }, { value: 'desc', label: 'Descending' }]}
+              onChange={(val) => onChange({ ...pdf, summarySortDir: val })}
+            />
           </SettingRow>
       </SettingsSection>
 
-      <SettingsSection title="Designations in PDF" description="Choose which designations appear in the exported report.">
-        <div>
-        <button
-          type="button"
-          disabled={uniqueDesignations.length === 0}
-          onClick={() => setView('designations')}
-          className={cn(
-            'w-full text-left flex items-center gap-3 p-3 rounded-lg border bg-muted/10 transition-colors',
-            'hover:bg-muted/30 hover:border-primary/40 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-muted/10 disabled:hover:border-border',
-            allExcluded ? 'border-[var(--color-warning)]/40' : 'border-border',
-          )}
+      <SettingsSection title="Designations" description="Choose which designations appear in the exported report.">
+        <SettingRow
+          title={
+            uniqueDesignations.length === 0
+              ? 'No designations yet'
+              : excludedCount === 0
+                ? 'All designations included'
+                : `${uniqueDesignations.length - excludedCount} of ${uniqueDesignations.length} designations included`
+          }
+          description={
+            uniqueDesignations.length === 0
+              ? 'Load an attendance file to see its designations.'
+              : excludedCount === 0
+                ? `${employees.length} employees will be in the report.`
+                : `Hiding ${excludedCount} (${excludedPeople} employee${excludedPeople === 1 ? '' : 's'}): ${excluded
+                    .filter(d => designationCounts.has(d))
+                    .join(', ')}`
+          }
+          preview={
+            allExcluded && (
+              <Notice tone="warning">
+                <strong>All designations are excluded.</strong> The PDF will have no pages.
+              </Notice>
+            )
+          }
         >
-          <div className="size-9 shrink-0 rounded-md bg-primary/10 text-primary flex items-center justify-center">
-            <FileText size={16} />
-          </div>
-          <div className="flex-1 min-w-0">
-            {uniqueDesignations.length === 0 ? (
-              <p className="text-ui text-muted-foreground">Upload a file to see its designations.</p>
-            ) : (
-              <>
-                <p className="text-ui font-semibold text-foreground">
-                  {excludedCount === 0
-                    ? 'All designations included'
-                    : `${uniqueDesignations.length - excludedCount} of ${uniqueDesignations.length} designations included`}
-                </p>
-                <p className="text-caption text-muted-foreground mt-0.5 truncate">
-                  {excludedCount === 0
-                    ? `${employees.length} employees will be in the report`
-                    : `Hiding ${excludedCount} (${excludedPeople} employee${excludedPeople === 1 ? '' : 's'}): ${excluded
-                        .filter(d => designationCounts.has(d))
-                        .join(', ')}`}
-                </p>
-              </>
-            )}
-          </div>
-          {uniqueDesignations.length > 0 && (
-            <span className="shrink-0 flex items-center gap-0.5 text-caption font-medium text-primary">
-              Manage
-              <ChevronRight size={14} />
-            </span>
-          )}
-        </button>
-
-        {allExcluded && (
-          <Notice tone="warning" className="mt-2">
-            <strong>All designations are excluded.</strong> The PDF will have no pages.
-          </Notice>
-        )}
-        </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={uniqueDesignations.length === 0}
+            onClick={() => setView('designations')}
+          >
+            Manage <ChevronRight size={14} />
+          </Button>
+        </SettingRow>
       </SettingsSection>
 
-      <SettingsSection title="Page Layout">
+      <SettingsSection title="Page layout">
           <SettingRow
-            title="Page Size"
+            title="Page size"
             description={currentSize.description}
           >
             <div className="w-28">
@@ -189,8 +169,8 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
           </SettingRow>
 
           <SettingRow
-            title="Margin Size"
-            description="Page margins in millimeters"
+            title="Margins"
+            description="Page margins in millimeters."
           >
             <NumberInput
               value={pdf.margin}
@@ -202,10 +182,10 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
           </SettingRow>
       </SettingsSection>
 
-      <SettingsSection title="Typography & Spacing">
+      <SettingsSection title="Typography & spacing">
           <SettingRow
-            title="Table Font Size"
-            description="Size of text inside PDF tables"
+            title="Table font size"
+            description="Size of text inside PDF tables."
           >
             <NumberInput
               value={pdf.tableFontSize}
@@ -217,8 +197,8 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
           </SettingRow>
 
           <SettingRow
-            title="Cell Padding"
-            description="Internal spacing for table cells"
+            title="Cell padding"
+            description="Space inside table cells."
           >
             <NumberInput
               value={pdf.cellPadding}
@@ -274,7 +254,7 @@ function DesignationManager({
             <ChevronLeft size={18} />
           </button>
           <div className="min-w-0 flex-1">
-            <h3 className="text-body font-bold text-foreground leading-tight">Designations in PDF</h3>
+            <h3 className="text-body font-bold text-foreground leading-tight">Designations</h3>
             <p className="text-caption text-muted-foreground leading-tight mt-0.5">
               Switch off a designation to leave it out of the report.
             </p>
@@ -296,18 +276,18 @@ function DesignationManager({
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" size={13} />
             <Input
               type="text"
-              placeholder="Search designations..."
+              placeholder="Search designations…"
               value={query}
               onChange={e => setQuery(e.target.value)}
               className="pl-8 text-ui h-8 w-full"
             />
           </div>
-          <button type="button" onClick={includeShown} className="shrink-0 h-8 px-2.5 rounded-lg border border-border text-caption font-medium hover:bg-muted">
+          <Button type="button" variant="outline" size="sm" onClick={includeShown} className="shrink-0">
             Include all
-          </button>
-          <button type="button" onClick={excludeShown} className="shrink-0 h-8 px-2.5 rounded-lg border border-border text-caption font-medium hover:bg-muted">
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={excludeShown} className="shrink-0">
             Exclude all
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -318,9 +298,9 @@ function DesignationManager({
         </Notice>
       )}
 
-      <ul className="px-3 sm:px-5 py-3 space-y-1.5">
+      <ul className="px-3 sm:px-5 py-1 divide-y divide-border">
         {shown.length === 0 && (
-          <li className="text-center py-10 text-muted-foreground text-caption border-2 border-dashed border-border rounded-lg select-none">
+          <li className="text-center py-10 text-muted-foreground text-caption select-none">
             No designations match “{query}”
           </li>
         )}
@@ -330,10 +310,7 @@ function DesignationManager({
           return (
             <li key={d}>
               <label
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer select-none transition-colors',
-                  included ? 'bg-card border-border hover:bg-muted/30' : 'bg-muted/20 border-border/60 hover:bg-muted/40',
-                )}
+                className="flex items-center gap-3 py-2.5 cursor-pointer select-none"
               >
                 <div className="flex-1 min-w-0">
                   <p className={cn('text-ui font-medium truncate', included ? 'text-foreground' : 'text-muted-foreground line-through decoration-muted-foreground/40')}>

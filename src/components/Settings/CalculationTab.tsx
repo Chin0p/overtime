@@ -5,7 +5,7 @@ import { Switch } from '../ui/switch';
 import { SettingRow } from './SettingRow';
 import { SettingsSection } from './SettingsSection';
 import { RoundingPreview, ThresholdPreview } from './CalculationPreviews';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '../ui/select';
+import { SegmentedControl } from './employeeShared';
 
 interface CalculationTabProps {
   policy: OTSettings['policy'];
@@ -45,7 +45,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
         </Notice>
       )}
 
-      <SettingsSection title="Global Rules">
+      <SettingsSection title="Global rules">
           <SettingRow
             title="Shift duration"
             description="Length of the working day. Overtime starts this long after the office start."
@@ -61,7 +61,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
 
           <SettingRow
             title="Grace period"
-            description="The file's shift start (e.g. 08:10) includes this much grace: the office starts that many minutes earlier (08:00) and lateness counts after the shift start."
+            description="The file's shift start includes this grace. With 08:10 and 10 min, the office starts at 08:00 and lateness counts after 08:10."
           >
             <NumberInput
               value={policy.lateGraceMinutes ?? 10}
@@ -101,27 +101,19 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
             description="How calculated hours and money values are rounded."
             preview={<RoundingPreview policy={policy} />}
           >
-            <div className="w-28">
-              <Select
-                value={policy.roundingMode || 'round'}
-                onValueChange={(val) => onChange({ ...policy, roundingMode: val as 'floor' | 'round' })}
-              >
-                <SelectTrigger className="w-full">
-                  <span className="truncate">{policy.roundingMode === 'round' ? 'Round' : 'Floor'}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="floor">Floor</SelectItem>
-                  <SelectItem value="round">Round</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <SegmentedControl
+              label="Rounding mode"
+              value={policy.roundingMode || 'round'}
+              options={[{ value: 'floor', label: 'Floor' }, { value: 'round', label: 'Round' }]}
+              onChange={(val) => onChange({ ...policy, roundingMode: val })}
+            />
           </SettingRow>
       </SettingsSection>
 
       <SettingsSection title="Dynamic rate">
           <SettingRow
             title="Daily overtime cap"
-            description="Maximum overtime hours allowed per day for official staff."
+            description="Most overtime hours that count per day for dynamic-rate staff."
           >
             <NumberInput
               value={policy.official.dailyOTCap}
@@ -132,7 +124,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
 
           <SettingRow
             title="Max daily amount"
-            description="Maximum amount payable per day for official staff."
+            description="Most that can be paid per day to dynamic-rate staff."
           >
             <NumberInput
               value={policy.official.maxDailyAmount}
@@ -143,7 +135,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
 
           <SettingRow
             title="Monthly day cap"
-            description="Maximum number of working days for which Overtime is payable in a month."
+            description="Most working days per month that can earn overtime. Fixed-rate designations can opt out."
           >
             <NumberInput
               value={policy.official.monthlyDayCap}
@@ -156,7 +148,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
       <SettingsSection title="Fixed rate">
           <SettingRow
             title="Daily overtime cap"
-            description="Maximum overtime hours allowed per day for support staff."
+            description="Most overtime hours that count per day for fixed-rate staff."
           >
             <NumberInput
               value={policy.support.dailyOTCap}
@@ -167,7 +159,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
 
           <SettingRow
             title="Hourly rate"
-            description="Fixed hourly rate for support staff overtime."
+            description="Hourly overtime rate for fixed-rate staff."
           >
             <NumberInput
               value={policy.support.hourlyRate}
@@ -178,7 +170,7 @@ export function CalculationTab({ policy, onChange }: CalculationTabProps) {
 
           <SettingRow
             title="Holiday rate"
-            description="Fixed daily rate for support staff working on holidays."
+            description="Daily rate for fixed-rate staff who work on a holiday."
           >
             <NumberInput
               value={policy.support.holidayRate}

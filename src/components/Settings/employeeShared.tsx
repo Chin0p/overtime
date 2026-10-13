@@ -55,39 +55,6 @@ export const CATEGORY_LABEL: Record<EmployeeCategory, string> = {
   exempt: 'Exempt',
 };
 
-const BADGE_STYLES = {
-  Support: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-  Official: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20',
-  Exempt: 'bg-muted text-muted-foreground border-border',
-  Fixed: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-  Dynamic: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-  Capped: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-} as const;
-
-export function Badge({ label }: { label: keyof typeof BADGE_STYLES }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center px-1.5 py-0.5 rounded-md border text-micro font-semibold leading-none whitespace-nowrap',
-        BADGE_STYLES[label],
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
-export function InfoBadges({ info }: { info: EmployeeInfo }) {
-  const cat = CATEGORY_LABEL[info.category] as 'Support' | 'Official' | 'Exempt';
-  return (
-    <>
-      <Badge label={cat} />
-      {info.category !== 'exempt' && <Badge label={info.rate === 'fixed' ? 'Fixed' : 'Dynamic'} />}
-      {info.category !== 'exempt' && info.rate === 'fixed' && !info.capExempt && <Badge label="Capped" />}
-    </>
-  );
-}
-
 /** A row of mutually exclusive choices (two or three), shown side by side instead of in a dropdown. */
 export function SegmentedControl<T extends string>({
   value,

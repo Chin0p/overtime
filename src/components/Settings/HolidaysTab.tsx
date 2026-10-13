@@ -12,10 +12,10 @@ interface HolidaysTabProps {
 type DayKind = 'working' | 'weekend' | 'holiday' | 'nofile';
 
 const LEGEND: { kind: DayKind; label: string; hint: string; swatch: string }[] = [
-  { kind: 'working', label: 'Working day', hint: 'Overtime counts after office hours', swatch: 'bg-card border-border' },
-  { kind: 'weekend', label: 'Weekend', hint: 'Off-day: attendance is paid at the holiday rate', swatch: 'bg-muted/40 border-transparent' },
+  { kind: 'working', label: 'Working day', hint: 'Overtime counts after office hours', swatch: 'bg-card border-muted-foreground/40' },
+  { kind: 'weekend', label: 'Weekend', hint: 'Off-day: attendance is paid at the holiday rate', swatch: 'bg-muted border-border' },
   { kind: 'holiday', label: 'Holiday', hint: 'Marked by you: paid at the holiday rate', swatch: 'bg-primary border-primary' },
-  { kind: 'nofile', label: 'Not in file', hint: 'Date is in the month but not in the upload', swatch: 'bg-card border-dashed border-border' },
+  { kind: 'nofile', label: 'Not in file', hint: 'Date is in the month but not in the upload', swatch: 'bg-card border-dashed border-muted-foreground/40' },
 ];
 
 const FLASH_MS = 1500;
@@ -72,33 +72,17 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
     });
   };
 
-  // Holidays that fall in the month(s) shown, in date order; anything else is "saved for other months".
-  const { shownHolidays, otherCount, stats, hasDaysOutsideFile, counts } = useMemo(() => {
-    const parsed = holidays
-      .map((h) => ({ h, d: flexibleParseDate(h.date) }))
-      .filter((x) => !isNaN(x.d.getTime()))
-      .sort((a, b) => a.d.getTime() - b.d.getTime());
-    const inShown = parsed.filter((x) => months.some((m) => isSameMonth(m.monthStart, x.d)));
-    let weekdays = 0;
-    let weekend = 0;
-    let outside = false;
+  // How many days of each kind the calendar shows, and how many saved holidays are in other months.
+  const { otherCount, counts } = useMemo(() => {
+    const valid = holidays.filter((h) => !isNaN(flexibleParseDate(h.date).getTime()));
+    const shown = valid.filter((h) => months.some((m) => isSameMonth(m.monthStart, flexibleParseDate(h.date))));
     const counts: Record<DayKind, number> = { working: 0, weekend: 0, holiday: 0, nofile: 0 };
     months.forEach((m) =>
       m.days.forEach((d) => {
-        if (d.isWeekend) weekend++;
-        else weekdays++;
-        if (!d.inCsv && !d.isWeekend) outside = true;
         counts[d.isWeekend ? 'weekend' : holidaySet.has(d.formatted) ? 'holiday' : !d.inCsv ? 'nofile' : 'working']++;
       }),
     );
-    const weekdayHolidays = inShown.filter((x) => x.d.getDay() !== 0 && x.d.getDay() !== 6).length;
-    return {
-      shownHolidays: inShown,
-      otherCount: parsed.length - inShown.length,
-      stats: { working: weekdays - weekdayHolidays, weekend, holidays: weekdayHolidays },
-      hasDaysOutsideFile: outside,
-      counts,
-    };
+    return { otherCount: valid.length - shown.length, counts };
   }, [holidays, months, holidaySet]);
 
   const toggleHoliday = (dateFormatted: string) => {
@@ -111,16 +95,13 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-body font-bold text-foreground">Holidays</h3>
-        <p className="text-caption text-muted-foreground mt-0.5">
-          Tap a date to mark it as a gazetted holiday. Saturdays and Sundays are already off-days.
-        </p>
-      </div>
+      <p className="text-caption text-muted-foreground">
+        Tap a date to mark it as a gazetted holiday. Saturdays and Sundays are already off-days.
+      </p>
 
       {months.length === 0 ? (
         <div className="text-center py-10 text-muted-foreground text-caption border-2 border-dashed border-border rounded-lg select-none">
-          Upload a JSON file to view the current month's dates
+          Load an attendance file to see its dates.
         </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_230px] items-start">
@@ -134,7 +115,7 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
                     <div
                       key={day}
                       className={cn(
-                        'text-center text-micro font-bold uppercase tracking-wider pb-1',
+                        'text-center text-caption font-medium pb-1',
                         i === 0 || i === 6 ? 'text-muted-foreground/50' : 'text-muted-foreground',
                       )}
                     >
@@ -186,19 +167,10 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
                 </div>
               </div>
             ))}
-            {hasDaysOutsideFile && (
-              <p className="text-micro text-muted-foreground">Dashed dates have no attendance in the uploaded file.</p>
-            )}
           </div>
 
           {/* Summary + selected holidays */}
           <aside className="rounded-lg border border-border bg-muted/10 md:sticky md:top-0">
-            <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
-              <Stat value={stats.working} label="Working" />
-              <Stat value={stats.weekend} label="Weekend" />
-              <Stat value={stats.holidays} label="Holiday" accent={stats.holidays > 0} />
-            </div>
-
             <div className="p-3">
               <h4 className="text-caption font-bold text-foreground">Legend</h4>
               <p className="text-micro text-muted-foreground mt-0.5 mb-2">Tap one to find those days in the calendar.</p>
@@ -254,17 +226,6 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
           </aside>
         </div>
       )}
-    </div>
-  );
-}
-
-function Stat({ value, label, accent }: { value: number; label: string; accent?: boolean }) {
-  return (
-    <div className="py-2.5 text-center">
-      <div className={cn('text-title font-extrabold tabular-nums leading-none', accent ? 'text-primary' : 'text-foreground')}>
-        {value}
-      </div>
-      <div className="text-micro uppercase tracking-wider text-muted-foreground mt-1">{label}</div>
     </div>
   );
 }

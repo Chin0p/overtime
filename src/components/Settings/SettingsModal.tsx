@@ -111,9 +111,8 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
           <DialogTitle className="text-header flex items-center gap-1.5 min-w-0">
             <span className="font-medium text-muted-foreground">Settings</span>
             <ChevronRight size={16} className="shrink-0 text-muted-foreground/60" aria-hidden />
-            <span className="flex items-center gap-2 min-w-0 text-foreground" aria-current="page">
-              <span className="shrink-0 text-primary">{current.icon}</span>
-              <span className="truncate">{current.label}</span>
+            <span className="min-w-0 text-foreground truncate" aria-current="page">
+              {current.label}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -183,10 +182,7 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
         </div>
 
         {/* Footer Actions */}
-        <div className="px-4 py-2.5 border-t border-border bg-muted/10 shrink-0 flex items-center justify-between">
-          <span className="text-ui text-muted-foreground hidden sm:inline">
-            Changes apply when you press Save & Apply
-          </span>
+        <div className="px-4 py-2.5 border-t border-border bg-muted/10 shrink-0 flex items-center justify-end">
           <div className="flex items-center gap-2 ml-auto">
             <Button
               variant="outline"
@@ -212,10 +208,10 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
 
 const TABS = [
   { id: 'calculation', label: 'Calculation', icon: <Settings size={16} /> },
-  { id: 'employees', label: 'Employees & Pay', icon: <Users size={16} /> },
+  { id: 'employees', label: 'Employees & pay', icon: <Users size={16} /> },
   { id: 'holidays', label: 'Holidays', icon: <Calendar size={16} /> },
-  { id: 'pdf', label: 'PDF Export', icon: <FileText size={16} /> },
-  { id: 'data', label: 'Backup / Reset', icon: <Database size={16} /> },
+  { id: 'pdf', label: 'PDF export', icon: <FileText size={16} /> },
+  { id: 'data', label: 'Backup', icon: <Database size={16} /> },
 ] as const;
 
 function TabButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {

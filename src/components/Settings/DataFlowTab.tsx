@@ -1,4 +1,6 @@
 import { SettingsSection } from './SettingsSection';
+import { SettingRow } from './SettingRow';
+import { Button } from '../ui/button';
 import React, { useRef, useState, useMemo } from 'react';
 import { Download, Upload } from 'lucide-react';
 import { Notice } from '../ui/notice';
@@ -100,10 +102,6 @@ function normalizeBackup(json: any, current: { appearance: OTSettings['appearanc
   return { policy, appearance, pdf, basicPay, holidays };
 }
 
-const cardCls =
-  'flex flex-col items-center justify-center p-4 bg-muted/20 border border-border rounded-lg hover:bg-muted/50 transition-all group active:scale-95 disabled:opacity-50 disabled:pointer-events-none';
-const iconCls =
-  'w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2 group-hover:scale-105 transition-transform';
 
 export function DataFlowTab({
   policy,
@@ -205,27 +203,25 @@ export function DataFlowTab({
       {notice && <Notice tone={notice.kind}>{notice.text}</Notice>}
 
       <SettingsSection
-        title="Backup & Restore"
-        description="Save your policies, designation rules, basic pay, holidays and PDF options to a JSON file, or load them back."
+        title="Settings file"
+        description="Settings, designation rules, basic pay, holidays and PDF options in one JSON file."
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button type="button" onClick={handleExport} className={cardCls}>
-            <div className={iconCls}><Download size={18} /></div>
-            <span className="text-ui font-bold text-foreground">Export Settings</span>
-            <span className="text-micro text-muted-foreground mt-0.5 text-center">Save to .json file</span>
-          </button>
-          <button type="button" onClick={() => settingsInputRef.current?.click()} className={cardCls}>
-            <div className={iconCls}><Upload size={18} /></div>
-            <span className="text-ui font-bold text-foreground">Import Settings</span>
-            <span className="text-micro text-muted-foreground mt-0.5 text-center">Load from .json file</span>
-          </button>
-          <input type="file" ref={settingsInputRef} onChange={handleImportSelect} accept=".json,application/json" className="hidden" />
-        </div>
+        <SettingRow title="Export settings" description="Save everything to a .json file.">
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download size={14} /> Export
+          </Button>
+        </SettingRow>
+        <SettingRow title="Import settings" description="Load a saved .json file. Nothing changes until you press Save & Apply.">
+          <Button variant="outline" size="sm" onClick={() => settingsInputRef.current?.click()}>
+            <Upload size={14} /> Import
+          </Button>
+        </SettingRow>
       </SettingsSection>
+      <input type="file" ref={settingsInputRef} onChange={handleImportSelect} accept=".json,application/json" className="hidden" />
 
       {importData && (
         <CustomConfirmDialog
-          title="Import Settings"
+          title="Import settings"
           message={
             `Backup version: ${importData.version || 'unknown'} · exported ${importData.timestamp ? formatBackupTime(importData.timestamp) : 'unknown'}\n\n` +
             (diffSummary ? diffSummary.join('\n') : '') +

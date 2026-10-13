@@ -209,7 +209,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
       </div>
 
       {/* Select-all strip */}
-      <div className="shrink-0 flex items-center gap-2.5 px-3 py-1.5 border-b border-border bg-muted/30 text-micro font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="shrink-0 flex items-center gap-2.5 px-3 py-1.5 border-b border-border bg-muted/30 text-caption font-medium text-muted-foreground">
         <Checkbox size="sm" checked={allVisibleSelected} onChange={onToggleAll} title="Select all shown" />
         <span>
           {visibleCount === totalCount ? `${totalCount} employees` : `${visibleCount} of ${totalCount} employees`}
@@ -219,7 +219,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
       {/* List — scrolls on its own */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {visibleCount === 0 ? (
-          <div className="m-3 text-center py-10 text-muted-foreground text-caption border-2 border-dashed border-border rounded-lg select-none">
+          <div className="m-3 text-center py-10 text-muted-foreground text-caption select-none">
             No employees match your search or filters
           </div>
         ) : (
@@ -235,7 +235,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                       onChange={() => onToggleGroup(g.items)}
                       title={`Select everyone in ${g.label}`}
                     />
-                    <span className="flex-1 min-w-0 truncate text-micro font-semibold uppercase tracking-wide text-foreground">
+                    <span className="flex-1 min-w-0 truncate text-caption font-semibold text-foreground">
                       {g.label}
                     </span>
                     <span className="shrink-0 text-micro text-muted-foreground">{g.items.length}</span>
@@ -305,7 +305,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
 
       {/* Selection bar */}
       {selected.size > 0 && (
-        <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-t border-primary/20 bg-[var(--color-neutral-active)]">
+        <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-t border-primary/20 bg-[var(--color-neutral-active)] lg:hidden">
           <span className="text-caption font-semibold text-[var(--color-accent)]">{selected.size} selected</span>
           <button
             type="button"
@@ -315,7 +315,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
           >
             <X size={13} />
           </button>
-          <Button size="sm" className="ml-auto h-7 px-3 text-caption lg:hidden" onClick={onEditSelected}>
+          <Button size="sm" className="ml-auto h-7 px-3 text-caption" onClick={onEditSelected}>
             Edit
             <ChevronLeft size={12} className="rotate-180" />
           </Button>

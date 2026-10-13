@@ -7,7 +7,7 @@ import { SettingRow } from './SettingRow';
 import { cn, toTitleCase } from '../../lib/utils';
 import { EmployeeCategory } from '../../types';
 import { ExcludedDaysChips } from './ExcludedDaysChips';
-import { Eligibility, EmployeeInfo, InfoBadges, Rate, RuleChange, RuleSelect, SegmentedControl } from './employeeShared';
+import { CATEGORY_LABEL, Eligibility, EmployeeInfo, Rate, RuleChange, RuleSelect, SegmentedControl } from './employeeShared';
 
 const CATEGORY_OPTIONS: { value: EmployeeCategory; label: string }[] = [
   { value: 'support', label: 'Support' },
@@ -21,12 +21,12 @@ const RATE_OPTIONS: { value: Rate; label: string }[] = [
 const ELIGIBILITY_OPTIONS: { value: Eligibility; label: string }[] = [
   { value: 'default', label: 'Follow designation' },
   { value: 'exempt', label: 'Exempt' },
-  { value: 'included', label: 'Not exempt' },
+  { value: 'included', label: 'Non-exempt' },
 ];
 
 interface Props {
   className?: string;
-  /** Everyone currently ticked in the list; non-empty puts the panel in bulk mode. */
+  /** Everyone currently selected in the list; non-empty puts the panel in bulk mode. */
   selectedInfos: EmployeeInfo[];
   /** The employee whose row was opened (single mode). */
   active: EmployeeInfo | null;
@@ -72,11 +72,9 @@ export function EmployeeDetailPanel(props: Props) {
         ) : active ? (
           <SingleForm info={active} {...props} />
         ) : (
-          <div className="h-full min-h-48 flex items-center justify-center text-center text-caption text-muted-foreground select-none rounded-xl border border-dashed border-border bg-card/60 p-4">
-            Pick an employee to edit their pay,
-            <br />
-            or tick several to edit them together.
-          </div>
+          <p className="py-10 text-center text-caption text-muted-foreground select-none">
+            Pick an employee to edit their pay, or select several to edit them together.
+          </p>
         )}
       </div>
     </div>
@@ -105,7 +103,7 @@ function ExcludedDaysCard({
       title="Excluded days"
       note={
         many
-          ? `Applies only to the ${erps.length} ticked. Left out of pay and the PDF; still shown on the dashboard.`
+          ? `Applies only to the ${erps.length} selected. Left out of pay and the PDF; still shown on the dashboard.`
           : 'Left out of this employee’s pay and the PDF; still shown on the dashboard, greyed.'
       }
     >
@@ -113,7 +111,7 @@ function ExcludedDaysCard({
         title="Exclude all holidays"
         description={
           withHolidays > 0 && withHolidays < erps.length
-            ? `Saturdays, Sundays, gazetted and custom holidays. On for ${withHolidays} of the ${erps.length} ticked.`
+            ? `Saturdays, Sundays, gazetted and custom holidays. On for ${withHolidays} of the ${erps.length} selected.`
             : 'Saturdays, Sundays, gazetted and custom holidays.'
         }
       >
@@ -194,28 +192,29 @@ function SingleForm({
       : 'Used to derive the hourly and daily overtime rate.';
 
   return (
-    <div className="space-y-4 max-w-xl">
+    <div className="space-y-4 max-w-xl pt-1">
       <div>
         <h3 className="text-title font-bold text-foreground break-words">{toTitleCase(emp.name)}</h3>
         <p className="text-caption text-muted-foreground mt-0.5 break-words">
-          <span className="font-mono">{emp.erp}</span> · {designation}
+          <span className="font-mono">{emp.erp}</span> · {designation} · {CATEGORY_LABEL[category]}
+          {!isExempt && ` · ${isFixed ? 'Fixed rate' : 'Dynamic rate'}`}
         </p>
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          <InfoBadges info={info} />
-        </div>
       </div>
 
-      <Card title="Basic pay" note="Set per employee.">
-        <SettingRow title="Monthly basic pay" description={payNote}>
-          <NumberInput
-            value={pay}
-            onChange={(v) => onPayChange([emp.erp], v)}
-            suffix="PKR"
-            maxDigits={5}
-            className="w-32"
-            disabled={isFixed || isExempt}
-          />
-        </SettingRow>
+      <Card title="Basic pay">
+        {isFixed || isExempt ? (
+          <p className="text-ui text-muted-foreground">{payNote}</p>
+        ) : (
+          <SettingRow title="Monthly basic pay" description={payNote}>
+            <NumberInput
+              value={pay}
+              onChange={(v) => onPayChange([emp.erp], v)}
+              suffix="PKR"
+              maxDigits={5}
+              className="w-32"
+            />
+          </SettingRow>
+        )}
       </Card>
 
       <Card title="Overtime eligibility" note="Applies to this employee only.">
@@ -277,7 +276,7 @@ function BulkForm({
   const cap = same(fixedOnes.map((i) => (i.capExempt ? 'exempt' : 'capped')));
 
   return (
-    <div className="space-y-4 max-w-xl">
+    <div className="space-y-4 max-w-xl pt-1">
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <h3 className="text-title font-bold text-foreground">{selectedInfos.length} selected</h3>
@@ -301,7 +300,7 @@ function BulkForm({
 
       <Card
         title="Overtime eligibility"
-        note={`Applies only to the ${selectedInfos.length} ticked — not to everyone with the same designation.`}
+        note={`Applies only to the ${selectedInfos.length} selected, not to everyone with the same designation.`}
       >
         <SettingRow title="Selected employees" description="Follow their designation, or exempt / include just these people.">
           <RuleSelect
@@ -317,7 +316,7 @@ function BulkForm({
 
       <Card
         title="Designation rules"
-        note={`Applies to ${designations.length} designation${designations.length === 1 ? '' : 's'} — ${affected} employee${affected === 1 ? '' : 's'} in total, including anyone not ticked.`}
+        note={`Applies to ${designations.length} designation${designations.length === 1 ? '' : 's'} — ${affected} employee${affected === 1 ? '' : 's'} in total, including anyone not selected.`}
       >
         <RulesRows
           category={category}

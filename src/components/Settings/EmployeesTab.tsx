@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { EmployeeRow, EmployeeCategory } from '../../types';
 import { resolveRateType, resolveCapExempt, resolveCategory } from '../../parser/parserUtils';
 import { EmployeeListPanel } from './EmployeeListPanel';
@@ -166,6 +166,14 @@ export function EmployeesTab({
     setMobileView('list');
   };
 
+  // On a wide screen the editor is always beside the list, so start with the first person open
+  // instead of an empty pane. (On a phone the list stays the first screen.)
+  useEffect(() => {
+    if (activeErp === null && visible.length > 0 && window.matchMedia('(min-width: 1024px)').matches) {
+      setActiveErp(visible[0].emp.erp);
+    }
+  }, [activeErp, visible]);
+
   const selectedInfos = useMemo(() => infos.filter((i) => selected.has(i.emp.erp)), [infos, selected]);
   const active = useMemo(() => infos.find((i) => i.emp.erp === activeErp) ?? null, [infos, activeErp]);
 
@@ -240,10 +248,9 @@ export function EmployeesTab({
   if (employees.length === 0) {
     return (
       <div className="absolute inset-0 p-4 sm:p-5 bg-muted/25">
-        <h3 className="text-body font-bold text-foreground">Employees &amp; Pay</h3>
-        <div className="mt-3 text-center py-10 text-muted-foreground text-caption border-2 border-dashed border-border rounded-lg select-none">
-          Upload a file to see the employee list
-        </div>
+        <p className="text-center py-10 text-muted-foreground text-caption select-none">
+          Load an attendance file to see its employees.
+        </p>
       </div>
     );
   }
@@ -253,7 +260,7 @@ export function EmployeesTab({
     // and the editor as grouped cards beside it (no more edge-to-edge panes).
     <div className="absolute inset-0 flex gap-3 lg:gap-4 p-3 sm:p-4 bg-muted/25">
       <EmployeeListPanel
-        className={cn('w-full lg:w-[380px] lg:shrink-0 rounded-xl border border-border shadow-xs overflow-hidden', mobileView === 'detail' ? 'hidden lg:flex' : 'flex')}
+        className={cn('w-full lg:w-[320px] lg:shrink-0 rounded-xl border border-border shadow-xs overflow-hidden', mobileView === 'detail' ? 'hidden lg:flex' : 'flex')}
         totalCount={employees.length}
         visibleCount={visible.length}
         groups={groups}

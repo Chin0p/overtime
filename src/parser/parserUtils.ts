@@ -66,7 +66,7 @@ export function resolveCapExempt(
 }
 
 /**
- * The ONE place that decides an employee's category. The engine and the Employees & Pay tab
+ * The ONE place that decides an employee's category. The engine and the Employees & pay tab
  * both call it, so what Settings shows is exactly what gets paid.
  *
  * Precedence: this person's own eligibility → the designation's category chosen in Settings →
