@@ -99,7 +99,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
             placeholder="Search name, ERP, or designation..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-8 text-ui h-8 w-full"
+            className="pl-8 text-caption h-8 w-full"
           />
         </div>
 
@@ -155,7 +155,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
               <SlidersHorizontal size={13} />
               <span>Filter</span>
               {nFilters > 0 && (
-                <span className="min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-micro leading-4 text-center">
+                <span className="min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-caption leading-4 text-center">
                   {nFilters}
                 </span>
               )}
@@ -238,7 +238,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                     <span className="flex-1 min-w-0 truncate text-caption font-semibold text-foreground">
                       {g.label}
                     </span>
-                    <span className="shrink-0 text-micro text-muted-foreground">{g.items.length}</span>
+                    <span className="shrink-0 text-caption text-muted-foreground">{g.items.length}</span>
                   </div>
                 )}
                 {g.items.map((info) => {
@@ -261,8 +261,8 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                         className="flex-1 min-w-0 text-left py-2.5 outline-none focus-visible:ring-1 focus-visible:ring-ring rounded"
                       >
                         {/* The name always comes first and wraps instead of being cut off. */}
-                        <div className="text-ui font-semibold text-foreground break-words">{toTitleCase(emp.name)}</div>
-                        <div className="text-micro text-muted-foreground mt-0.5 break-words">
+                        <div className="text-caption font-semibold text-foreground break-words">{toTitleCase(emp.name)}</div>
+                        <div className="text-caption text-muted-foreground mt-0.5 break-words">
                           <span className="font-mono">{emp.erp}</span>
                           <span className="mx-1 opacity-50">·</span>
                           {emp.designation}
@@ -286,7 +286,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                           <span className="text-caption text-muted-foreground">Exempt</span>
                         ) : missingPay ? (
                           <span
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning-fg)] text-micro font-semibold leading-none whitespace-nowrap"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning-fg)] text-caption font-semibold leading-none whitespace-nowrap"
                             title="Basic pay is needed to calculate this employee's overtime"
                           >
                             <AlertCircle size={11} className="shrink-0" />

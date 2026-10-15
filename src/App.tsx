@@ -323,7 +323,7 @@ export default function App() {
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-[var(--muted-foreground)] p-8 text-center">
                   <Users className="w-16 h-16 mb-4 opacity-10" strokeWidth={1.5} />
-                  <h3 className="text-ui font-medium text-[var(--muted-foreground)]">
+                  <h3 className="text-caption font-medium text-[var(--muted-foreground)]">
                     No Employee Selected
                   </h3>
                   <p className="max-w-xs mt-1 text-caption">

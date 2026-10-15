@@ -58,7 +58,7 @@ export function EmployeeDetailPanel(props: Props) {
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-1 h-8 pl-1 pr-2 rounded-[var(--radius-interactive)] text-ui font-medium hover:bg-muted"
+          className="flex items-center gap-1 h-8 pl-1 pr-2 rounded-[var(--radius-interactive)] text-caption font-medium hover:bg-muted"
           aria-label="Back to employee list"
         >
           <ChevronLeft size={18} />
@@ -155,7 +155,7 @@ function Card({ title, note, children }: { title: string; note?: string; childre
     <section className="rounded-xl border border-border bg-card shadow-xs p-4 space-y-3">
       <div>
         <h4 className="text-body font-semibold text-foreground">{title}</h4>
-        {note && <p className="text-ui text-muted-foreground mt-0.5">{note}</p>}
+        {note && <p className="text-caption text-muted-foreground mt-0.5">{note}</p>}
       </div>
       {children}
     </section>
@@ -203,7 +203,7 @@ function SingleForm({
 
       <Card title="Basic pay">
         {isFixed || isExempt ? (
-          <p className="text-ui text-muted-foreground">{payNote}</p>
+          <p className="text-caption text-muted-foreground">{payNote}</p>
         ) : (
           <SettingRow title="Monthly basic pay" description={payNote}>
             <NumberInput

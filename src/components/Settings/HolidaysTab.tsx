@@ -149,7 +149,7 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
                         }
                         aria-pressed={isHoliday}
                         className={cn(
-                          'relative flex items-center justify-center h-10 rounded-md border text-ui font-bold transition-all active:scale-95',
+                          'relative flex items-center justify-center h-10 rounded-md border text-caption font-bold transition-all active:scale-95',
                           flash && (flash === kind ? 'cal-flash z-10' : 'opacity-30'),
                           pd.isWeekend
                             ? 'bg-muted/40 border-transparent text-muted-foreground/50 cursor-not-allowed'
@@ -173,7 +173,7 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
           <aside className="rounded-lg border border-border bg-muted/10 md:sticky md:top-0">
             <div className="p-3">
               <h4 className="text-caption font-bold text-foreground">Legend</h4>
-              <p className="text-micro text-muted-foreground mt-0.5 mb-2">Tap one to find those days in the calendar.</p>
+              <p className="text-caption text-muted-foreground mt-0.5 mb-2">Tap one to find those days in the calendar.</p>
               <ul className="space-y-1">
                 {LEGEND.map((item) => (
                   <Fragment key={item.kind}>
@@ -216,7 +216,7 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
                     </div>
                   )}
                   {otherCount > 0 && !confirmClear && (
-                    <p className="text-micro text-muted-foreground mt-1.5">
+                    <p className="text-caption text-muted-foreground mt-1.5">
                       {otherCount} of them {otherCount === 1 ? 'is' : 'are'} in months not shown here.
                     </p>
                   )}
@@ -263,9 +263,9 @@ function LegendItem({
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2 text-caption font-medium text-foreground">
             {label}
-            <span className="text-micro tabular-nums text-muted-foreground">{count}</span>
+            <span className="text-caption tabular-nums text-muted-foreground">{count}</span>
           </span>
-          <span className="block text-micro leading-snug text-muted-foreground">{hint}</span>
+          <span className="block text-caption leading-snug text-muted-foreground">{hint}</span>
         </span>
       </button>
     </li>

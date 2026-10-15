@@ -28,14 +28,14 @@ export function stripSentinel(v: unknown): string {
 }
 
 /**
- * tailwind-merge has to be told about the app's type scale. Without it, `text-ui` / `text-caption`
+ * tailwind-merge has to be told about the app's type scale. Without it, `text-label` / `text-caption`
  * look like text COLOURS, so merging them with a real colour class (e.g. a button's
  * `text-primary-foreground`) silently deleted one of the two.
  */
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      'font-size': [{ text: ['header', 'display', 'title', 'body', 'label', 'ui', 'caption', 'micro'] }],
+      'font-size': [{ text: ['header', 'display', 'title', 'body', 'label', 'caption'] }],
     },
   },
 });

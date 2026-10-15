@@ -121,7 +121,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
             </div>
 
             {/* Row 2: ERP · designation (+ badges on mobile, where row 1 is the pinned bar) */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-ui sm:text-body text-muted-foreground min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption sm:text-body text-muted-foreground min-w-0">
               <span className="font-mono font-medium text-foreground shrink-0">{employee.erp}</span>
               <span className="select-none shrink-0" aria-hidden>·</span>
               <span className="font-medium text-foreground min-w-0 break-words">{employee.designation}</span>
@@ -129,7 +129,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
             </div>
 
             {isExempt && (
-              <div role="note" className="mt-1 flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2 text-ui text-foreground max-w-xl">
+              <div role="note" className="mt-1 flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2 text-caption text-foreground max-w-xl">
                 <Info size={14} className="mt-0.5 shrink-0 text-primary" />
                 <span>
                   <span className="font-semibold">Exempt from overtime.</span>{' '}
@@ -143,7 +143,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
             {missingPay && (
               <div className="lg:hidden w-full p-2.5 bg-[var(--color-warning-light)] border border-[var(--color-warning)]/20 rounded-md flex items-center justify-center gap-1.5 text-[var(--color-warning-fg)]">
                 <AlertTriangle size={14} />
-                <span className="text-ui font-semibold">Basic Pay is required for dynamic rate calculations</span>
+                <span className="text-caption font-semibold">Basic Pay is required for dynamic rate calculations</span>
               </div>
             )}
 
@@ -163,7 +163,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
                   value={employee.basicPay > 0 ? formatCurrency(employee.basicPay) : (
                     <div className="flex items-center gap-1 text-[var(--color-warning-fg)]">
                       <AlertTriangle size={12} />
-                      <span className="text-ui font-bold">Required</span>
+                      <span className="text-caption font-bold">Required</span>
                     </div>
                   )}
                   color="bg-muted/50 text-foreground border-border"

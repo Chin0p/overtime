@@ -82,14 +82,14 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
                   onChange({ ...pdf, summarySort: sort, summarySortDir: defaultSortDir(sort) });
                 }}
               >
-                <SelectTrigger className="w-full text-ui">
+                <SelectTrigger className="w-full text-caption">
                   <span className="truncate">
                     {SUMMARY_SORT_OPTIONS.find((o) => o.value === (pdf.summarySort ?? 'designation'))?.label}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
                   {SUMMARY_SORT_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value} className="text-ui">{o.label}</SelectItem>
+                    <SelectItem key={o.value} value={o.value} className="text-caption">{o.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -152,14 +152,14 @@ export function PDFTab({ pdf, employees, onChange }: PDFTabProps) {
                 value={pdf.pageSize}
                 onValueChange={(val) => onChange({ ...pdf, pageSize: val })}
               >
-                <SelectTrigger className="w-full text-ui">
+                <SelectTrigger className="w-full text-caption">
                   <span className="truncate">
                     {pageSizes.find(s => s.id === pdf.pageSize)?.label || 'A4'}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
                   {pageSizes.map(size => (
-                    <SelectItem key={size.id} value={size.id} className="text-ui">
+                    <SelectItem key={size.id} value={size.id} className="text-caption">
                       {size.label}
                     </SelectItem>
                   ))}
@@ -261,7 +261,7 @@ function DesignationManager({
           </div>
           <span
             className={cn(
-              'shrink-0 px-2 py-1 rounded-full text-micro font-semibold border',
+              'shrink-0 px-2 py-1 rounded-full text-caption font-semibold border',
               allExcluded
                 ? 'bg-[var(--color-warning-light)] text-[var(--color-warning-fg)] border-[var(--color-warning)]/30'
                 : 'bg-primary/10 text-primary border-primary/20',
@@ -279,7 +279,7 @@ function DesignationManager({
               placeholder="Search designations…"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="pl-8 text-ui h-8 w-full"
+              className="pl-8 text-caption h-8 w-full"
             />
           </div>
           <Button type="button" variant="outline" size="sm" onClick={includeShown} className="shrink-0">
@@ -313,10 +313,10 @@ function DesignationManager({
                 className="flex items-center gap-3 py-2.5 cursor-pointer select-none"
               >
                 <div className="flex-1 min-w-0">
-                  <p className={cn('text-ui font-medium truncate', included ? 'text-foreground' : 'text-muted-foreground line-through decoration-muted-foreground/40')}>
+                  <p className={cn('text-caption font-medium truncate', included ? 'text-foreground' : 'text-muted-foreground line-through decoration-muted-foreground/40')}>
                     {d}
                   </p>
-                  <p className="text-micro text-muted-foreground mt-0.5">
+                  <p className="text-caption text-muted-foreground mt-0.5">
                     {n} employee{n === 1 ? '' : 's'}
                     {!included && ' · hidden from PDF'}
                   </p>

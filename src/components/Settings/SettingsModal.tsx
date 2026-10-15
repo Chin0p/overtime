@@ -214,14 +214,14 @@ export function SettingsModal({ open, policy, appearance, pdf, basicPay, holiday
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="text-ui h-11 md:h-7 px-3"
+              className="text-caption h-11 md:h-7 px-3"
             >
               Cancel
             </Button>
             <Button
               size="sm"
               onClick={handleSaveAndClose}
-              className="text-ui h-11 md:h-7 px-3 font-semibold"
+              className="text-caption h-11 md:h-7 px-3 font-semibold"
             >
               Save & Apply
             </Button>

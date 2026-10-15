@@ -16,7 +16,7 @@ export function SettingsSection({ title, description, children }: SettingsSectio
     <section>
       <div className="px-1 mb-2">
         <h3 className="text-title text-foreground">{title}</h3>
-        {description && <p className="text-ui text-muted-foreground mt-0.5">{description}</p>}
+        {description && <p className="text-caption text-muted-foreground mt-0.5">{description}</p>}
       </div>
       <div className="rounded-xl border border-border bg-card shadow-xs divide-y divide-border overflow-hidden">
         {rows.map((row, i) => (

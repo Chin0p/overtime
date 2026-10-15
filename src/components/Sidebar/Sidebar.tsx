@@ -65,7 +65,7 @@ export function Sidebar({ employees, totalCount, holidayOptions, view, selectedE
             <DropdownMenuTrigger className={cn(iconBtn, sortKey !== 'file' && activeCls)} title="Sort employees" aria-label="Sort employees">
               <ArrowUpDown size={14} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="text-ui w-52">
+            <DropdownMenuContent align="end" className="text-caption w-52">
               {SORT_OPTIONS.map((opt, i) => (
                 <div key={opt.key}>
                   {i > 0 && <DropdownMenuSeparator />}

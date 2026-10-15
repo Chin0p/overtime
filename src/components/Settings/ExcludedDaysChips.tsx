@@ -55,7 +55,7 @@ export function ExcludedDaysChips({ dates, stateOf, onSet, onClear }: Props) {
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        {chosen.length === 0 && <span className="text-ui text-muted-foreground mr-1">No days excluded.</span>}
+        {chosen.length === 0 && <span className="text-caption text-muted-foreground mr-1">No days excluded.</span>}
         {chosen.map((date) => {
           const state = stateOf(date);
           const partial = state === 'some';
@@ -63,7 +63,7 @@ export function ExcludedDaysChips({ dates, stateOf, onSet, onClear }: Props) {
             <span
               key={date}
               className={cn(
-                'inline-flex items-center h-8 md:h-7 rounded-full border text-ui font-medium tabular-nums overflow-hidden',
+                'inline-flex items-center h-8 md:h-7 rounded-full border text-caption font-medium tabular-nums overflow-hidden',
                 partial ? 'border-dashed border-primary/50 bg-primary/5 text-primary' : 'border-primary/30 bg-primary/10 text-primary',
               )}
             >
@@ -76,7 +76,7 @@ export function ExcludedDaysChips({ dates, stateOf, onSet, onClear }: Props) {
                 className={cn('pl-2.5 pr-1.5 h-full', partial ? 'cursor-pointer hover:bg-primary/10' : 'cursor-default')}
               >
                 {dayLabel(date)}
-                {partial && <span className="ml-1 text-micro opacity-70">some</span>}
+                {partial && <span className="ml-1 text-caption opacity-70">some</span>}
               </button>
               <button
                 type="button"
@@ -95,13 +95,13 @@ export function ExcludedDaysChips({ dates, stateOf, onSet, onClear }: Props) {
       <div className="flex items-center gap-3">
         <DropdownMenu>
           <DropdownMenuTrigger
-            className={cn(buttonVariants({ variant: 'outline' }), 'h-11 md:h-8 gap-1.5 px-2.5 text-ui cursor-pointer')}
+            className={cn(buttonVariants({ variant: 'outline' }), 'h-11 md:h-8 gap-1.5 px-2.5 text-caption cursor-pointer')}
             disabled={months.length === 0}
           >
             <Plus size={14} />
             Add days
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56 max-h-72 overflow-y-auto text-ui">
+          <DropdownMenuContent align="start" className="w-56 max-h-72 overflow-y-auto text-caption">
             {months.map((m, i) => (
               <div key={m.label}>
                 {i > 0 && <DropdownMenuSeparator />}
@@ -114,7 +114,7 @@ export function ExcludedDaysChips({ dates, stateOf, onSet, onClear }: Props) {
                     className="tabular-nums"
                   >
                     {dayLabel(date)}
-                    {stateOf(date) === 'some' && <span className="ml-auto mr-4 text-micro text-muted-foreground">some</span>}
+                    {stateOf(date) === 'some' && <span className="ml-auto mr-4 text-caption text-muted-foreground">some</span>}
                   </DropdownMenuCheckboxItem>
                 ))}
               </div>

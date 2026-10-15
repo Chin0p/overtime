@@ -83,7 +83,7 @@ export function FilterBar({ filters, onChange, holidayOptions }: FilterBarProps)
           <Plus size={12} className="shrink-0" />
           Filter
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-60 max-h-[min(30rem,var(--available-height))] overflow-y-auto text-ui">
+        <DropdownMenuContent align="start" className="w-60 max-h-[min(30rem,var(--available-height))] overflow-y-auto text-caption">
           <DropdownMenuLabel className="text-caption">Overtime</DropdownMenuLabel>
           <DropdownMenuCheckboxItem checked={filters.hasOT} onCheckedChange={(v) => onChange({ ...filters, hasOT: v })}>
             Has OT hours
