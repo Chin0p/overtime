@@ -141,7 +141,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
 
           <div className="w-full lg:w-auto flex flex-col lg:flex-row gap-2.5">
             {missingPay && (
-              <div className="lg:hidden w-full p-2.5 bg-[var(--color-warning-light)] border border-[var(--color-warning)]/20 rounded-md flex items-center justify-center gap-1.5 text-[var(--color-warning)]">
+              <div className="lg:hidden w-full p-2.5 bg-[var(--color-warning-light)] border border-[var(--color-warning)]/20 rounded-md flex items-center justify-center gap-1.5 text-[var(--color-warning-fg)]">
                 <AlertTriangle size={14} />
                 <span className="text-ui font-semibold">Basic Pay is required for dynamic rate calculations</span>
               </div>
@@ -161,7 +161,7 @@ export function EmployeeHeader({ employee, onBack }: EmployeeHeaderProps) {
                   icon={<Banknote size={13} />}
                   label="Basic Pay"
                   value={employee.basicPay > 0 ? formatCurrency(employee.basicPay) : (
-                    <div className="flex items-center gap-1 text-[var(--color-warning)]">
+                    <div className="flex items-center gap-1 text-[var(--color-warning-fg)]">
                       <AlertTriangle size={12} />
                       <span className="text-ui font-bold">Required</span>
                     </div>

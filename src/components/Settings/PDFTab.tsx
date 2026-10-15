@@ -263,7 +263,7 @@ function DesignationManager({
             className={cn(
               'shrink-0 px-2 py-1 rounded-full text-micro font-semibold border',
               allExcluded
-                ? 'bg-[var(--color-warning-light)] text-[var(--color-warning)] border-[var(--color-warning)]/30'
+                ? 'bg-[var(--color-warning-light)] text-[var(--color-warning-fg)] border-[var(--color-warning)]/30'
                 : 'bg-primary/10 text-primary border-primary/20',
             )}
           >

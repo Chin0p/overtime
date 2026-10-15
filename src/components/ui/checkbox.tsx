@@ -20,7 +20,7 @@ export function Checkbox({ className, size = 'md', ...props }: CheckboxProps) {
       <span
         className={cn(
           'absolute inset-0 rounded border transition-all',
-          'border-[var(--color-border)] bg-card',
+          'border-[var(--border)] bg-card',
           'peer-checked:bg-primary peer-checked:border-primary',
           'peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-focus-ring)] peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background',
           'peer-disabled:opacity-50 peer-disabled:cursor-not-allowed',

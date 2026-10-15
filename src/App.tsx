@@ -293,7 +293,7 @@ export default function App() {
         ) : (
           <div className="flex-1 min-h-0 min-w-0 flex flex-col md:flex-row overflow-hidden md:rounded-xl md:border md:border-border">
             <div className={cn(
-              "shrink-0 w-full md:w-[320px] h-full border-r border-[var(--color-border)]",
+              "shrink-0 w-full md:w-[320px] h-full border-r border-[var(--border)]",
               selectedEmployee ? "hidden md:flex md:flex-col" : "flex flex-col"
             )}>
               <Sidebar
@@ -321,9 +321,9 @@ export default function App() {
                   />
                 </div>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-[var(--color-text-muted)] p-8 text-center">
+                <div className="h-full flex flex-col items-center justify-center text-[var(--muted-foreground)] p-8 text-center">
                   <Users className="w-16 h-16 mb-4 opacity-10" strokeWidth={1.5} />
-                  <h3 className="text-ui font-medium text-[var(--color-text-muted)]">
+                  <h3 className="text-ui font-medium text-[var(--muted-foreground)]">
                     No Employee Selected
                   </h3>
                   <p className="max-w-xs mt-1 text-caption">

@@ -16,7 +16,7 @@ interface RecordsTableProps {
 }
 
 /** Header cell: pinned under the title bar. */
-const HEAD = 'sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] font-semibold';
+const HEAD = 'sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--border)] font-semibold';
 const SORTABLE = 'cursor-pointer hover:bg-accent transition-colors select-none group';
 
 export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'date', onToggleSort, onSortColumn }: RecordsTableProps) {
@@ -34,7 +34,7 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
         >
           <TableHeader>
             <TableRow className="border-b-0">
-              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--color-border)] text-center w-12 font-semibold">Sr.</TableHead>
+              <TableHead className="sticky top-[var(--header-sticky)] z-20 bg-muted shadow-[inset_0_-1px_0_0_var(--border)] text-center w-12 font-semibold">Sr.</TableHead>
               <TableHead
                 className={cn(HEAD, 'left-0 z-30', SORTABLE)}
                 onClick={onToggleSort}
@@ -120,7 +120,7 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
                 {visibleColsSet.has('Adjustment') && (
                   <TableCell className="whitespace-nowrap">
                     {record.adjustment > 0 ? (
-                      <span className="text-[var(--color-warning)] font-medium">-{formatDuration(record.adjustment)}</span>
+                      <span className="text-[var(--color-warning-fg)] font-medium">-{formatDuration(record.adjustment)}</span>
                     ) : (
                       <span className="text-muted-foreground opacity-50">—</span>
                     )}
@@ -138,7 +138,7 @@ export function RecordsTable({ records, visibleColumns, sortOrder, sortKey = 'da
                     <span className={cn(
                       "inline-block px-2 py-0.5 text-caption font-medium rounded-[var(--radius-interactive)] pointer-events-none",
                       record.excluded && "border border-dashed border-border",
-                      record.remarks === 'Holiday' ? "bg-[var(--color-holiday)]/10 text-[var(--color-holiday)]" :
+                      record.remarks === 'Holiday' ? "bg-[var(--color-holiday)]/10 text-[var(--color-success-fg)]" :
                       "bg-muted text-muted-foreground"
                     )}>
                       {record.remarks}

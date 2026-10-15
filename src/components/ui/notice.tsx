@@ -5,13 +5,13 @@ import { cn } from '../../lib/utils';
 export type NoticeTone = 'error' | 'warning' | 'success';
 
 const TONES: Record<NoticeTone, { box: string; Icon: typeof AlertCircle }> = {
-  error: { box: 'border-destructive/30 bg-destructive/10 text-destructive', Icon: AlertCircle },
+  error: { box: 'border-destructive/30 bg-destructive/10 text-[var(--color-danger-fg)]', Icon: AlertCircle },
   warning: {
-    box: 'border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning)]',
+    box: 'border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning-fg)]',
     Icon: AlertTriangle,
   },
   success: {
-    box: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    box: 'border-[var(--color-success)]/30 bg-[var(--color-success)]/10 text-[var(--color-success-fg)]',
     Icon: CheckCircle2,
   },
 };

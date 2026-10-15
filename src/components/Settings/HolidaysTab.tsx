@@ -188,7 +188,7 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
                     <button
                       type="button"
                       onClick={() => setConfirmClear(true)}
-                      className="text-caption font-medium text-destructive hover:underline underline-offset-2 cursor-pointer"
+                      className="text-caption font-medium text-[var(--color-danger-fg)] hover:underline underline-offset-2 cursor-pointer"
                     >
                       Clear all holidays ({holidays.length})
                     </button>
@@ -201,7 +201,7 @@ export function HolidaysTab({ holidays, dates, onChange }: HolidaysTabProps) {
                         <button
                           type="button"
                           onClick={() => { onChange([]); setConfirmClear(false); }}
-                          className="px-2.5 py-1 rounded-md bg-destructive text-white text-caption font-semibold cursor-pointer"
+                          className="px-2.5 py-1 rounded-md bg-[var(--color-danger-fg)] text-[var(--color-danger-on)] text-caption font-semibold cursor-pointer"
                         >
                           Remove all
                         </button>

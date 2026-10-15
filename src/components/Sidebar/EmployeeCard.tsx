@@ -21,7 +21,7 @@ export const EmployeeCard = memo(function EmployeeCard({ employee, isSelected, o
       className={cn(
         'w-full text-left p-3 rounded-[var(--radius-interactive)] transition-[background-color,box-shadow,color] duration-[var(--duration-fast)] flex flex-col group relative shrink-0 outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-focus-ring)]',
         isSelected
-          ? 'bg-[var(--color-selection)] shadow-[inset_3px_0_0_0_var(--color-accent)]'
+          ? 'bg-[var(--color-selection)] shadow-[inset_3px_0_0_0_var(--primary)]'
           : 'hover:bg-[var(--color-neutral-hover)] active:bg-[var(--color-neutral-pressed)] text-foreground',
       )}
     >
@@ -32,7 +32,7 @@ export const EmployeeCard = memo(function EmployeeCard({ employee, isSelected, o
         <div className="flex items-center gap-1.5 shrink-0 select-none">
           {missingPay && (
             <span title="Missing basic pay" aria-label="Missing basic pay">
-              <AlertTriangle size={13} className="text-[var(--color-danger)]" />
+              <AlertTriangle size={13} className="text-[var(--destructive)]" />
             </span>
           )}
           {(isExempt || employee.totalOTHours > 0) && (

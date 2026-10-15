@@ -247,8 +247,8 @@ function TabButton({ active, onClick, icon, label }: { active: boolean, onClick:
       className={cn(
         "flex items-center w-auto md:w-full justify-start gap-2 rounded-[var(--radius-interactive)] transition-all shrink-0 px-3 min-h-11 md:min-h-0 py-2 text-body font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring",
         active
-          ? "bg-[var(--color-neutral-active)] text-[var(--color-accent)] hover:bg-[var(--color-neutral-active)] hover:text-[var(--color-accent)]"
-          : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-neutral-hover)]"
+          ? "bg-[var(--color-neutral-active)] text-[var(--primary)] hover:bg-[var(--color-neutral-active)] hover:text-[var(--primary)]"
+          : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--color-neutral-hover)]"
       )}
     >
       {icon}

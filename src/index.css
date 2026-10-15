@@ -18,15 +18,6 @@
 @theme {
   --color-bg-app: var(--color-bg-app);
   --color-bg-card: var(--color-bg-card);
-  --color-border: var(--color-border);
-  --color-text-main: var(--color-text-main);
-  --color-text-muted: var(--color-text-muted);
-  --color-accent: var(--color-accent);
-  --color-accent-text: var(--color-accent-text);
-  --color-danger: var(--color-danger);
-  --color-danger-hover: var(--color-danger-hover);
-  --color-danger-pressed: var(--color-danger-pressed);
-  --color-danger-light: var(--color-danger-light);
   --color-disabled-text: var(--color-disabled-text);
 
   --color-warning: var(--color-warning);
@@ -39,17 +30,9 @@
   --color-neutral-pressed: var(--color-neutral-pressed);
   --color-focus-ring: var(--color-focus-ring);
   --color-disabled-bg: var(--color-disabled-bg);
-  --color-accent-hover: var(--color-accent-hover);
-  --color-accent-pressed: var(--color-accent-pressed);
-  --color-disabled-accent: var(--color-disabled-accent);
   --color-selection: var(--color-selection);
   --color-selection-fg: var(--color-selection-fg);
 
-  --color-background: var(--color-bg-app);
-  --color-surface: var(--color-bg-card);
-  --color-surface-hover: var(--color-neutral-hover);
-  --color-muted: var(--color-text-muted);
-  --color-muted-dim: var(--color-text-muted);
 
   --radius-interactive: var(--radius-interactive);
   --header-sticky: var(--header-sticky);
@@ -61,29 +44,22 @@
   /* Surfaces */
   --color-bg-app: #F8FAFC;
   --color-bg-card: #FFFFFF;
-  --color-border: #E2E8F0;
-  --color-text-main: #0F172A;
-  --color-text-muted: #475569; /* stronger than #64748B for AA on 13px */
 
   /* Brand / accent (indigo — used for selection, primary actions) */
-  --color-accent: #4F46E5;
-  --color-accent-text: #FFFFFF;
-  --color-accent-hover: #4338CA;
-  --color-accent-pressed: #3730A3;
-  --color-disabled-accent: #C7D2FE;
 
   /* Selection (list items) — distinct from pure primary for dark-mode safety */
   --color-selection: #EEF2FF;
   --color-selection-fg: #3730A3;
 
   /* Semantic */
-  --color-danger: #EF4444;
-  --color-danger-hover: #DC2626;
-  --color-danger-pressed: #B91C1C;
-  --color-danger-light: #FEE2E2;
   --color-disabled-text: #94A3B8;
   --color-warning: #D97706;
   --color-warning-light: #FEF3C7;
+  /* Text on the tints above (the base colours are too light for small text on white). */
+  --color-warning-fg: #B45309;
+  --color-success-fg: #047857;
+  --color-danger-fg: #B91C1C;
+  --color-danger-on: #FFFFFF; /* text on a solid --color-danger-fg fill */
   --color-holiday: #059669;
   --color-success: #059669;
 
@@ -156,27 +132,19 @@
 
   --color-bg-app: #09090b;
   --color-bg-card: #18181b;
-  --color-border: #27272a;
-  --color-text-main: #FAFAFA;
-  --color-text-muted: #A1A1AA;
 
   /* Keep indigo brand in dark for selection contrast (not near-white) */
-  --color-accent: #818CF8;
-  --color-accent-text: #0F172A;
-  --color-accent-hover: #A5B4FC;
-  --color-accent-pressed: #C7D2FE;
-  --color-disabled-accent: #3F3F46;
 
   --color-selection: #1E1B4B;
   --color-selection-fg: #C7D2FE;
 
-  --color-danger: #F87171;
-  --color-danger-hover: #EF4444;
-  --color-danger-pressed: #DC2626;
-  --color-danger-light: rgba(239, 68, 68, 0.15);
   --color-disabled-text: #52525b;
   --color-warning: #FBBF24;
   --color-warning-light: rgba(251, 191, 36, 0.12);
+  --color-warning-fg: #FBBF24;
+  --color-success-fg: #34D399;
+  --color-danger-fg: #F87171;
+  --color-danger-on: #450A0A;
   --color-holiday: #34D399;
   --color-success: #34D399;
 

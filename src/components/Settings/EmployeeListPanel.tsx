@@ -286,7 +286,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
                           <span className="text-caption text-muted-foreground">Exempt</span>
                         ) : missingPay ? (
                           <span
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning)] text-micro font-semibold leading-none whitespace-nowrap"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-[var(--color-warning)]/30 bg-[var(--color-warning-light)] text-[var(--color-warning-fg)] text-micro font-semibold leading-none whitespace-nowrap"
                             title="Basic pay is needed to calculate this employee's overtime"
                           >
                             <AlertCircle size={11} className="shrink-0" />
@@ -306,7 +306,7 @@ export function EmployeeListPanel(props: EmployeeListPanelProps) {
       {/* Selection bar */}
       {selected.size > 0 && (
         <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-t border-primary/20 bg-[var(--color-neutral-active)] lg:hidden">
-          <span className="text-caption font-semibold text-[var(--color-accent)]">{selected.size} selected</span>
+          <span className="text-caption font-semibold text-[var(--primary)]">{selected.size} selected</span>
           <button
             type="button"
             onClick={onClearSelection}
