@@ -399,13 +399,16 @@ input[type="number"] {
 }
 
 
-/* Holidays tab: legend tap flashes the matching calendar days. */
+/* Holidays tab: tapping a legend entry gives the matching calendar days a quick heartbeat
+   (a beat, a smaller beat, a rest) with a thin ring. */
 @keyframes cal-flash {
-  0%, 100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
-  50% { box-shadow: 0 0 0 3px var(--color-primary); transform: scale(1.1); }
+  0%, 52%, 100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
+  12% { box-shadow: 0 0 0 1px var(--color-primary); transform: scale(1.08); }
+  26% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
+  38% { box-shadow: 0 0 0 1px var(--color-primary); transform: scale(1.05); }
 }
-.cal-flash { animation: cal-flash 0.7s ease-in-out 2; }
+.cal-flash { animation: cal-flash 0.8s ease-out 1; }
 @media (prefers-reduced-motion: reduce) {
   /* No movement: just a steady ring while the days are highlighted. */
-  .cal-flash { animation: none; box-shadow: 0 0 0 3px var(--color-primary); }
+  .cal-flash { animation: none; box-shadow: 0 0 0 1px var(--color-primary); }
 }

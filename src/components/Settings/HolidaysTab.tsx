@@ -18,7 +18,7 @@ const LEGEND: { kind: DayKind; label: string; hint: string; swatch: string }[] =
   { kind: 'nofile', label: 'Not in file', hint: 'Date is in the month but not in the upload', swatch: 'bg-card border-dashed border-muted-foreground/40' },
 ];
 
-const FLASH_MS = 1500;
+const FLASH_MS = 900; // the heartbeat is 0.8s
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
