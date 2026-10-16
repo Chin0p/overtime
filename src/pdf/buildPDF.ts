@@ -132,8 +132,8 @@ export function buildPDF(
 
   // Summary page does NOT have signatures (per organizational requirement)
 
-  // 2. Individual Employee Detail Pages
-  exportableEmployees.forEach((emp) => {
+  // 2. Individual Employee Detail Pages, in the same order as the summary page
+  summaryEmployees.forEach((emp) => {
     // Skip rows zeroed out by the monthly day cap — they must not appear
     // in the exported detail table at all.
     const validRecords = emp.records.filter(r =>

@@ -55,6 +55,19 @@ test('dates are dd-MMM-yyyy and times HH:mm everywhere', () => {
   assert.match(text, /\b19:00\b/);
 });
 
+test('detail pages follow the summary page order (here: name, A to Z, not file order)', () => {
+  const { text } = makePdf({ summarySort: 'name', summarySortDir: 'asc' });
+  const names = ['Test Cook', 'Test Driver', 'Test Official One'];
+  // Every name appears on the summary page first and then on its own detail page, so the last
+  // appearance is the detail page. The two orders must be the same.
+  const first = names.map((n) => text.indexOf(n));
+  const last = names.map((n) => text.lastIndexOf(n));
+  const order = (idx: number[]) => names.map((n, i) => [n, idx[i]] as const).sort((a, b) => a[1] - b[1]).map(([n]) => n);
+  assert.ok(first.every((i) => i >= 0), 'all three are in the PDF');
+  assert.deepEqual(order(first), ['Test Cook', 'Test Driver', 'Test Official One'], 'summary page order');
+  assert.deepEqual(order(last), order(first), 'detail pages in the same order');
+});
+
 test('both signature lines are printed', () => {
   const { text } = makePdf();
   assert.match(text, /Employee Signature/);
