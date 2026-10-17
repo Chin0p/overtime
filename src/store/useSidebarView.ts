@@ -4,14 +4,19 @@ import { flexibleParseDate } from '../lib/utils';
 
 /**
  * Filters for the employee list. They combine with AND: an employee has to match every active
- * filter. "Holiday availed" matches an employee who attended on ANY of the chosen holidays.
+ * filter. Inside the Overtime filter every chosen test has to hold ("has hours" and "has amount");
+ * "none" stands alone. "Holiday availed" matches an employee who attended on ANY of the chosen holidays.
  */
+export type OvertimeFilter = 'hours' | 'amount' | 'none';
+export type PayFilter = 'any' | 'dynamic' | 'fixed' | 'missing';
+
 export interface SidebarFilters {
-  hasOT: boolean;
+  /** hours: total OT hours above zero. amount: total amount above zero (holiday pay counts). none: neither. */
+  overtime: OvertimeFilter[];
   eligibility: 'any' | 'paid' | 'exempt';
   category: 'any' | 'official' | 'support';
-  rateType: 'any' | 'dynamic' | 'fixed';
-  missingPay: boolean;
+  /** missing: a dynamic-rate, non-exempt employee with no basic pay. */
+  pay: PayFilter;
   hasExcluded: boolean;
   /** Canonical dates (dd-MMM-yyyy) of chosen holidays, plus WEEKEND_KEY for Saturdays and Sundays. */
   holidays: string[];
@@ -21,11 +26,10 @@ export const WEEKEND_KEY = 'weekend';
 
 // No filter is on by default: the list shows everyone, and filters are added as needed.
 export const DEFAULT_FILTERS: SidebarFilters = {
-  hasOT: false,
+  overtime: [],
   eligibility: 'any',
   category: 'any',
-  rateType: 'any',
-  missingPay: false,
+  pay: 'any',
   hasExcluded: false,
   holidays: [],
 };
@@ -93,12 +97,14 @@ function availedHoliday(emp: ProcessedEmployee, keys: string[]): boolean {
 
 export const matchesFilters = (emp: ProcessedEmployee, f: SidebarFilters): boolean => {
   const exempt = emp.category === 'exempt';
-  if (f.hasOT && !(emp.totalOTHours > 0)) return false;
+  if (f.overtime.includes('hours') && !(emp.totalOTHours > 0)) return false;
+  if (f.overtime.includes('amount') && !(emp.totalAmount > 0)) return false;
+  if (f.overtime.includes('none') && (emp.totalOTHours > 0 || emp.totalAmount > 0)) return false;
   if (f.eligibility === 'paid' && exempt) return false;
   if (f.eligibility === 'exempt' && !exempt) return false;
   if (f.category !== 'any' && emp.category !== f.category) return false;
-  if (f.rateType !== 'any' && emp.rateType !== f.rateType) return false;
-  if (f.missingPay && !(!exempt && emp.rateType === 'dynamic' && emp.basicPay === 0)) return false;
+  if ((f.pay === 'dynamic' || f.pay === 'fixed') && emp.rateType !== f.pay) return false;
+  if (f.pay === 'missing' && !(!exempt && emp.rateType === 'dynamic' && emp.basicPay === 0)) return false;
   if (f.hasExcluded && !emp.records.some((r) => r.excluded)) return false;
   if (f.holidays.length > 0 && !availedHoliday(emp, f.holidays)) return false;
   return true;
