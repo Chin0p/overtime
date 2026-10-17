@@ -81,17 +81,19 @@ export default function App() {
   // The input stays instant; the list catches up a moment later instead of blocking each keystroke.
   const deferredQuery = useDeferredValue(searchQuery);
   const { filters, sortKey, sortOrder } = sidebarView;
-  const filteredEmployees = useMemo(() => {
-    // Every word must match somewhere in name, ERP or designation.
+  // Every word must match somewhere in name, ERP or designation.
+  const searchedEmployees = useMemo(() => {
     const terms = deferredQuery.toLowerCase().split(/\s+/).filter(Boolean);
-    const matching = terms.length === 0
-      ? processedEmployees
-      : processedEmployees.filter(emp => {
-          const haystack = `${emp.name} ${emp.erp} ${emp.designation}`.toLowerCase();
-          return terms.every(t => haystack.includes(t));
-        });
-    return applySidebarView(matching, { filters, sortKey, sortOrder });
-  }, [processedEmployees, deferredQuery, filters, sortKey, sortOrder]);
+    if (terms.length === 0) return processedEmployees;
+    return processedEmployees.filter(emp => {
+      const haystack = `${emp.name} ${emp.erp} ${emp.designation}`.toLowerCase();
+      return terms.every(t => haystack.includes(t));
+    });
+  }, [processedEmployees, deferredQuery]);
+  const filteredEmployees = useMemo(
+    () => applySidebarView(searchedEmployees, { filters, sortKey, sortOrder }),
+    [searchedEmployees, filters, sortKey, sortOrder],
+  );
   const holidayOptions = useMemo(() => buildHolidayOptions(processedEmployees), [processedEmployees]);
 
   const selectedEmployee = useMemo(() => {
@@ -299,6 +301,7 @@ export default function App() {
               <Sidebar
                 employees={filteredEmployees}
                 totalCount={processedEmployees.length}
+                searched={searchedEmployees}
                 holidayOptions={holidayOptions}
                 view={sidebarView}
                 selectedErp={selectedErp}

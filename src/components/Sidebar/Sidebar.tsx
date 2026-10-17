@@ -1,7 +1,7 @@
 import { Search, Check, ArrowUpDown } from 'lucide-react';
 import { ProcessedEmployee } from '../../types';
 import { EmployeeCard } from './EmployeeCard';
-import { FilterBar } from './FilterBar';
+import { FilterButton } from './FilterButton';
 import { Input } from '../ui/input';
 import { buttonVariants } from '../ui/button';
 import { cn } from '../../lib/utils';
@@ -20,6 +20,8 @@ interface SidebarProps {
   employees: ProcessedEmployee[];
   /** How many employees the file has, before any filter. */
   totalCount: number;
+  /** Employees the search lets through, before the filters; the filter panel counts a draft against them. */
+  searched: ProcessedEmployee[];
   holidayOptions: HolidayOption[];
   view: SidebarView;
   selectedErp: string | null;
@@ -42,14 +44,14 @@ const iconBtn = cn(
 );
 const activeCls = 'text-primary border-primary';
 
-export function Sidebar({ employees, totalCount, holidayOptions, view, selectedErp, onSelect, searchQuery, onSearchChange }: SidebarProps) {
+export function Sidebar({ employees, totalCount, searched, holidayOptions, view, selectedErp, onSelect, searchQuery, onSearchChange }: SidebarProps) {
   const { filters, setFilters, sortKey, sortOrder, setSort } = view;
   const filteredEmployees = employees;
 
   return (
     <aside className="w-full h-full bg-card flex flex-col shrink-0">
       <div className="p-2 md:p-3 border-b border-border">
-        <div className="flex items-center gap-1.5 mb-2">
+        <div className="flex items-center gap-1.5">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
             <Input
@@ -60,6 +62,8 @@ export function Sidebar({ employees, totalCount, holidayOptions, view, selectedE
               className="pl-8 text-body h-11 md:h-8"
             />
           </div>
+
+          <FilterButton filters={filters} onChange={setFilters} holidayOptions={holidayOptions} candidates={searched} />
 
           <DropdownMenu>
             <DropdownMenuTrigger className={cn(iconBtn, sortKey !== 'file' && activeCls)} title="Sort employees" aria-label="Sort employees">
@@ -94,8 +98,7 @@ export function Sidebar({ employees, totalCount, holidayOptions, view, selectedE
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <FilterBar filters={filters} onChange={setFilters} holidayOptions={holidayOptions} />
-        <p className="mt-1.5 text-caption text-muted-foreground tabular-nums" aria-live="polite">
+        <p className="mt-2 text-caption text-muted-foreground tabular-nums" aria-live="polite">
           {filteredEmployees.length === totalCount ? `${totalCount} employees` : `${filteredEmployees.length} of ${totalCount} employees`}
         </p>
       </div>
